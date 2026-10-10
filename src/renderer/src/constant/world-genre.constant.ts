@@ -45,6 +45,10 @@ export function worldGenreLabel(genre: WorldGenreValue): string {
   return worldGenreOptions.find((option) => option.value === genre)?.label ?? genre
 }
 
+export function worldGenreValue(genre: string): WorldGenreValue | undefined {
+  return worldGenreOptions.find((option) => option.label === genre || option.value === genre)?.value
+}
+
 export function worldGenreGroup(genre: string): WorldGenreGroup | undefined {
   return worldGenreOptions.find((option) => option.label === genre || option.value === genre)?.group
 }

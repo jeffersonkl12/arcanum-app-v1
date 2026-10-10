@@ -1,7 +1,7 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import type { CreateActor, CreateWorld } from '@schema'
 import type { IpcError } from '@shared'
-import { worldGenreGroup } from '@renderer/constant/world-genre.constant'
+import { worldGenreGroup, worldGenreLabel } from '@renderer/constant/world-genre.constant'
 import { useRequest } from './request.composable'
 import { toActorSummary, toNamedEntitySummary, toWorldDetail, toWorldSummary } from './world.mapper'
 import type {
@@ -199,6 +199,62 @@ async function createWorld(input: CreateWorld): Promise<WorldSummary | undefined
   return summary
 }
 
+type UpdateWorldInput = Pick<CreateWorld, 'name' | 'genre' | 'description'>
+
+async function updateWorld(
+  worldId: string,
+  input: UpdateWorldInput
+): Promise<WorldDetail | undefined> {
+  if (isMockWorld(worldId) || !isEngineWorldId(worldId)) {
+    // Proposed: dashboard mock worlds have no engine record yet.
+    const detail: WorldDetail = {
+      id: worldId,
+      name: input.name,
+      description: input.description,
+      genre: worldGenreLabel(input.genre),
+      imagePath: currentWorld.value?.imagePath
+    }
+    currentWorld.value = detail
+    worlds.value = worlds.value.map((world) =>
+      world.id === worldId
+        ? {
+            ...world,
+            name: detail.name,
+            description: detail.description,
+            genre: detail.genre
+          }
+        : world
+    )
+    const mock = mockWorldDetails[worldId]
+    if (mock) mock.world = detail
+    return detail
+  }
+
+  const updated = await request('world:update', {
+    id: worldId,
+    patch: {
+      name: input.name,
+      genre: input.genre,
+      description: input.description
+    }
+  })
+  if (!updated) return undefined
+
+  const detail = toWorldDetail(updated)
+  currentWorld.value = detail
+  worlds.value = worlds.value.map((world) =>
+    world.id === worldId
+      ? {
+          ...world,
+          name: detail.name,
+          description: detail.description,
+          genre: detail.genre
+        }
+      : world
+  )
+  return detail
+}
+
 async function loadWorld(worldId: string): Promise<void> {
   isNotFound.value = false
   entityTab.value = 'npcs'
@@ -252,14 +308,15 @@ async function loadWorld(worldId: string): Promise<void> {
   cultures.value = loadedCultures.map(toNamedEntitySummary)
 }
 
-async function deleteActor(actorId: string): Promise<void> {
-  if (isMockWorld(currentWorld.value?.id)) {
+async function deleteActor(actorId: string): Promise<boolean> {
+  if (isMockWorld(currentWorld.value?.id) || !isEngineWorldId(currentWorld.value?.id ?? '')) {
+    // Proposed: dashboard mock worlds have no engine record yet.
     actors.value = actors.value.filter((actor) => actor.id !== actorId)
-    return
+    return true
   }
 
   await detailRequest('actor:delete', actorId)
-  if (detailError.value || !currentWorld.value) return
+  if (detailError.value || !currentWorld.value) return false
 
   const [actorList, cultureList] = await Promise.all([
     detailRequest('actor:listByWorld', currentWorld.value.id),
@@ -268,6 +325,7 @@ async function deleteActor(actorId: string): Promise<void> {
   actors.value = (actorList ?? [])
     .filter((actor) => actor.isNpc)
     .map((actor) => toActorSummary(actor, cultureList ?? []))
+  return true
 }
 
 type CreateActorInput = Omit<CreateActor, 'worldId' | 'isNpc' | 'partyId'> & {
@@ -508,6 +566,7 @@ export function useWorld(): {
   isCreating: Ref<boolean>
   createError: Ref<IpcError | undefined>
   createWorld: (input: CreateWorld) => Promise<WorldSummary | undefined>
+  updateWorld: (worldId: string, input: UpdateWorldInput) => Promise<WorldDetail | undefined>
   currentWorld: Ref<WorldDetail | undefined>
   entityTab: Ref<WorldEntityTab>
   entitySearch: Ref<string>
@@ -523,7 +582,7 @@ export function useWorld(): {
   isCreatingNamedEntity: Ref<boolean>
   createNamedEntityError: Ref<IpcError | undefined>
   loadWorld: (worldId: string) => Promise<void>
-  deleteActor: (actorId: string) => Promise<void>
+  deleteActor: (actorId: string) => Promise<boolean>
   createActor: (input: CreateActorInput) => Promise<ActorSummary | undefined>
   updateActor: (actorId: string, input: CreateActorInput) => Promise<ActorSummary | undefined>
   createLanguage: (input: CreateNamedEntityInput) => Promise<NamedEntitySummary | undefined>
@@ -546,6 +605,7 @@ export function useWorld(): {
     isCreating,
     createError,
     createWorld,
+    updateWorld,
     currentWorld,
     entityTab,
     entitySearch,

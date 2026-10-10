@@ -4,6 +4,7 @@ import { Camera, Plus, X } from '@lucide/vue'
 import { DialogContent, DialogPortal } from 'reka-ui'
 import { useForm } from 'vee-validate'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { toast } from 'vue-sonner'
 import { z } from 'zod'
 import type { IpcError } from '@shared'
 import { toImageUrl } from '@shared'
@@ -130,6 +131,7 @@ const onSubmit = handleSubmit(async (values) => {
     imageData: imageData.value
   }
 
+  const editing = isEditing.value
   const saved = entity.value
     ? await updateActor(entity.value.id, payload)
     : await createActor(payload)
@@ -138,6 +140,7 @@ const onSubmit = handleSubmit(async (values) => {
     applyCreateErrors(createActorError.value)
     return
   }
+  toast.success(editing ? 'Personagem atualizado' : 'Personagem criado')
   emit('saved', saved)
   open.value = false
 })

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { Search } from '@lucide/vue'
+import { toast } from 'vue-sonner'
 import {
   ActorRow,
   ConfirmDialog,
@@ -68,7 +69,9 @@ async function confirmDeleteActor(): Promise<void> {
   if (!actor || isDeletingActor.value) return
   isDeletingActor.value = true
   try {
-    await deleteActor(actor.id)
+    const deleted = await deleteActor(actor.id)
+    if (!deleted) return
+    toast.success('NPC removido')
     deleteConfirmOpen.value = false
     pendingDeleteActor.value = null
   } finally {
@@ -80,7 +83,7 @@ const tabTriggerClass = cn(
   'h-auto flex-none rounded-none border-0 bg-transparent px-0 pb-3 text-base font-medium text-tertiary shadow-none',
   'hover:text-foreground data-active:bg-transparent data-active:font-semibold data-active:text-primary',
   'dark:data-active:border-transparent dark:data-active:bg-transparent',
-  'after:bottom-0 after:bg-primary group-data-[variant=line]/tabs-list:data-active:after:opacity-100'
+  'after:bg-primary group-data-horizontal/tabs:after:bottom-0 group-data-[variant=line]/tabs-list:data-active:after:opacity-100'
 )
 </script>
 

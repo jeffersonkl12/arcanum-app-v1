@@ -4,6 +4,7 @@ import { Plus, X } from '@lucide/vue'
 import { DialogContent, DialogPortal } from 'reka-ui'
 import { useForm } from 'vee-validate'
 import { computed, watch } from 'vue'
+import { toast } from 'vue-sonner'
 import { z } from 'zod'
 import { useWorld } from '@renderer/composable/world.composable'
 import type { NamedEntitySummary } from '@renderer/composable/world.type'
@@ -68,7 +69,8 @@ const copy = computed(() => {
       nameLabel: 'Nome do Idioma',
       namePlaceholder: 'Ex: Aethérico',
       descriptionPlaceholder: 'Uma breve descrição sobre este idioma...',
-      submit: isEditing.value ? 'Salvar Alterações' : 'Salvar Idioma'
+      submit: isEditing.value ? 'Salvar Alterações' : 'Salvar Idioma',
+      success: isEditing.value ? 'Idioma atualizado' : 'Idioma criado'
     }
   }
 
@@ -79,7 +81,8 @@ const copy = computed(() => {
     nameLabel: 'Nome da Cultura',
     namePlaceholder: 'Ex: Elfos de Sylaris',
     descriptionPlaceholder: 'Uma breve descrição sobre esta cultura...',
-    submit: isEditing.value ? 'Salvar Alterações' : 'Salvar Cultura'
+    submit: isEditing.value ? 'Salvar Alterações' : 'Salvar Cultura',
+    success: isEditing.value ? 'Cultura atualizada' : 'Cultura criada'
   }
 })
 
@@ -117,6 +120,7 @@ const onSubmit = handleSubmit(async (values) => {
     applyCreateErrors(createNamedEntityError.value)
     return
   }
+  toast.success(copy.value.success)
   open.value = false
 })
 

@@ -3,10 +3,16 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { Plus, X } from '@lucide/vue'
 import { DialogContent, DialogPortal } from 'reka-ui'
 import { useForm } from 'vee-validate'
-import { ref, watch } from 'vue'
+import { computed, watch } from 'vue'
+import { toast } from 'vue-sonner'
 import { z } from 'zod'
-import { worldGenreOptions, worldGenreValues } from '@renderer/constant/world-genre.constant'
+import {
+  worldGenreOptions,
+  worldGenreValues,
+  worldGenreValue
+} from '@renderer/constant/world-genre.constant'
 import { useWorld } from '@renderer/composable/world.composable'
+import type { WorldDetail } from '@renderer/composable/world.type'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -34,6 +40,17 @@ import {
 import { Textarea } from '@renderer/components/ui/textarea'
 import type { IpcError } from '@shared'
 
+const open = defineModel<boolean>('open', { default: false })
+const entity = defineModel<WorldDetail | null>('entity', { default: null })
+
+withDefaults(
+  defineProps<{
+    /** When false, the dialog is controlled only via `open` (no trigger button). */
+    showTrigger?: boolean
+  }>(),
+  { showTrigger: true }
+)
+
 const formFields = ['name', 'genre', 'description'] as const
 
 type FormFieldName = (typeof formFields)[number]
@@ -58,30 +75,60 @@ const emptyForm = {
   description: ''
 }
 
-const open = ref(false)
-const { createWorld, isCreating, createError } = useWorld()
+const isEditing = computed(() => entity.value != null)
+const { createWorld, updateWorld, isCreating, createError } = useWorld()
 const { handleSubmit, resetForm, setErrors } = useForm({
   validationSchema: createWorldFormSchema,
   initialValues: emptyForm
 })
 
 const onSubmit = handleSubmit(async (values) => {
-  const created = await createWorld({
+  const payload = {
     name: values.name,
     genre: values.genre,
-    description: values.description,
-    isTemplate: false
-  })
-  if (!created) {
+    description: values.description
+  }
+
+  const editing = isEditing.value
+  const saved = entity.value
+    ? await updateWorld(entity.value.id, payload)
+    : await createWorld({ ...payload, isTemplate: false })
+
+  if (!saved) {
     applyCreateErrors(createError.value)
     return
   }
+  toast.success(editing ? 'Mundo atualizado' : 'Mundo criado')
   open.value = false
 })
 
 watch(open, (isOpen) => {
-  if (!isOpen) resetForm({ values: emptyForm })
+  if (isOpen) {
+    fillForm(entity.value)
+    return
+  }
+  resetForm({ values: emptyForm })
+  entity.value = null
 })
+
+function startCreate(): void {
+  entity.value = null
+}
+
+function fillForm(world: WorldDetail | null): void {
+  if (!world) {
+    resetForm({ values: emptyForm })
+    return
+  }
+
+  resetForm({
+    values: {
+      name: world.name,
+      genre: worldGenreValue(world.genre),
+      description: world.description
+    }
+  })
+}
 
 function applyCreateErrors(error: IpcError | undefined): void {
   if (error?.kind !== 'invalid_input') return
@@ -100,10 +147,11 @@ function isFormField(path: string): path is FormFieldName {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogTrigger as-child>
+    <DialogTrigger v-if="showTrigger" as-child>
       <Button
         type="button"
         class="h-auto gap-2 rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-primary-hover"
+        @click="startCreate"
       >
         <Plus class="size-4.5" />
         Novo Mundo
@@ -119,7 +167,9 @@ function isFormField(path: string): path is FormFieldName {
             Informe o nome, o gênero e a descrição do mundo.
           </DialogDescription>
           <div class="flex items-center justify-between gap-4">
-            <DialogTitle class="font-body text-xl font-bold">Criar Novo Mundo</DialogTitle>
+            <DialogTitle class="font-body text-xl font-bold">
+              {{ isEditing ? 'Editar Mundo' : 'Criar Novo Mundo' }}
+            </DialogTitle>
             <DialogClose class="text-tertiary" :disabled="isCreating">
               <X class="size-5" />
               <span class="sr-only">Fechar</span>
@@ -201,7 +251,7 @@ function isFormField(path: string): path is FormFieldName {
               class="h-auto rounded-full px-6 py-3 text-sm font-semibold hover:bg-primary-hover"
               :disabled="isCreating"
             >
-              Criar Mundo
+              {{ isEditing ? 'Salvar Alterações' : 'Criar Mundo' }}
             </Button>
           </div>
         </form>
