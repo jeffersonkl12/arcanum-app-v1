@@ -1,6 +1,12 @@
 import type { Actor } from '@schema'
 import type { IpcOutput } from '@shared'
-import type { ChatSegment, GameChatMessage, PartyMemberCardModel } from './game.type'
+import { actorAgeOptions, actorGenderOptions } from '@renderer/constant/actor.constant'
+import type {
+  CharacterSheet,
+  ChatSegment,
+  GameChatMessage,
+  PartyMemberCardModel
+} from './game.type'
 
 type CampaignMessage = IpcOutput<'gameMaster:listHistory'>[number]
 
@@ -68,4 +74,42 @@ export function hpPercent(current: number, max: number): number {
 
 export function isCriticalHp(current: number, max: number): boolean {
   return max > 0 && current / max <= 0.35
+}
+
+export function actorAgeLabel(age: Actor['age']): string {
+  return actorAgeOptions.find((option) => option.value === age)?.label ?? age
+}
+
+export function actorGenderLabel(gender: Actor['gender']): string {
+  return actorGenderOptions.find((option) => option.value === gender)?.label ?? gender
+}
+
+export function toCharacterSheet(
+  actor: Actor,
+  hpCurrent: number,
+  hpMax: number,
+  languageName?: string,
+  cultureName?: string
+): CharacterSheet {
+  const roleBits = [actor.profession?.trim(), cultureName].filter((value): value is string =>
+    Boolean(value)
+  )
+
+  return {
+    id: actor.id,
+    name: actor.name,
+    roleLabel: roleBits.join(' • ') || (actor.isNpc ? 'NPC' : 'Jogador'),
+    badgeLabel: actor.isNpc ? 'NPC' : 'JOGADOR',
+    isNpc: actor.isNpc,
+    imagePath: actor.imagePath ?? undefined,
+    hpCurrent,
+    hpMax,
+    ageLabel: actorAgeLabel(actor.age),
+    genderLabel: actorGenderLabel(actor.gender),
+    languageLabel: languageName?.trim() || '—',
+    cultureLabel: cultureName?.trim() || '—',
+    appearance: actor.appearance?.trim() || '—',
+    personality: actor.personality?.trim() || '—',
+    background: actor.background?.trim() || '—'
+  }
 }

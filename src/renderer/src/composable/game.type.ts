@@ -29,3 +29,21 @@ export interface GameSession {
   playerName: string
   playerImagePath?: string
 }
+
+export interface CharacterSheet {
+  id: string
+  name: string
+  roleLabel: string
+  badgeLabel: string
+  isNpc: boolean
+  imagePath?: string
+  hpCurrent: number
+  hpMax: number
+  ageLabel: string
+  genderLabel: string
+  languageLabel: string
+  cultureLabel: string
+  appearance: string
+  personality: string
+  background: string
+}

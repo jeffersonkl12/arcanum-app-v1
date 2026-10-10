@@ -4,7 +4,7 @@ import { useGame } from '@renderer/composable/game.composable'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
 
-const { player, npcs, sidebarTab } = useGame()
+const { player, npcs, sidebarTab, openCharacterSheet } = useGame()
 </script>
 
 <template>
@@ -33,13 +33,22 @@ const { player, npcs, sidebarTab } = useGame()
           <div class="flex flex-col gap-6 p-6">
             <div class="flex flex-col gap-3">
               <p class="text-xs font-bold tracking-wide text-tertiary uppercase">Jogador</p>
-              <PartyMemberCard v-if="player" :member="player" />
+              <PartyMemberCard
+                v-if="player"
+                :member="player"
+                @select="void openCharacterSheet(player.id)"
+              />
               <p v-else class="text-sm text-tertiary">Nenhum jogador no grupo.</p>
             </div>
             <div class="flex flex-col gap-3">
               <p class="text-xs font-bold tracking-wide text-tertiary uppercase">NPCs do grupo</p>
               <div class="flex flex-col gap-3">
-                <PartyMemberCard v-for="npc in npcs" :key="npc.id" :member="npc" />
+                <PartyMemberCard
+                  v-for="npc in npcs"
+                  :key="npc.id"
+                  :member="npc"
+                  @select="void openCharacterSheet(npc.id)"
+                />
                 <p v-if="npcs.length === 0" class="text-sm text-tertiary">Nenhum NPC no grupo.</p>
               </div>
             </div>

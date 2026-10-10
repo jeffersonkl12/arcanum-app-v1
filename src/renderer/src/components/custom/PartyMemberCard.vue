@@ -11,6 +11,10 @@ const props = defineProps<{
   member: PartyMemberCardModel
 }>()
 
+defineEmits<{
+  select: []
+}>()
+
 const percent = computed(() => hpPercent(props.member.hpCurrent, props.member.hpMax))
 const critical = computed(() => isCriticalHp(props.member.hpCurrent, props.member.hpMax))
 
@@ -25,7 +29,11 @@ function initials(value: string): string {
 </script>
 
 <template>
-  <div class="flex w-full flex-col gap-2.5 rounded-lg border border-border bg-card p-3.5">
+  <button
+    type="button"
+    class="flex w-full flex-col gap-2.5 rounded-lg border border-border bg-card p-3.5 text-left transition-colors hover:bg-secondary/60"
+    @click="$emit('select')"
+  >
     <div class="flex w-full items-center gap-3">
       <Avatar size="lg" class="after:border-transparent">
         <AvatarImage
@@ -52,5 +60,5 @@ function initials(value: string): string {
         cn('h-1.5 bg-border', critical && '[&_[data-slot=progress-indicator]]:bg-destructive')
       "
     />
-  </div>
+  </button>
 </template>

@@ -1,16 +1,19 @@
-import { computed, ref, type ComputedRef, type Ref } from 'vue'
+import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 import type { Actor } from '@schema'
 import { useRequest } from '@renderer/composable/request.composable'
 import {
   formatMessageTime,
+  toCharacterSheet,
   toGameChatMessage,
   toPartyMemberCard
 } from '@renderer/composable/game.mapper'
 import type {
+  CharacterSheet,
   GameChatMessage,
   GameSession,
   PartyMemberCardModel
 } from '@renderer/composable/game.type'
+import { toast } from 'vue-sonner'
 
 function isEngineWorldId(worldId: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(worldId)
@@ -128,6 +131,77 @@ const mockParty: { player: PartyMemberCardModel; npcs: PartyMemberCardModel[] } 
   ]
 }
 
+// Proposed: mock sheets fill the character modal until actor:get is available for the session.
+const mockSheets: Record<string, CharacterSheet> = {
+  'mock-player': {
+    id: 'mock-player',
+    name: 'Rian Thorne',
+    roleLabel: 'Patrulheiro • Humano',
+    badgeLabel: 'JOGADOR',
+    isNpc: false,
+    hpCurrent: 32,
+    hpMax: 40,
+    ageLabel: 'Jovem adulto',
+    genderLabel: 'Masculino',
+    languageLabel: 'Comum, Silvano',
+    cultureLabel: 'Vale de Sylaris',
+    appearance:
+      'Cabelos castanhos curtos, cicatriz na sobrancelha esquerda, veste um casaco de couro de patrulheiro com insígnias da Guilda dos Cartógrafos.',
+    personality:
+      'Observador e cauteloso, mas leal aos companheiros. Prefere negociar antes de lutar, porém não hesita quando é necessário.',
+    background:
+      'Cresceu nas estradas entre as cidades flutuantes, mapeando rotas seguras para caravanas. Busca redescobrir rotas perdidas que ligavam Sylaris ao solo antes da Grande Ascensão.'
+  },
+  'mock-elara': {
+    id: 'mock-elara',
+    name: 'Elara Moonwhisper',
+    roleLabel: 'Arquimaga • Elfa',
+    badgeLabel: 'NPC',
+    isNpc: true,
+    hpCurrent: 18,
+    hpMax: 20,
+    ageLabel: 'Adulto',
+    genderLabel: 'Feminino',
+    languageLabel: 'Élfico, Comum',
+    cultureLabel: 'Torre de Sylaris',
+    appearance: 'Cabelos prateados longos, olhos âmbar e vestes azuis com runas sutis.',
+    personality: 'Erudita e reservada, com humor seco quando a tensão baixa.',
+    background: 'Arquivista da Torre que acompanha o grupo em busca de selos antigos.'
+  },
+  'mock-thorek': {
+    id: 'mock-thorek',
+    name: 'Thorek Ironbrow',
+    roleLabel: 'Capitão da Guarda • Anão',
+    badgeLabel: 'NPC',
+    isNpc: true,
+    hpCurrent: 40,
+    hpMax: 40,
+    ageLabel: 'Meia-idade',
+    genderLabel: 'Masculino',
+    languageLabel: 'Anão, Comum',
+    cultureLabel: 'Guarda Aérea',
+    appearance: 'Barba trançada com anéis de ferro e armadura reforçada nos ombros.',
+    personality: 'Direto, protetor e pouco paciente com enrolação.',
+    background: 'Veterano da Guarda Aérea designado para escoltar a expedição.'
+  },
+  'mock-vaelin': {
+    id: 'mock-vaelin',
+    name: 'Vaelin o Silencioso',
+    roleLabel: 'Informante • Humano',
+    badgeLabel: 'NPC',
+    isNpc: true,
+    hpCurrent: 10,
+    hpMax: 30,
+    ageLabel: 'Jovem adulto',
+    genderLabel: 'Masculino',
+    languageLabel: 'Comum',
+    cultureLabel: 'Guilda das Sombras',
+    appearance: 'Capuz escuro, passos leves e olhar sempre atento às saídas.',
+    personality: 'Fala pouco e observa muito; lealdade negociável, mas útil.',
+    background: 'Informante da guilda que conhece atalhos e segredos da cidade.'
+  }
+}
+
 const session = ref<GameSession>()
 const messages = ref<GameChatMessage[]>([])
 const player = ref<PartyMemberCardModel>()
@@ -135,6 +209,14 @@ const npcs = ref<PartyMemberCardModel[]>([])
 const draft = ref('')
 const sidebarTab = ref<'party' | 'journal'>('party')
 const isSending = ref(false)
+const sheetOpen = ref(false)
+const selectedSheet = ref<CharacterSheet>()
+const isSheetLoading = ref(false)
+const isDeletingSheet = ref(false)
+
+watch(sheetOpen, (open) => {
+  if (!open) selectedSheet.value = undefined
+})
 
 function resolveHp(actor: Actor): { current: number; max: number } {
   const named = mockHpByName[actor.name]
@@ -166,17 +248,100 @@ export function useGame(): {
   npcs: Ref<PartyMemberCardModel[]>
   draft: Ref<string>
   sidebarTab: Ref<'party' | 'journal'>
+  sheetOpen: Ref<boolean>
+  selectedSheet: Ref<CharacterSheet | undefined>
   isLoading: Ref<boolean>
   isSending: Ref<boolean>
+  isSheetLoading: Ref<boolean>
+  isDeletingSheet: Ref<boolean>
   canSend: ComputedRef<boolean>
   loadGame: (worldId: string) => Promise<void>
   sendMessage: () => Promise<void>
+  openCharacterSheet: (actorId: string) => Promise<void>
+  closeCharacterSheet: () => void
+  deleteSelectedCharacter: () => Promise<void>
+  requestEditCharacter: () => void
 } {
-  const { isLoading, request } = useRequest()
+  const { isLoading, error, request } = useRequest()
 
   const canSend = computed(
     () => draft.value.trim().length > 0 && !isSending.value && !isLoading.value
   )
+
+  function closeCharacterSheet(): void {
+    sheetOpen.value = false
+    selectedSheet.value = undefined
+  }
+
+  async function openCharacterSheet(actorId: string): Promise<void> {
+    sheetOpen.value = true
+    isSheetLoading.value = true
+    selectedSheet.value = undefined
+
+    try {
+      const mock = mockSheets[actorId]
+      if (mock) {
+        selectedSheet.value = { ...mock }
+        return
+      }
+
+      const worldId = session.value?.worldId
+      if (!worldId || !isEngineWorldId(worldId)) {
+        toast.error('Personagem não encontrado')
+        closeCharacterSheet()
+        return
+      }
+
+      const actor = await request('actor:get', actorId)
+      if (!actor) {
+        closeCharacterSheet()
+        return
+      }
+
+      const [languages, cultures] = await Promise.all([
+        request('language:listByWorld', worldId),
+        request('culture:listByWorld', worldId)
+      ])
+      const languageName = languages?.find((item) => item.id === actor.languageId)?.name
+      const cultureName = cultures?.find((item) => item.id === actor.cultureId)?.name
+      const hp = resolveHp(actor)
+      selectedSheet.value = toCharacterSheet(actor, hp.current, hp.max, languageName, cultureName)
+    } finally {
+      isSheetLoading.value = false
+    }
+  }
+
+  async function deleteSelectedCharacter(): Promise<void> {
+    const sheet = selectedSheet.value
+    const worldId = session.value?.worldId
+    if (!sheet || isDeletingSheet.value) return
+
+    isDeletingSheet.value = true
+    try {
+      if (!isEngineWorldId(worldId ?? '') || sheet.id.startsWith('mock-')) {
+        // Proposed: mock party delete stays local until campaign party is engine-owned.
+        if (player.value?.id === sheet.id) player.value = undefined
+        npcs.value = npcs.value.filter((npc) => npc.id !== sheet.id)
+        delete mockSheets[sheet.id]
+        closeCharacterSheet()
+        toast.success('Personagem removido')
+        return
+      }
+
+      await request('actor:delete', sheet.id)
+      if (error.value) return
+      await loadGame(worldId!)
+      closeCharacterSheet()
+      toast.success('Personagem removido')
+    } finally {
+      isDeletingSheet.value = false
+    }
+  }
+
+  function requestEditCharacter(): void {
+    // Proposed: actor edit dialog from the game sheet is not wired yet.
+    toast.message('Edição pela ficha ainda não está disponível')
+  }
 
   async function loadGame(worldId: string): Promise<void> {
     if (!isEngineWorldId(worldId)) {
@@ -301,10 +466,18 @@ export function useGame(): {
     npcs,
     draft,
     sidebarTab,
+    sheetOpen,
+    selectedSheet,
     isLoading,
     isSending,
+    isSheetLoading,
+    isDeletingSheet,
     canSend,
     loadGame,
-    sendMessage
+    sendMessage,
+    openCharacterSheet,
+    closeCharacterSheet,
+    deleteSelectedCharacter,
+    requestEditCharacter
   }
 }

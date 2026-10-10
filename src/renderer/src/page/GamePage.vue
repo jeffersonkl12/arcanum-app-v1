@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import { watch } from 'vue'
 import { useRoute } from 'vue-router'
+import CharacterSheetDialog from '@renderer/components/custom/CharacterSheetDialog.vue'
 import { useGame } from '@renderer/composable/game.composable'
 import { GameChatView, GameHeaderView, GamePartyView } from '@renderer/view/game'
 
 const route = useRoute()
-const { loadGame } = useGame()
+const {
+  loadGame,
+  sheetOpen,
+  selectedSheet,
+  isSheetLoading,
+  isDeletingSheet,
+  deleteSelectedCharacter,
+  requestEditCharacter
+} = useGame()
 
 watch(
   () => route.params.worldId,
@@ -23,5 +32,13 @@ watch(
       <GameChatView />
     </div>
     <GamePartyView />
+    <CharacterSheetDialog
+      v-model:open="sheetOpen"
+      :sheet="selectedSheet"
+      :loading="isSheetLoading"
+      :deleting="isDeletingSheet"
+      @delete="void deleteSelectedCharacter()"
+      @edit="requestEditCharacter"
+    />
   </div>
 </template>
