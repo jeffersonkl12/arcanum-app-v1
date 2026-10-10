@@ -7,13 +7,19 @@ import {
   Loader2Icon,
   OctagonXIcon,
   TriangleAlertIcon,
-  XIcon,
+  XIcon
 } from '@lucide/vue'
 import { reactiveOmit } from '@vueuse/core'
 import { Toaster as Sonner } from 'vue-sonner'
+import 'vue-sonner/style.css'
 import { cn } from '@renderer/lib/utils'
 
-const props = defineProps<ToasterProps>()
+const props = withDefaults(defineProps<ToasterProps>(), {
+  position: 'top-right',
+  theme: 'dark',
+  richColors: true,
+  closeButton: true
+})
 const delegatedProps = reactiveOmit(props, 'class', 'toastOptions')
 </script>
 
@@ -24,18 +30,15 @@ const delegatedProps = reactiveOmit(props, 'class', 'toastOptions')
       '--normal-bg': 'var(--popover)',
       '--normal-text': 'var(--popover-foreground)',
       '--normal-border': 'var(--border)',
-      '--border-radius': 'var(--radius)',
-      '--gray2': 'hsl(var(--popover) / 0.9)',
-      '--gray3': 'var(--border)',
-      '--gray4': 'var(--border)',
-      '--gray5': 'var(--border)',
-      '--gray12': 'var(--popover-foreground)',
+      '--border-radius': 'var(--radius)'
     }"
-    :toast-options="props.toastOptions ?? {
-      classes: {
-        toast: 'rounded-2xl',
-      },
-    }"
+    :toast-options="
+      props.toastOptions ?? {
+        classes: {
+          toast: 'rounded-2xl'
+        }
+      }
+    "
     v-bind="delegatedProps"
   >
     <template #success-icon>
