@@ -64,7 +64,14 @@ function open(item: AppNavItem): void {
         </Button>
       </nav>
     </aside>
-    <main class="min-h-0 min-w-0 flex-1 overflow-y-auto px-16 py-12">
+    <main
+      :class="
+        cn(
+          'min-h-0 min-w-0 flex-1',
+          route.name === 'game' ? 'overflow-hidden' : 'overflow-y-auto px-16 py-12'
+        )
+      "
+    >
       <RouterView />
     </main>
   </div>

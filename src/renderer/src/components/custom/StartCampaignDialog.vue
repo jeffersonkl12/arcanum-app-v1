@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Check, Plus, Swords, X } from '@lucide/vue'
 import { DialogContent, DialogPortal } from 'reka-ui'
 import { useForm } from 'vee-validate'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { z } from 'zod'
 import StartCampaignCharacterStep from './StartCampaignCharacterStep.vue'
 import StartCampaignPartyStep from './StartCampaignPartyStep.vue'
@@ -68,6 +69,7 @@ const imagePreviewUrl = ref<string>()
 const imageData = ref<Uint8Array>()
 const isStarting = ref(false)
 
+const router = useRouter()
 const { startCampaign, resetWizardParty, partyMemberIds } = useCampaign()
 const { languages, cultures, currentWorld, loadWorld, visibleWorlds } = useWorld()
 const { handleSubmit, resetForm, validateField, values } = useForm({
@@ -173,6 +175,7 @@ const onStart = handleSubmit(async (formValues) => {
     void imageData.value
     toast.success('Campanha iniciada')
     open.value = false
+    void router.push({ name: 'game', params: { worldId: worldId.value } })
   } finally {
     isStarting.value = false
   }

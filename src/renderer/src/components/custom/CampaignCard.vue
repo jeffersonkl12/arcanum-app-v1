@@ -21,6 +21,10 @@ const router = useRouter()
 function manageCampaign(): void {
   void router.push({ name: 'world-detail', params: { worldId: props.worldId } })
 }
+
+function continueCampaign(): void {
+  void router.push({ name: 'game', params: { worldId: props.worldId } })
+}
 </script>
 
 <template>
@@ -45,6 +49,7 @@ function manageCampaign(): void {
         <Button
           type="button"
           class="h-auto gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-foreground/90"
+          @click="continueCampaign"
         >
           <Play class="size-4 fill-primary-foreground" />
           Continuar
