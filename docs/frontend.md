@@ -215,7 +215,7 @@ Layout base da aplicação: barra de título, sidebar, header e demais estrutura
 
 ## 4. Narrador e UI gerada (pendente)
 
-O narrador hoje responde por `gameMaster:takeTurn` (devolve a resposta inteira, sem streaming) e o histórico vem de `gameMaster:listHistory`. Ainda **não existem**: streaming nem eventos main → renderer (ver `rules.md`, "IPC"), e a UI gerada pelo narrador. `@openuidev/vue-lang` está nas dependências, mas nenhum schema, library ou renderer foi criado.
+O narrador responde por `gameMaster:takeTurn` (resposta inteira) ou por `gameMaster:streamTurn` (a narração chega aos poucos em `gameMaster:turnEvent`, ouvido com `window.api.on`; ver `api.md` §5.8) e o histórico vem de `gameMaster:listHistory`. O back já ensina OpenUI Lang ao narrador a partir de `NARRATOR_UI_COMPONENTS` (`@shared`), separa prosa de blocos de UI em tempo real (`delta` com `segment` e `kind`), valida cada bloco e devolve `segments` no histórico. **O renderer ainda não tem** a library com os componentes Vue, o `<Renderer>` nem o consumo dos eventos.
 
 Antes de construir a tela de chat ou qualquer UI gerada pela IA, alinhe o desenho com o usuário. Princípios que já valem:
 

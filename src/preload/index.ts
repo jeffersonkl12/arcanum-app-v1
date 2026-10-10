@@ -1,7 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { IPC_CHANNELS, type ArcanumApi, type IpcResponse } from '@shared'
+// Not the `@shared` barrel: it also holds code with runtime dependencies (zod), and the preload
+// must only carry the contract. Through the barrel they would end up `require`d here.
+import type { ArcanumApi } from '@shared/api.shared'
+import { IPC_CHANNELS, IPC_EVENT_CHANNELS } from '@shared/ipc-contract.shared'
+import type { IpcResponse } from '@shared/ipc-response.shared'
 
 const allowedChannels = new Set<string>(IPC_CHANNELS)
+const allowedEventChannels = new Set<string>(IPC_EVENT_CHANNELS)
 
 /**
  * Forwards a call to main, only for the channels of the contract. Never exposes `ipcRenderer`
@@ -22,9 +27,25 @@ async function invoke(channel: string, input?: unknown): Promise<IpcResponse<unk
   }
 }
 
+/**
+ * Subscribes to a main-to-renderer event, only for the channels of the contract. The listener gets
+ * the payload alone: Electron's event object carries `sender`, which is `ipcRenderer` in disguise.
+ */
+function on(channel: string, listener: (payload: unknown) => void): () => void {
+  if (!allowedEventChannels.has(channel)) return () => {}
+
+  const handler = (_event: unknown, payload: unknown): void => listener(payload)
+  ipcRenderer.on(channel, handler)
+
+  return () => {
+    ipcRenderer.removeListener(channel, handler)
+  }
+}
+
 const api: ArcanumApi = {
   // The channel/input pairing is enforced by `ArcanumApi` for callers; here it is plain strings.
   invoke: invoke as ArcanumApi['invoke'],
+  on: on as ArcanumApi['on'],
   versions: {
     electron: process.versions.electron,
     chrome: process.versions.chrome,

@@ -21,6 +21,8 @@ import type {
   WorldFilter
 } from '@schema'
 import type { AiProviderCatalogEntry } from '@service/ai-setting.service'
+import type { IpcError } from '@shared/ipc-response.shared'
+import type { NarrationDeltaEvent, NarrationDoneEvent } from '@shared/narrator-ui.shared'
 
 /** Types only exist at compile time, so a channel carries them as a phantom. */
 interface ChannelTypes<TInput, TOutput> {
@@ -100,8 +102,53 @@ export const ipcContract = {
 
   /** Plays one turn of the campaign; slow, because the narrator is an LLM. */
   'gameMaster:takeTurn': channel<{ worldId: string; message: string }, string>(),
+  /**
+   * Starts a turn and returns as soon as it is accepted; the narration arrives as `TurnEvent`s on
+   * `gameMaster:turnEvent`. The renderer picks the `turnId` (a uuid) so it can listen before the
+   * first event, which may come before this call resolves. Fails with `conflict` if the world
+   * already has a turn running.
+   */
+  'gameMaster:streamTurn': channel<{ turnId: string; worldId: string; message: string }, void>(),
   'gameMaster:listHistory': channel<string, CampaignMessage[]>()
 } as const
+
+/**
+ * What main tells the renderer for a streamed turn. `delta` carries only the new text of one
+ * segment of the reply (prose or a UI block), so the renderer appends it to the segment at that
+ * position; `done` carries the whole reply and its final segments, which replace what it
+ * accumulated (and match what `gameMaster:listHistory` returns later). Every turn ends with
+ * `done` or `error`.
+ */
+export type TurnEvent = { turnId: string } & (
+  NarrationDeltaEvent | NarrationDoneEvent | { type: 'error'; error: IpcError }
+)
+
+/** Types only exist at compile time, so an event carries its payload as a phantom. */
+interface EventTypes<TPayload> {
+  readonly payload: TPayload
+}
+
+function event<TPayload>(): EventTypes<TPayload> {
+  return {} as EventTypes<TPayload>
+}
+
+/**
+ * Messages that flow the other way, main to renderer, with no reply. The preload only lets the
+ * renderer subscribe to these channels. Like `ipcContract`, this file may only import types.
+ */
+export const ipcEventContract = {
+  'gameMaster:turnEvent': event<TurnEvent>()
+} as const
+
+export type IpcEventContract = typeof ipcEventContract
+
+export type IpcEventChannel = keyof IpcEventContract
+
+/** The only event channels the preload lets the renderer listen to. */
+export const IPC_EVENT_CHANNELS = Object.keys(ipcEventContract) as IpcEventChannel[]
+
+export type IpcEventPayload<TChannel extends IpcEventChannel> =
+  IpcEventContract[TChannel]['payload']
 
 export type IpcContract = typeof ipcContract
 

@@ -38,6 +38,17 @@ export function staticLayer(agent: string, name: string): PromptLayer<unknown> {
 }
 
 /**
+ * Layer whose content never changes but comes from code, not from a markdown file (the OpenUI Lang
+ * prompt is generated from the component library). Built once and emitted verbatim; like a static
+ * layer, it belongs in the cacheable prefix, before the dynamic ones.
+ */
+export function generatedLayer(name: string, build: () => string): PromptLayer<unknown> {
+  const content = build().trim()
+
+  return { name, render: () => content }
+}
+
+/**
  * Layer rendered on every turn from the game state: `<agent>/layers/dynamic/<name>.md`, a Handlebars
  * template compiled once. `select` turns the request context into the data the template uses, so
  * the template depends on that shape and not on the whole context.

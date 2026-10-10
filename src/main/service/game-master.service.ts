@@ -1,6 +1,11 @@
 import { toMastraModelId } from '@constant'
 import { ConflictError } from '@error'
-import type { INarratorGateway, CampaignMessage } from '@lib/narrator.lib'
+import type {
+  CampaignMessage,
+  INarratorGateway,
+  NarratorStreamEvent,
+  NarratorTurn
+} from '@lib/narrator.lib'
 import type { Actor } from '@schema/actor.schema'
 import type { IActorService } from '@service/actor.service'
 import type { IAiSettingService } from '@service/ai-setting.service'
@@ -18,6 +23,12 @@ import type {
 export interface IGameMasterService {
   /** Plays one turn of the world's campaign. Throws `NotFoundError` if the world does not exist. */
   takeTurn(worldId: string, playerMessage: string): Promise<string>
+  /**
+   * Same turn as `takeTurn`, but the narration arrives as it is written. Throws before returning if
+   * the world does not exist (`NotFoundError`) or already has a turn running (`ConflictError`).
+   * The caller must iterate the result to the end: that is what finishes the turn and frees the world.
+   */
+  streamTurn(worldId: string, playerMessage: string): Promise<AsyncIterable<NarratorStreamEvent>>
   /** The stored conversation of the world's campaign. Throws `NotFoundError` for a missing world. */
   listHistory(worldId: string): Promise<CampaignMessage[]>
 }
@@ -28,6 +39,9 @@ export interface IGameMasterService {
  * checks through the dice check service.
  */
 export class GameMasterService implements IGameMasterService {
+  /** Worlds with a streamed turn in flight: two turns on one campaign would interleave in its memory. */
+  private readonly streaming = new Set<string>()
+
   constructor(
     private readonly narrator: INarratorGateway,
     private readonly worldService: IWorldService,
@@ -38,10 +52,41 @@ export class GameMasterService implements IGameMasterService {
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
+    return this.narrator.narrate(await this.prepareTurn(worldId, playerMessage))
+  }
+
+  async streamTurn(
+    worldId: string,
+    playerMessage: string
+  ): Promise<AsyncIterable<NarratorStreamEvent>> {
+    // Checked and taken before any await, so two calls cannot both pass.
+    if (this.streaming.has(worldId)) {
+      throw new ConflictError('The narrator is already answering in this world')
+    }
+    this.streaming.add(worldId)
+
+    try {
+      const turn = await this.prepareTurn(worldId, playerMessage)
+
+      return this.releaseWhenDone(worldId, await this.narrator.narrateStream(turn))
+    } catch (error) {
+      this.streaming.delete(worldId)
+      throw error
+    }
+  }
+
+  async listHistory(worldId: string): Promise<CampaignMessage[]> {
+    await this.worldService.get(worldId)
+
+    return this.narrator.listMessages(worldId)
+  }
+
+  /** What the narrator needs for a turn, read now so the prompt shows the world as it is. */
+  private async prepareTurn(worldId: string, message: string): Promise<NarratorTurn> {
     const world = await this.worldService.get(worldId)
     const { provider, model, temperature, apiKey } = await this.aiSettingService.resolve()
 
-    return this.narrator.narrate({
+    return {
       worldId,
       model: toMastraModelId(provider, model),
       apiKey,
@@ -50,14 +95,20 @@ export class GameMasterService implements IGameMasterService {
       party: await this.loadParty(worldId),
       npcRegistry: this.createNpcRegistry(),
       diceChecker: this.diceCheckService,
-      message: playerMessage
-    })
+      message
+    }
   }
 
-  async listHistory(worldId: string): Promise<CampaignMessage[]> {
-    await this.worldService.get(worldId)
-
-    return this.narrator.listMessages(worldId)
+  /** Frees the world when the turn ends for any reason: completed, failed or abandoned midway. */
+  private async *releaseWhenDone(
+    worldId: string,
+    events: AsyncIterable<NarratorStreamEvent>
+  ): AsyncGenerator<NarratorStreamEvent> {
+    try {
+      yield* events
+    } finally {
+      this.streaming.delete(worldId)
+    }
   }
 
   /** Read on every turn, so the prompt always shows the party as it is now. */

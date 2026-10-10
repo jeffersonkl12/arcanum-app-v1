@@ -2,7 +2,8 @@ import { Agent } from '@mastra/core/agent'
 import { gameContextSchema, type GameContext } from '../../context/game.context'
 import { narratorMemory } from '../../memory/narrator.memory'
 import { layeredInstructions } from '../../prompt/compose.prompt'
-import { dynamicLayer, staticLayer } from '../../prompt/layer.prompt'
+import { dynamicLayer, generatedLayer, staticLayer } from '../../prompt/layer.prompt'
+import { narratorUiPrompt } from '../../prompt/narrator-ui.prompt'
 import { rollCheckTool } from '../../tools/roll-check.tool'
 import { npcCreatorAgent } from '../npc-creator/npc-creator.agent'
 
@@ -16,6 +17,7 @@ const AGENT = 'narrator'
 const layers = [
   staticLayer(AGENT, 'identity'),
   staticLayer(AGENT, 'rules'),
+  generatedLayer('ui', narratorUiPrompt),
   dynamicLayer(AGENT, 'world', (context: GameContext) => context.world),
   dynamicLayer(AGENT, 'party', (context: GameContext) => context.party)
 ]

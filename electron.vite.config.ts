@@ -23,7 +23,7 @@ const sharedAlias = { '@shared': resolve('src/shared') }
 
 // ESM-only dependencies (their `exports` have only an `import` condition). Main is built as CJS, so
 // leaving them external makes `require()` fail with ERR_PACKAGE_PATH_NOT_EXPORTED; bundle them.
-const esmOnlyDeps = ['@randsum/roller']
+const esmOnlyDeps = ['@randsum/roller', '@openuidev/vue-lang']
 
 export default defineConfig({
   main: {

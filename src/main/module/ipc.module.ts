@@ -21,6 +21,7 @@ import {
   worldCloneService,
   worldService
 } from '@module/game.module'
+import { RendererEvents } from '@lib/renderer-events.lib'
 import { ipcMain } from 'electron'
 
 /** Exposes the engine to the renderer. Call once, after the database is ready and before any window opens. */
@@ -34,7 +35,7 @@ export function registerIpc(): void {
       ...createActorRoutes(actorService, actorImageService),
       ...createPartyRoutes(partyService),
       ...createAiSettingRoutes(aiSettingService),
-      ...createGameMasterRoutes(gameMasterService)
+      ...createGameMasterRoutes(gameMasterService, new RendererEvents())
     },
     {
       isTrustedFrameUrl: (url) =>
