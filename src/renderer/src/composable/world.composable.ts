@@ -73,6 +73,11 @@ function matchesGenre(genre: string, filter: WorldGenreFilter): boolean {
 const { isLoading: isCreating, error: createError, request } = useRequest()
 const { isLoading: isLoadingDetail, error: detailError, request: detailRequest } = useRequest()
 const { isLoading: isCreatingActor, error: createActorError, request: actorRequest } = useRequest()
+const {
+  isLoading: isCreatingNamedEntity,
+  error: createNamedEntityError,
+  request: namedEntityRequest
+} = useRequest()
 
 const currentWorld = ref<WorldDetail>()
 const actors = ref<ActorSummary[]>([])
@@ -104,17 +109,41 @@ const mockWorldDetails: Record<
       {
         id: 'elara',
         name: 'Elara Moonwhisper',
-        subtitle: 'Arquimaga de Sylaris • Elfa'
+        subtitle: 'Arquimaga de Sylaris • Elfa',
+        profession: 'Arquimaga de Sylaris',
+        age: 'middle_aged',
+        gender: 'female',
+        languageId: 'aetheric',
+        cultureId: 'sylaris',
+        appearance: '',
+        personality: '',
+        background: ''
       },
       {
         id: 'thorek',
         name: 'Thorek Ironbrow',
-        subtitle: 'Capitão da Guarda Aérea • Anão'
+        subtitle: 'Capitão da Guarda Aérea • Anão',
+        profession: 'Capitão da Guarda Aérea',
+        age: 'middle_aged',
+        gender: 'male',
+        languageId: 'old-drake',
+        cultureId: 'ironhold',
+        appearance: '',
+        personality: '',
+        background: ''
       },
       {
         id: 'vaelin',
         name: 'Vaelin o Silencioso',
-        subtitle: 'Informante da Guilda das Sombras • Humano'
+        subtitle: 'Informante da Guilda das Sombras • Humano',
+        profession: 'Informante da Guilda das Sombras',
+        age: 'young_adult',
+        gender: 'male',
+        languageId: 'aetheric',
+        cultureId: null,
+        appearance: '',
+        personality: '',
+        background: ''
       }
     ],
     languages: [
@@ -245,20 +274,42 @@ type CreateActorInput = Omit<CreateActor, 'worldId' | 'isNpc' | 'partyId'> & {
   imageData?: Uint8Array
 }
 
+type CreateNamedEntityInput = {
+  name: string
+  description: string
+}
+
+function toActorListItem(
+  input: CreateActorInput,
+  id: string,
+  imagePath?: string | null
+): ActorSummary {
+  const cultureName = cultures.value.find((culture) => culture.id === input.cultureId)?.name
+  const subtitle = [input.profession, cultureName].filter(Boolean).join(' • ') || 'NPC'
+
+  return {
+    id,
+    name: input.name,
+    subtitle,
+    imagePath,
+    profession: input.profession ?? '',
+    age: input.age,
+    gender: input.gender,
+    languageId: input.languageId ?? null,
+    cultureId: input.cultureId ?? null,
+    appearance: input.appearance ?? '',
+    personality: input.personality ?? '',
+    background: input.background ?? ''
+  }
+}
+
 async function createActor(input: CreateActorInput): Promise<ActorSummary | undefined> {
   const worldId = currentWorld.value?.id
   if (!worldId) return undefined
 
-  const cultureName = cultures.value.find((culture) => culture.id === input.cultureId)?.name
-  const subtitle = [input.profession, cultureName].filter(Boolean).join(' • ') || 'NPC'
-
   if (isMockWorld(worldId) || !isEngineWorldId(worldId)) {
     // Proposed: dashboard mock worlds have no engine record yet.
-    const summary: ActorSummary = {
-      id: crypto.randomUUID(),
-      name: input.name,
-      subtitle
-    }
+    const summary = toActorListItem(input, crypto.randomUUID())
     actors.value = [summary, ...actors.value]
     return summary
   }
@@ -285,13 +336,166 @@ async function createActor(input: CreateActorInput): Promise<ActorSummary | unde
     imagePath = (await actorRequest('actor:setImage', { id: created.id, data })) ?? imagePath
   }
 
-  const summary: ActorSummary = {
-    id: created.id,
-    name: created.name,
-    subtitle,
-    imagePath
-  }
+  const summary = toActorListItem(input, created.id, imagePath)
   actors.value = [summary, ...actors.value]
+  return summary
+}
+
+async function updateActor(
+  actorId: string,
+  input: CreateActorInput
+): Promise<ActorSummary | undefined> {
+  const worldId = currentWorld.value?.id
+  if (!worldId) return undefined
+
+  if (isMockWorld(worldId) || !isEngineWorldId(worldId)) {
+    // Proposed: dashboard mock worlds have no engine record yet.
+    const current = actors.value.find((actor) => actor.id === actorId)
+    const summary = toActorListItem(input, actorId, current?.imagePath)
+    actors.value = actors.value.map((actor) => (actor.id === actorId ? summary : actor))
+    return summary
+  }
+
+  const updated = await actorRequest('actor:update', {
+    id: actorId,
+    patch: {
+      name: input.name,
+      age: input.age,
+      gender: input.gender,
+      profession: input.profession ?? '',
+      appearance: input.appearance ?? '',
+      personality: input.personality ?? '',
+      background: input.background ?? '',
+      cultureId: input.cultureId ?? null,
+      languageId: input.languageId ?? null
+    }
+  })
+  if (!updated) return undefined
+
+  let imagePath = updated.imagePath
+  if (input.imageData) {
+    const data = new Uint8Array(input.imageData)
+    imagePath = (await actorRequest('actor:setImage', { id: actorId, data })) ?? imagePath
+  }
+
+  const summary = toActorListItem(input, actorId, imagePath)
+  actors.value = actors.value.map((actor) => (actor.id === actorId ? summary : actor))
+  return summary
+}
+
+async function createLanguage(
+  input: CreateNamedEntityInput
+): Promise<NamedEntitySummary | undefined> {
+  const worldId = currentWorld.value?.id
+  if (!worldId) return undefined
+
+  if (isMockWorld(worldId) || !isEngineWorldId(worldId)) {
+    // Proposed: dashboard mock worlds have no engine record yet.
+    const summary: NamedEntitySummary = {
+      id: crypto.randomUUID(),
+      name: input.name,
+      description: input.description
+    }
+    languages.value = [summary, ...languages.value]
+    return summary
+  }
+
+  const created = await namedEntityRequest('language:create', {
+    worldId,
+    name: input.name,
+    description: input.description
+  })
+  if (!created) return undefined
+
+  const summary = toNamedEntitySummary(created)
+  languages.value = [summary, ...languages.value]
+  return summary
+}
+
+async function updateLanguage(
+  languageId: string,
+  input: CreateNamedEntityInput
+): Promise<NamedEntitySummary | undefined> {
+  const worldId = currentWorld.value?.id
+  if (!worldId) return undefined
+
+  if (isMockWorld(worldId) || !isEngineWorldId(worldId)) {
+    // Proposed: dashboard mock worlds have no engine record yet.
+    const summary: NamedEntitySummary = {
+      id: languageId,
+      name: input.name,
+      description: input.description
+    }
+    languages.value = languages.value.map((item) => (item.id === languageId ? summary : item))
+    return summary
+  }
+
+  const updated = await namedEntityRequest('language:update', {
+    id: languageId,
+    patch: { name: input.name, description: input.description }
+  })
+  if (!updated) return undefined
+
+  const summary = toNamedEntitySummary(updated)
+  languages.value = languages.value.map((item) => (item.id === languageId ? summary : item))
+  return summary
+}
+
+async function createCulture(
+  input: CreateNamedEntityInput
+): Promise<NamedEntitySummary | undefined> {
+  const worldId = currentWorld.value?.id
+  if (!worldId) return undefined
+
+  if (isMockWorld(worldId) || !isEngineWorldId(worldId)) {
+    // Proposed: dashboard mock worlds have no engine record yet.
+    const summary: NamedEntitySummary = {
+      id: crypto.randomUUID(),
+      name: input.name,
+      description: input.description
+    }
+    cultures.value = [summary, ...cultures.value]
+    return summary
+  }
+
+  const created = await namedEntityRequest('culture:create', {
+    worldId,
+    name: input.name,
+    description: input.description
+  })
+  if (!created) return undefined
+
+  const summary = toNamedEntitySummary(created)
+  cultures.value = [summary, ...cultures.value]
+  return summary
+}
+
+async function updateCulture(
+  cultureId: string,
+  input: CreateNamedEntityInput
+): Promise<NamedEntitySummary | undefined> {
+  const worldId = currentWorld.value?.id
+  if (!worldId) return undefined
+
+  if (isMockWorld(worldId) || !isEngineWorldId(worldId)) {
+    // Proposed: dashboard mock worlds have no engine record yet.
+    const summary: NamedEntitySummary = {
+      id: cultureId,
+      name: input.name,
+      description: input.description
+    }
+    cultures.value = cultures.value.map((item) => (item.id === cultureId ? summary : item))
+    return summary
+  }
+
+  const updated = await namedEntityRequest('culture:update', {
+    id: cultureId,
+    patch: { name: input.name, description: input.description }
+  })
+  if (!updated) return undefined
+
+  const summary = toNamedEntitySummary(updated)
+  cultures.value = cultures.value.map((item) => (item.id === cultureId ? summary : item))
   return summary
 }
 
@@ -316,9 +520,22 @@ export function useWorld(): {
   isNotFound: Ref<boolean>
   isCreatingActor: Ref<boolean>
   createActorError: Ref<IpcError | undefined>
+  isCreatingNamedEntity: Ref<boolean>
+  createNamedEntityError: Ref<IpcError | undefined>
   loadWorld: (worldId: string) => Promise<void>
   deleteActor: (actorId: string) => Promise<void>
   createActor: (input: CreateActorInput) => Promise<ActorSummary | undefined>
+  updateActor: (actorId: string, input: CreateActorInput) => Promise<ActorSummary | undefined>
+  createLanguage: (input: CreateNamedEntityInput) => Promise<NamedEntitySummary | undefined>
+  updateLanguage: (
+    languageId: string,
+    input: CreateNamedEntityInput
+  ) => Promise<NamedEntitySummary | undefined>
+  createCulture: (input: CreateNamedEntityInput) => Promise<NamedEntitySummary | undefined>
+  updateCulture: (
+    cultureId: string,
+    input: CreateNamedEntityInput
+  ) => Promise<NamedEntitySummary | undefined>
 } {
   return {
     activeCampaign,
@@ -341,8 +558,15 @@ export function useWorld(): {
     isNotFound,
     isCreatingActor,
     createActorError,
+    isCreatingNamedEntity,
+    createNamedEntityError,
     loadWorld,
     deleteActor,
-    createActor
+    createActor,
+    updateActor,
+    createLanguage,
+    updateLanguage,
+    createCulture,
+    updateCulture
   }
 }

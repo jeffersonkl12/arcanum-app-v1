@@ -31,7 +31,15 @@ export function toActorSummary(actor: Actor, cultures: Culture[]): ActorSummary 
     id: actor.id,
     name: actor.name,
     subtitle: subtitle || 'NPC',
-    imagePath: actor.imagePath
+    imagePath: actor.imagePath,
+    profession: actor.profession ?? '',
+    age: actor.age,
+    gender: actor.gender,
+    languageId: actor.languageId,
+    cultureId: actor.cultureId,
+    appearance: actor.appearance ?? '',
+    personality: actor.personality ?? '',
+    background: actor.background ?? ''
   }
 }
 

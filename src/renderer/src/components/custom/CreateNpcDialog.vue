@@ -3,8 +3,10 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { Camera, Plus, X } from '@lucide/vue'
 import { DialogContent, DialogPortal } from 'reka-ui'
 import { useForm } from 'vee-validate'
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { z } from 'zod'
+import type { IpcError } from '@shared'
+import { toImageUrl } from '@shared'
 import {
   actorAgeOptions,
   actorAgeValues,
@@ -12,6 +14,7 @@ import {
   actorGenderValues
 } from '@renderer/constant/actor.constant'
 import { useWorld } from '@renderer/composable/world.composable'
+import type { ActorSummary } from '@renderer/composable/world.type'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -37,7 +40,9 @@ import {
   SelectValue
 } from '@renderer/components/ui/select'
 import { Textarea } from '@renderer/components/ui/textarea'
-import type { IpcError } from '@shared'
+
+const open = defineModel<boolean>('open', { default: false })
+const entity = defineModel<ActorSummary | null>('entity', { default: null })
 
 const formFields = [
   'name',
@@ -80,19 +85,27 @@ const emptyForm = {
   background: ''
 }
 
-const open = ref(false)
+const isEditing = computed(() => entity.value != null)
 const imageInput = ref<HTMLInputElement>()
 const imagePreviewUrl = ref<string>()
 const imageData = ref<Uint8Array>()
+const existingImagePath = ref<string | null>()
 
-const { createActor, isCreatingActor, createActorError, languages, cultures } = useWorld()
+const { createActor, updateActor, isCreatingActor, createActorError, languages, cultures } =
+  useWorld()
 const { handleSubmit, resetForm, setErrors } = useForm({
   validationSchema: createNpcFormSchema,
   initialValues: emptyForm
 })
 
+const previewSrc = computed(() => {
+  if (imagePreviewUrl.value) return imagePreviewUrl.value
+  if (existingImagePath.value) return toImageUrl(existingImagePath.value)
+  return undefined
+})
+
 const onSubmit = handleSubmit(async (values) => {
-  const created = await createActor({
+  const payload = {
     name: values.name,
     profession: values.profession,
     age: values.age,
@@ -103,8 +116,13 @@ const onSubmit = handleSubmit(async (values) => {
     personality: values.personality,
     background: values.background,
     imageData: imageData.value
-  })
-  if (!created) {
+  }
+
+  const saved = entity.value
+    ? await updateActor(entity.value.id, payload)
+    : await createActor(payload)
+
+  if (!saved) {
     applyCreateErrors(createActorError.value)
     return
   }
@@ -112,15 +130,45 @@ const onSubmit = handleSubmit(async (values) => {
 })
 
 watch(open, (isOpen) => {
-  if (!isOpen) {
-    resetForm({ values: emptyForm })
-    clearImage()
+  if (isOpen) {
+    fillForm(entity.value)
+    return
   }
+  resetForm({ values: emptyForm })
+  clearImage()
+  entity.value = null
 })
 
 onBeforeUnmount(() => {
   clearImage()
 })
+
+function startCreate(): void {
+  entity.value = null
+}
+
+function fillForm(actor: ActorSummary | null): void {
+  clearImage()
+  if (!actor) {
+    resetForm({ values: emptyForm })
+    return
+  }
+
+  existingImagePath.value = actor.imagePath ?? null
+  resetForm({
+    values: {
+      name: actor.name,
+      profession: actor.profession,
+      age: actor.age,
+      gender: actor.gender,
+      languageId: actor.languageId ?? undefined,
+      cultureId: actor.cultureId ?? undefined,
+      appearance: actor.appearance,
+      personality: actor.personality,
+      background: actor.background
+    }
+  })
+}
 
 function applyCreateErrors(error: IpcError | undefined): void {
   if (error?.kind !== 'invalid_input') return
@@ -140,6 +188,7 @@ function clearImage(): void {
   if (imagePreviewUrl.value) URL.revokeObjectURL(imagePreviewUrl.value)
   imagePreviewUrl.value = undefined
   imageData.value = undefined
+  existingImagePath.value = undefined
   if (imageInput.value) imageInput.value.value = ''
 }
 
@@ -152,7 +201,7 @@ async function onImageSelected(event: Event): Promise<void> {
   const file = input.files?.[0]
   if (!file) return
 
-  clearImage()
+  if (imagePreviewUrl.value) URL.revokeObjectURL(imagePreviewUrl.value)
   imagePreviewUrl.value = URL.createObjectURL(file)
   imageData.value = new Uint8Array(await file.arrayBuffer())
 }
@@ -172,6 +221,7 @@ const textareaClass =
       <Button
         type="button"
         class="h-auto gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-primary-hover"
+        @click="startCreate"
       >
         <Plus class="size-4" />
         Adicionar NPC
@@ -187,7 +237,9 @@ const textareaClass =
             Informe os dados do personagem: nome, idade, gênero, cultura e descrição.
           </DialogDescription>
           <div class="flex items-center justify-between gap-4">
-            <DialogTitle class="font-body text-xl font-bold">Adicionar Personagem</DialogTitle>
+            <DialogTitle class="font-body text-xl font-bold">
+              {{ isEditing ? 'Editar Personagem' : 'Adicionar Personagem' }}
+            </DialogTitle>
             <DialogClose class="text-tertiary" :disabled="isCreatingActor">
               <X class="size-5" />
               <span class="sr-only">Fechar</span>
@@ -211,8 +263,8 @@ const textareaClass =
                 @click="openImagePicker"
               >
                 <img
-                  v-if="imagePreviewUrl"
-                  :src="imagePreviewUrl"
+                  v-if="previewSrc"
+                  :src="previewSrc"
                   alt="Prévia do personagem"
                   class="size-full object-cover"
                 />
@@ -409,7 +461,7 @@ const textareaClass =
               class="h-auto rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-primary-hover"
               :disabled="isCreatingActor"
             >
-              Salvar Personagem
+              {{ isEditing ? 'Salvar Alterações' : 'Salvar Personagem' }}
             </Button>
           </div>
         </form>

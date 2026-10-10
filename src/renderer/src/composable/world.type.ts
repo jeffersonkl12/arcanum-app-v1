@@ -1,3 +1,5 @@
+import type { CreateActor } from '@schema'
+
 export interface WorldSummary {
   id: string
   name: string
@@ -19,6 +21,14 @@ export interface ActorSummary {
   name: string
   subtitle: string
   imagePath?: string | null
+  profession: string
+  age: CreateActor['age']
+  gender: CreateActor['gender']
+  languageId?: string | null
+  cultureId?: string | null
+  appearance: string
+  personality: string
+  background: string
 }
 
 export interface NamedEntitySummary {

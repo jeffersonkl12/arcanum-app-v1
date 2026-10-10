@@ -21,8 +21,13 @@ const mainLayers = [
 // Contract between the processes (IPC channels and their types); the only code all three share.
 const sharedAlias = { '@shared': resolve('src/shared') }
 
+// ESM-only dependencies (their `exports` have only an `import` condition). Main is built as CJS, so
+// leaving them external makes `require()` fail with ERR_PACKAGE_PATH_NOT_EXPORTED; bundle them.
+const esmOnlyDeps = ['@randsum/roller']
+
 export default defineConfig({
   main: {
+    build: { externalizeDeps: { exclude: esmOnlyDeps } },
     resolve: {
       alias: {
         ...Object.fromEntries(
