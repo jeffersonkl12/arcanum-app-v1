@@ -1,1 +1,6 @@
-export {}
+export * from '@repository/actor.repository'
+export * from '@repository/base.repository'
+export * from '@repository/culture.repository'
+export * from '@repository/language.repository'
+export * from '@repository/party.repository'
+export * from '@repository/world.repository'

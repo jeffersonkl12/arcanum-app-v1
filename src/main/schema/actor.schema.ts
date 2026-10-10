@@ -1,0 +1,19 @@
+import { TEXT_LIMITS } from '@constant'
+import { actorTable } from '@database/entity/actor.entity'
+import { createInsertSchema } from 'drizzle-orm/zod'
+import type { z } from 'zod'
+
+export const createActorSchema = createInsertSchema(actorTable, {
+  name: (schema) => schema.trim().min(1).max(TEXT_LIMITS.name),
+  profession: (schema) => schema.max(TEXT_LIMITS.shortText),
+  appearance: (schema) => schema.max(TEXT_LIMITS.longText),
+  personality: (schema) => schema.max(TEXT_LIMITS.longText),
+  background: (schema) => schema.max(TEXT_LIMITS.longText)
+}).omit({ id: true })
+
+/** The world of an existing actor cannot change: its culture, language and party belong to it. */
+export const updateActorSchema = createActorSchema.omit({ worldId: true }).partial()
+
+export type Actor = typeof actorTable.$inferSelect
+export type CreateActor = z.infer<typeof createActorSchema>
+export type UpdateActor = z.infer<typeof updateActorSchema>

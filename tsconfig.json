@@ -70,6 +70,12 @@
       ],
       "@constant/*": [
         "src/main/constant/*"
+      ],
+      "@error": [
+        "src/main/error"
+      ],
+      "@error/*": [
+        "src/main/error/*"
       ]
     }
   }

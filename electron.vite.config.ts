@@ -13,7 +13,8 @@ const mainLayers = [
   'module',
   'lib',
   'util',
-  'constant'
+  'constant',
+  'error'
 ]
 
 export default defineConfig({
