@@ -150,6 +150,7 @@
   --color-primary-hover: var(--primary-hover);
   --font-heading: 'Playfair Display', ui-serif, Georgia, serif;
   --font-body: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --shadow-dialog: 0 8px 24px rgb(0 0 0 / 50%);
   --text-display: 2rem;
   --text-display--line-height: 1.15;
   --text-meta: 0.8125rem;

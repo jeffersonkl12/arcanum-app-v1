@@ -1,5 +1,10 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
-import type { ActiveCampaign, WorldSummary } from '@renderer/composable/world.type'
+import type { CreateWorld } from '@schema'
+import type { IpcError } from '@shared'
+import { worldGenreGroup } from '@renderer/constant/world-genre.constant'
+import { useRequest } from './request.composable'
+import { toWorldSummary } from './world.mapper'
+import type { ActiveCampaign, WorldSummary } from './world.type'
 
 export const worldGenreFilters = ['Todos', 'Fantasia', 'Ficção', 'Terror'] as const
 
@@ -52,8 +57,20 @@ const visibleWorlds = computed(() =>
 
 function matchesGenre(genre: string, filter: WorldGenreFilter): boolean {
   if (filter === 'Todos') return true
+  const group = worldGenreGroup(genre)
+  if (group) return group === filter
   if (filter === 'Ficção') return genre === 'Sci-Fantasy' || genre === 'Ficção'
   return genre === filter
+}
+
+const { isLoading: isCreating, error: createError, request } = useRequest()
+
+async function createWorld(input: CreateWorld): Promise<WorldSummary | undefined> {
+  const created = await request('world:create', input)
+  if (!created) return undefined
+  const summary = toWorldSummary(created)
+  worlds.value = [summary, ...worlds.value]
+  return summary
 }
 
 export function useWorld(): {
@@ -62,12 +79,18 @@ export function useWorld(): {
   search: Ref<string>
   genreFilter: Ref<WorldGenreFilter>
   genreFilters: typeof worldGenreFilters
+  isCreating: Ref<boolean>
+  createError: Ref<IpcError | undefined>
+  createWorld: (input: CreateWorld) => Promise<WorldSummary | undefined>
 } {
   return {
     activeCampaign,
     visibleWorlds,
     search,
     genreFilter,
-    genreFilters: worldGenreFilters
+    genreFilters: worldGenreFilters,
+    isCreating,
+    createError,
+    createWorld
   }
 }

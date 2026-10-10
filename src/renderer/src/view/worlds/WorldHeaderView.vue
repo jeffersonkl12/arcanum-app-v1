@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Plus, Search } from '@lucide/vue'
-import { Button } from '@renderer/components/ui/button'
+import { Search } from '@lucide/vue'
+import { CreateWorldDialog } from '@renderer/components/custom'
 import { Input } from '@renderer/components/ui/input'
 import { useWorld } from '@renderer/composable/world.composable'
 const { search } = useWorld()
@@ -21,13 +21,7 @@ const { search } = useWorld()
           class="h-auto border-0 bg-transparent p-0 text-sm shadow-none placeholder:text-tertiary focus-visible:ring-0"
         />
       </label>
-      <Button
-        type="button"
-        class="h-auto gap-2 rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-primary-hover"
-      >
-        <Plus class="size-4.5" />
-        Novo Mundo
-      </Button>
+      <CreateWorldDialog />
     </div>
   </header>
 </template>
