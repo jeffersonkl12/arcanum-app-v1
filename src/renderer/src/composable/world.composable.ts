@@ -559,6 +559,7 @@ async function updateCulture(
 
 export function useWorld(): {
   activeCampaign: Ref<ActiveCampaign>
+  worlds: Ref<WorldSummary[]>
   visibleWorlds: ComputedRef<WorldSummary[]>
   search: Ref<string>
   genreFilter: Ref<WorldGenreFilter>
@@ -598,6 +599,7 @@ export function useWorld(): {
 } {
   return {
     activeCampaign,
+    worlds,
     visibleWorlds,
     search,
     genreFilter,

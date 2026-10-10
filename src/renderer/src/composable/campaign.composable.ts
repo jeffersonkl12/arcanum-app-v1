@@ -42,6 +42,7 @@ const campaigns = ref<CampaignSummary[]>([
 ])
 
 const search = ref('')
+const worldFilter = ref<string>('all')
 
 // Proposed: campaign:listNpcs / actor:listByWorld during start-campaign is not wired for this flow yet.
 const worldNpcs = ref<CampaignNpcCandidate[]>([
@@ -67,13 +68,16 @@ const partyMemberIds = ref<string[]>(['thorek'])
 
 const visibleCampaigns = computed(() => {
   const term = search.value.trim().toLocaleLowerCase()
-  if (term.length === 0) return campaigns.value
-  return campaigns.value.filter(
-    (campaign) =>
+  return campaigns.value.filter((campaign) => {
+    const matchesWorld = worldFilter.value === 'all' || campaign.worldId === worldFilter.value
+    if (!matchesWorld) return false
+    if (term.length === 0) return true
+    return (
       campaign.name.toLocaleLowerCase().includes(term) ||
       campaign.genre.toLocaleLowerCase().includes(term) ||
       campaign.description.toLocaleLowerCase().includes(term)
-  )
+    )
+  })
 })
 
 const visibleWorldNpcs = computed(() => {
@@ -126,6 +130,7 @@ function startCampaign(draft: StartCampaignDraft): CampaignSummary {
 export function useCampaign(): {
   campaigns: Ref<CampaignSummary[]>
   search: Ref<string>
+  worldFilter: Ref<string>
   visibleCampaigns: ComputedRef<CampaignSummary[]>
   worldNpcs: Ref<CampaignNpcCandidate[]>
   npcSearch: Ref<string>
@@ -140,6 +145,7 @@ export function useCampaign(): {
   return {
     campaigns,
     search,
+    worldFilter,
     visibleCampaigns,
     worldNpcs,
     npcSearch,
