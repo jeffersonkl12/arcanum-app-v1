@@ -1,4 +1,76 @@
 {
   "files": [],
-  "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }]
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    },
+    {
+      "path": "./tsconfig.web.json"
+    }
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@config": [
+        "src/main/config"
+      ],
+      "@config/*": [
+        "src/main/config/*"
+      ],
+      "@database": [
+        "src/main/database"
+      ],
+      "@database/*": [
+        "src/main/database/*"
+      ],
+      "@schema": [
+        "src/main/schema"
+      ],
+      "@schema/*": [
+        "src/main/schema/*"
+      ],
+      "@repository": [
+        "src/main/repository"
+      ],
+      "@repository/*": [
+        "src/main/repository/*"
+      ],
+      "@service": [
+        "src/main/service"
+      ],
+      "@service/*": [
+        "src/main/service/*"
+      ],
+      "@ipc": [
+        "src/main/ipc"
+      ],
+      "@ipc/*": [
+        "src/main/ipc/*"
+      ],
+      "@module": [
+        "src/main/module"
+      ],
+      "@module/*": [
+        "src/main/module/*"
+      ],
+      "@lib": [
+        "src/main/lib"
+      ],
+      "@lib/*": [
+        "src/main/lib/*"
+      ],
+      "@util": [
+        "src/main/util"
+      ],
+      "@util/*": [
+        "src/main/util/*"
+      ],
+      "@constant": [
+        "src/main/constant"
+      ],
+      "@constant/*": [
+        "src/main/constant/*"
+      ]
+    }
+  }
 }
