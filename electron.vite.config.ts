@@ -1,6 +1,7 @@
 import { resolve } from 'path'
 import { defineConfig } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
 
 // Engine layers under src/main. Keep in sync with `paths` in tsconfig.json.
 const mainLayers = [
@@ -41,6 +42,6 @@ export default defineConfig({
         ...sharedAlias
       }
     },
-    plugins: [vue()]
+    plugins: [vue(), tailwindcss()]
   }
 })
