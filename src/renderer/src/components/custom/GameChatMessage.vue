@@ -41,33 +41,34 @@ function initials(value: string): string {
       <MessageHeader
         :class="
           cn(
-            'gap-2 px-0 text-meta',
+            'gap-2 px-0 font-normal',
             props.message.role === 'player' ? 'flex-row-reverse' : 'flex-row'
           )
         "
       >
-        <span class="text-sm font-bold text-muted-foreground">
+        <span class="text-meta font-bold text-muted-foreground">
           {{ props.message.senderName }}
         </span>
-        <span class="text-xs text-tertiary">{{ props.message.timeLabel }}</span>
+        <span class="text-xs font-normal text-tertiary">{{ props.message.timeLabel }}</span>
       </MessageHeader>
       <Bubble
-        variant="outline"
+        :variant="props.message.role === 'player' ? 'secondary' : 'outline'"
         :align="props.message.role === 'player' ? 'end' : 'start'"
-        class="max-w-xl shadow-lg"
+        :class="
+          cn(
+            'max-w-155 shadow-lg',
+            props.message.role === 'master' &&
+              '*:data-[slot=bubble-content]:bg-card! *:data-[slot=bubble-content]:text-card-foreground!'
+          )
+        "
       >
         <BubbleContent
-          :class="
-            cn(
-              'flex w-full flex-col gap-2.5 rounded-2xl border-border px-5 py-4 text-base leading-relaxed',
-              props.message.role === 'player' ? 'bg-secondary' : 'bg-card'
-            )
-          "
+          class="flex w-full flex-col gap-2.5 rounded-2xl border-border px-5 py-4 font-body text-chat text-foreground"
         >
           <p
             v-for="(segment, index) in props.message.segments"
             :key="`${props.message.id}-${index}`"
-            :class="cn('text-foreground', segment.kind === 'dialogue' && 'font-bold italic')"
+            :class="cn(segment.kind === 'dialogue' && 'font-bold italic')"
           >
             {{ segment.text }}
           </p>

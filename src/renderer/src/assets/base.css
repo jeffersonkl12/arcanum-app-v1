@@ -220,6 +220,8 @@
   --text-meta--line-height: 1.25;
   --text-badge: 0.6875rem;
   --text-badge--line-height: 1.2;
+  --text-chat: 0.96875rem;
+  --text-chat--line-height: 1.55;
 }
 
 @layer base {
