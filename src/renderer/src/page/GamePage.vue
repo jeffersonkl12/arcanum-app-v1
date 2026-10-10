@@ -5,17 +5,19 @@ import CharacterSheetDialog from '@renderer/components/custom/CharacterSheetDial
 import ConfirmDialog from '@renderer/components/custom/ConfirmDialog.vue'
 import CreateNpcDialog from '@renderer/components/custom/CreateNpcDialog.vue'
 import { useGame } from '@renderer/composable/game.composable'
-import type { ActorSummary } from '@renderer/composable/world.type'
 import { GameChatView, GameHeaderView, GamePartyView } from '@renderer/view/game'
 
 const route = useRoute()
 const {
   loadGame,
+  playPendingOpening,
+  isNotFound,
+  isLoading,
+  session,
   sheetOpen,
   selectedSheet,
   editOpen,
   editingActor,
-  isSheetLoading,
   isDeletingSheet,
   deleteSelectedCharacter,
   requestEditCharacter,
@@ -32,8 +34,11 @@ const deleteDescription = computed(() => {
 
 watch(
   () => route.params.worldId,
-  (worldId) => {
-    if (typeof worldId === 'string') void loadGame(worldId)
+  async (worldId) => {
+    if (typeof worldId !== 'string') return
+    await loadGame(worldId)
+    // A campaign that was just created starts with its prologue.
+    await playPendingOpening()
   },
   { immediate: true }
 )
@@ -47,14 +52,14 @@ async function confirmDeleteCharacter(): Promise<void> {
   await deleteSelectedCharacter()
   deleteConfirmOpen.value = false
 }
-
-async function onCharacterSaved(actor: ActorSummary): Promise<void> {
-  await applyCharacterSaved(actor)
-}
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 w-full">
+  <p v-if="isNotFound" class="p-12 text-sm text-muted-foreground">Campanha não encontrada.</p>
+  <p v-else-if="!session && isLoading" class="p-12 text-sm text-muted-foreground">
+    Carregando campanha...
+  </p>
+  <div v-else-if="session" class="flex h-full min-h-0 w-full">
     <div class="flex min-h-0 min-w-0 flex-1 flex-col">
       <GameHeaderView />
       <GameChatView />
@@ -63,7 +68,6 @@ async function onCharacterSaved(actor: ActorSummary): Promise<void> {
     <CharacterSheetDialog
       v-model:open="sheetOpen"
       :sheet="selectedSheet"
-      :loading="isSheetLoading"
       :deleting="isDeletingSheet"
       @delete="requestDeleteCharacter"
       @edit="void requestEditCharacter()"
@@ -72,7 +76,7 @@ async function onCharacterSaved(actor: ActorSummary): Promise<void> {
       v-model:open="editOpen"
       v-model:entity="editingActor"
       :show-trigger="false"
-      @saved="void onCharacterSaved($event)"
+      @saved="void applyCharacterSaved()"
     />
     <ConfirmDialog
       v-model:open="deleteConfirmOpen"

@@ -1,9 +1,10 @@
+import type { NarrationIssue } from '@shared'
+
 export type ChatSegmentKind = 'narration' | 'dialogue'
 
-export interface ChatSegment {
-  kind: ChatSegmentKind
-  text: string
-}
+/** One block of a chat message: a paragraph of prose, or a UI block the narrator wrote. */
+export type ChatSegment =
+  { kind: ChatSegmentKind; text: string } | { kind: 'ui'; source: string; issues: NarrationIssue[] }
 
 export interface GameChatMessage {
   id: string
@@ -12,6 +13,8 @@ export interface GameChatMessage {
   timeLabel: string
   imagePath?: string
   segments: ChatSegment[]
+  /** The narrator is still writing this message. */
+  isStreaming?: boolean
 }
 
 export interface PartyMemberCardModel {

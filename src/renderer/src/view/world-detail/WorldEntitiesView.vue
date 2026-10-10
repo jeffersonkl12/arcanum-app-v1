@@ -15,8 +15,30 @@ import { useWorld } from '@renderer/composable/world.composable'
 import type { ActorSummary, NamedEntitySummary } from '@renderer/composable/world.type'
 import { cn } from '@renderer/lib/utils'
 
-const { entityTab, entitySearch, visibleActors, visibleLanguages, visibleCultures, deleteActor } =
-  useWorld()
+const {
+  entityTab,
+  entitySearch,
+  visibleActors,
+  visibleLanguages,
+  visibleCultures,
+  deleteActor,
+  deleteLanguage,
+  deleteCulture
+} = useWorld()
+
+type DeletableKind = 'actor' | 'language' | 'culture'
+
+interface PendingDelete {
+  kind: DeletableKind
+  id: string
+  name: string
+}
+
+const deleteCopy: Record<DeletableKind, { title: string; success: string }> = {
+  actor: { title: 'Apagar personagem', success: 'NPC removido' },
+  language: { title: 'Apagar idioma', success: 'Idioma removido' },
+  culture: { title: 'Apagar cultura', success: 'Cultura removida' }
+}
 
 const npcOpen = ref(false)
 const editingNpc = ref<ActorSummary | null>(null)
@@ -25,11 +47,13 @@ const editingLanguage = ref<NamedEntitySummary | null>(null)
 const cultureOpen = ref(false)
 const editingCulture = ref<NamedEntitySummary | null>(null)
 const deleteConfirmOpen = ref(false)
-const pendingDeleteActor = ref<ActorSummary | null>(null)
-const isDeletingActor = ref(false)
+const pendingDelete = ref<PendingDelete | null>(null)
+const isDeleting = ref(false)
+
+const deleteTitle = computed(() => deleteCopy[pendingDelete.value?.kind ?? 'actor'].title)
 
 const deleteDescription = computed(() => {
-  const name = pendingDeleteActor.value?.name
+  const name = pendingDelete.value?.name
   if (!name) return 'Esta ação não pode ser desfeita.'
   return `Tem certeza que deseja apagar ${name}? Esta ação não pode ser desfeita.`
 })
@@ -59,23 +83,30 @@ function openEditCulture(culture: NamedEntitySummary): void {
   cultureOpen.value = true
 }
 
-function requestDeleteActor(actor: ActorSummary): void {
-  pendingDeleteActor.value = actor
+function requestDelete(kind: DeletableKind, item: { id: string; name: string }): void {
+  pendingDelete.value = { kind, id: item.id, name: item.name }
   deleteConfirmOpen.value = true
 }
 
-async function confirmDeleteActor(): Promise<void> {
-  const actor = pendingDeleteActor.value
-  if (!actor || isDeletingActor.value) return
-  isDeletingActor.value = true
+async function confirmDelete(): Promise<void> {
+  const target = pendingDelete.value
+  if (!target || isDeleting.value) return
+
+  isDeleting.value = true
   try {
-    const deleted = await deleteActor(actor.id)
-    if (!deleted) return
-    toast.success('NPC removido')
+    const deleters: Record<DeletableKind, (id: string) => Promise<boolean>> = {
+      actor: deleteActor,
+      language: deleteLanguage,
+      culture: deleteCulture
+    }
+    // On failure (a language still in use, say) the engine's message was already shown.
+    if (!(await deleters[target.kind](target.id))) return
+
+    toast.success(deleteCopy[target.kind].success)
     deleteConfirmOpen.value = false
-    pendingDeleteActor.value = null
+    pendingDelete.value = null
   } finally {
-    isDeletingActor.value = false
+    isDeleting.value = false
   }
 }
 
@@ -137,8 +168,10 @@ const tabTriggerClass = cn(
           :name="actor.name"
           :subtitle="actor.subtitle"
           :image-path="actor.imagePath"
+          :hp-current="actor.hpCurrent"
+          :hp-max="actor.hpMax"
           @edit="openEditNpc(actor)"
-          @remove="requestDeleteActor(actor)"
+          @remove="requestDelete('actor', actor)"
         />
         <p v-if="visibleActors.length === 0" class="text-sm text-tertiary">
           Nenhum NPC encontrado.
@@ -152,6 +185,7 @@ const tabTriggerClass = cn(
           :name="language.name"
           :description="language.description"
           @edit="openEditLanguage(language)"
+          @remove="requestDelete('language', language)"
         />
         <p v-if="visibleLanguages.length === 0" class="text-sm text-tertiary">
           Nenhum idioma encontrado.
@@ -165,6 +199,7 @@ const tabTriggerClass = cn(
           :name="culture.name"
           :description="culture.description"
           @edit="openEditCulture(culture)"
+          @remove="requestDelete('culture', culture)"
         />
         <p v-if="visibleCultures.length === 0" class="text-sm text-tertiary">
           Nenhuma cultura encontrada.
@@ -174,13 +209,13 @@ const tabTriggerClass = cn(
 
     <ConfirmDialog
       v-model:open="deleteConfirmOpen"
-      title="Apagar personagem"
+      :title="deleteTitle"
       :description="deleteDescription"
       confirm-label="Apagar"
       cancel-label="Cancelar"
       confirm-variant="destructive"
-      :confirming="isDeletingActor"
-      @confirm="void confirmDeleteActor()"
+      :confirming="isDeleting"
+      @confirm="void confirmDelete()"
     />
   </section>
 </template>

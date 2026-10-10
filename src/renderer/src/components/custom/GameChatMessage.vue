@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { toImageUrl } from '@shared'
 import type { GameChatMessage } from '@renderer/composable/game.type'
+import NarratorUi from '@renderer/components/custom/NarratorUi.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@renderer/components/ui/avatar'
 import { Bubble, BubbleContent } from '@renderer/components/ui/bubble'
 import {
@@ -9,10 +10,17 @@ import {
   MessageContent,
   MessageHeader
 } from '@renderer/components/ui/message'
+import { Spinner } from '@renderer/components/ui/spinner'
 import { cn } from '@renderer/lib/utils'
 
 const props = defineProps<{
   message: GameChatMessage
+  /** The player may pick the options the narrator offers in this message. */
+  interactive?: boolean
+}>()
+
+const emit = defineEmits<{
+  choose: [text: string]
 }>()
 
 function initials(value: string): string {
@@ -65,12 +73,27 @@ function initials(value: string): string {
         <BubbleContent
           class="flex w-full flex-col gap-2.5 rounded-2xl border-border px-5 py-4 font-body text-chat text-foreground"
         >
-          <p
+          <template
             v-for="(segment, index) in props.message.segments"
             :key="`${props.message.id}-${index}`"
-            :class="cn(segment.kind === 'dialogue' && 'font-bold italic')"
           >
-            {{ segment.text }}
+            <NarratorUi
+              v-if="segment.kind === 'ui'"
+              :source="segment.source"
+              :streaming="props.message.isStreaming"
+              :interactive="props.interactive"
+              @choose="emit('choose', $event)"
+            />
+            <p v-else :class="cn(segment.kind === 'dialogue' && 'font-bold italic')">
+              {{ segment.text }}
+            </p>
+          </template>
+          <p
+            v-if="props.message.isStreaming && props.message.segments.length === 0"
+            class="flex items-center gap-2 text-sm text-muted-foreground"
+          >
+            <Spinner class="size-4" />
+            O Mestre está escrevendo...
           </p>
         </BubbleContent>
       </Bubble>

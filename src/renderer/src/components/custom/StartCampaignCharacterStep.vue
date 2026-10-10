@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { Camera } from '@lucide/vue'
 import { ref } from 'vue'
-import { actorAgeOptions, actorGenderOptions } from '@renderer/constant/actor.constant'
+import HealthFields from '@renderer/components/custom/HealthFields.vue'
+import {
+  actorAgeOptions,
+  actorGenderOptions,
+  actorHpLimits
+} from '@renderer/constant/actor.constant'
 import type { NamedEntitySummary } from '@renderer/composable/world.type'
 import {
   FormControl,
@@ -201,6 +206,8 @@ const textareaClass =
           </FormItem>
         </FormField>
       </div>
+
+      <HealthFields :default-max="actorHpLimits.defaultPlayer" :disabled="disabled" />
 
       <div class="flex flex-col gap-4">
         <FormField v-slot="{ componentField }" name="appearance" keep-value>

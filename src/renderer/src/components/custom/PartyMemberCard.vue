@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { toImageUrl } from '@shared'
-import { hpPercent, isCriticalHp } from '@renderer/composable/game.mapper'
+import HealthBar from '@renderer/components/custom/HealthBar.vue'
 import type { PartyMemberCardModel } from '@renderer/composable/game.type'
 import { Avatar, AvatarFallback, AvatarImage } from '@renderer/components/ui/avatar'
-import { Progress } from '@renderer/components/ui/progress'
-import { cn } from '@renderer/lib/utils'
 
 const props = defineProps<{
   member: PartyMemberCardModel
@@ -14,9 +11,6 @@ const props = defineProps<{
 defineEmits<{
   select: []
 }>()
-
-const percent = computed(() => hpPercent(props.member.hpCurrent, props.member.hpMax))
-const critical = computed(() => isCriticalHp(props.member.hpCurrent, props.member.hpMax))
 
 function initials(value: string): string {
   return value
@@ -48,17 +42,6 @@ function initials(value: string): string {
         <p class="truncate text-xs text-muted-foreground">{{ props.member.roleLabel }}</p>
       </div>
     </div>
-    <div class="flex w-full items-center justify-between">
-      <span class="text-badge font-semibold text-tertiary">HP</span>
-      <span class="text-badge font-semibold text-muted-foreground">
-        {{ props.member.hpCurrent }} / {{ props.member.hpMax }}
-      </span>
-    </div>
-    <Progress
-      :model-value="percent"
-      :class="
-        cn('h-1.5 bg-border', critical && '[&_[data-slot=progress-indicator]]:bg-destructive')
-      "
-    />
+    <HealthBar :current="props.member.hpCurrent" :max="props.member.hpMax" />
   </button>
 </template>

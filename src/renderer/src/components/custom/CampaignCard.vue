@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Play } from '@lucide/vue'
+import { toImageUrl } from '@shared'
 import { useRouter } from 'vue-router'
 import { Badge } from '@renderer/components/ui/badge'
 import { Button } from '@renderer/components/ui/button'
@@ -8,22 +9,23 @@ import type { CampaignStatus } from '@renderer/composable/campaign.type'
 import { campaignStatusLabel } from '@renderer/constant/campaign.constant'
 
 const props = defineProps<{
+  /** The id of the campaign, which is a world. */
   id: string
-  worldId: string
   name: string
   genre: string
   description: string
   status: CampaignStatus
+  imagePath?: string | null
 }>()
 
 const router = useRouter()
 
 function manageCampaign(): void {
-  void router.push({ name: 'world-detail', params: { worldId: props.worldId } })
+  void router.push({ name: 'world-detail', params: { worldId: props.id } })
 }
 
 function continueCampaign(): void {
-  void router.push({ name: 'game', params: { worldId: props.worldId } })
+  void router.push({ name: 'game', params: { worldId: props.id } })
 }
 </script>
 
@@ -32,6 +34,12 @@ function continueCampaign(): void {
     class="w-full gap-0 overflow-hidden rounded-xl border border-border bg-card py-0 shadow-none ring-0"
   >
     <div class="relative h-35 bg-muted">
+      <img
+        v-if="imagePath"
+        :src="toImageUrl(imagePath)"
+        :alt="name"
+        class="size-full object-cover"
+      />
       <Badge
         class="absolute top-4 left-4 h-auto gap-1.5 rounded-full border-transparent bg-black/70 px-2.5 py-1 text-badge font-semibold text-foreground"
       >

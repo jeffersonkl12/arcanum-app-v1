@@ -1,17 +1,27 @@
+import type { CreateActor } from '@schema'
+
 export type CampaignStatus = 'in_progress'
 
 export type CampaignPrologueMode = 'ai' | 'custom'
 
 export type StartCampaignStep = 1 | 2 | 3
 
+/** A campaign is a world that is not a template; `id` is that world's id. */
 export interface CampaignSummary {
   id: string
-  worldId: string
+  /** The template it was cloned from, `null` if that template was deleted. */
+  sourceWorldId: string | null
   name: string
   genre: string
   description: string
   status: CampaignStatus
   imagePath?: string | null
+}
+
+/** A template a campaign can be started from. */
+export interface TemplateOption {
+  id: string
+  name: string
 }
 
 export interface CampaignNpcCandidate {
@@ -24,18 +34,20 @@ export interface CampaignNpcCandidate {
 export interface StartCampaignCharacterDraft {
   name: string
   profession: string
-  age?: string
-  gender?: string
+  age: CreateActor['age']
+  gender: CreateActor['gender']
   languageId?: string
   cultureId?: string
   appearance: string
   personality: string
   background: string
+  /** Empty: the engine's default for a player. */
+  hpMax?: number
+  imageData?: Uint8Array
 }
 
 export interface StartCampaignDraft {
-  worldId: string
-  worldName: string
+  templateId: string
   character: StartCampaignCharacterDraft
   partyMemberIds: string[]
   prologueMode: CampaignPrologueMode

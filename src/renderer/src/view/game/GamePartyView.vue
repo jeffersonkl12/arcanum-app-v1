@@ -36,7 +36,7 @@ const { player, npcs, sidebarTab, openCharacterSheet } = useGame()
               <PartyMemberCard
                 v-if="player"
                 :member="player"
-                @select="void openCharacterSheet(player.id)"
+                @select="openCharacterSheet(player.id)"
               />
               <p v-else class="text-sm text-tertiary">Nenhum jogador no grupo.</p>
             </div>
@@ -47,7 +47,7 @@ const { player, npcs, sidebarTab, openCharacterSheet } = useGame()
                   v-for="npc in npcs"
                   :key="npc.id"
                   :member="npc"
-                  @select="void openCharacterSheet(npc.id)"
+                  @select="openCharacterSheet(npc.id)"
                 />
                 <p v-if="npcs.length === 0" class="text-sm text-tertiary">Nenhum NPC no grupo.</p>
               </div>

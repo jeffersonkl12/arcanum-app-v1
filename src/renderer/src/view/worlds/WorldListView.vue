@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Button } from '@renderer/components/ui/button'
-import { WorldCard } from '@renderer/components/custom'
+import { StartCampaignDialog, WorldCard } from '@renderer/components/custom'
 import { useWorld } from '@renderer/composable/world.composable'
 import { cn } from '@renderer/lib/utils'
 
-const { visibleWorlds, genreFilter, genreFilters } = useWorld()
+const { worlds, genreFilter, genreFilters } = useWorld()
 </script>
 
 <template>
@@ -33,14 +33,17 @@ const { visibleWorlds, genreFilter, genreFilters } = useWorld()
     </div>
     <div class="grid grid-cols-[repeat(auto-fill,minmax(18rem,20rem))] gap-6">
       <WorldCard
-        v-for="world in visibleWorlds"
+        v-for="world in worlds"
         :id="world.id"
         :key="world.id"
         :name="world.name"
         :description="world.description"
         :genre="world.genre"
         :campaign-count="world.campaignCount"
+        :image-path="world.imagePath"
       />
+      <p v-if="worlds.length === 0" class="text-sm text-tertiary">Nenhum mundo encontrado.</p>
     </div>
+    <StartCampaignDialog :show-trigger="false" />
   </section>
 </template>

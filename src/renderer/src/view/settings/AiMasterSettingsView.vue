@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { toTypedSchema } from '@vee-validate/zod'
-import { Eye, EyeOff, Save, ShieldAlert } from '@lucide/vue'
+import { Eye, EyeOff, KeyRound, Save, ShieldAlert } from '@lucide/vue'
 import { useForm } from 'vee-validate'
 import { computed, onMounted, ref, watch } from 'vue'
 import { z } from 'zod'
@@ -44,7 +44,8 @@ const settingsFormSchema = toTypedSchema(
 )
 
 const showApiKey = ref(false)
-const { setting, catalog, isLoading, saveError, loadAiSetting, saveAiSetting } = useAiSetting()
+const { setting, catalog, isLoading, saveError, loadAiSetting, saveAiSetting, clearApiKey } =
+  useAiSetting()
 
 const { handleSubmit, resetForm, setFieldValue, setErrors, values } = useForm({
   validationSchema: settingsFormSchema,
@@ -71,6 +72,8 @@ const apiKeyPlaceholder = computed(() => {
   if (status.source === 'environment') return 'Usando chave do ambiente'
   return 'Cole a chave de API'
 })
+
+const hasStoredApiKey = computed(() => setting.value?.apiKey.source === 'stored')
 
 const temperatureLabel = computed(() => Number(values.temperature ?? 0).toFixed(1))
 
@@ -277,7 +280,18 @@ function onTemperatureChange(value: number[] | undefined): void {
         </div>
       </div>
 
-      <div class="flex justify-end">
+      <div class="flex justify-end gap-4">
+        <Button
+          v-if="hasStoredApiKey"
+          type="button"
+          variant="outline"
+          class="h-auto gap-2 rounded-full bg-transparent px-6 py-3 text-sm font-semibold"
+          :disabled="isLoading"
+          @click="void clearApiKey()"
+        >
+          <KeyRound class="size-4.5" />
+          Remover chave salva
+        </Button>
         <Button
           type="submit"
           class="h-auto gap-2 rounded-full px-6 py-3 text-sm font-bold hover:bg-primary-hover"

@@ -17,6 +17,7 @@ src/renderer/
     ├── composable/     # lógica de domínio usada pelos componentes
     ├── constant/       # constantes da UI
     ├── lib/            # utilitários do shadcn-vue (`cn`)
+    ├── openui/         # library de componentes que o narrador pode escrever (OpenUI Lang)
     ├── page/           # páginas (uma por rota)
     ├── router/         # vue-router: rotas e navegação
     ├── store/          # stores Pinia (estado compartilhado)
@@ -28,7 +29,7 @@ src/renderer/
     └── main.ts
 ```
 
-As pastas são criadas **quando surgem pela primeira vez** (como no resto do projeto). Hoje existem `assets`, `components/ui`, `components/custom`, `composable`, `constant`, `lib`, `page`, `router`, `template` e `view`. `components/Versions.vue` é resto do template do electron-vite.
+As pastas são criadas **quando surgem pela primeira vez** (como no resto do projeto). Hoje existem `assets`, `components/ui`, `components/custom`, `composable`, `constant`, `lib`, `openui`, `page`, `router`, `store`, `template`, `util` e `view`. `components/Versions.vue` é resto do template do electron-vite.
 
 Não há `service/` nem `boot/` no renderer. A camada de acesso a dados é o próprio contrato de IPC (`window.api.invoke`, tipado por `ipcContract`). Uma lib global que precise iniciar antes do app montar é inicializada no `main.ts`; só crie uma pasta `boot/` se aparecerem várias.
 
@@ -155,6 +156,7 @@ export function useRequest() {
 }
 ```
 
+- `request` devolve o `data` ou `undefined`. Para canais sem retorno (`void`), use `execute`, que devolve `true`/`false`. O toast mostra a mensagem **traduzida** por `translateIpcError` (`util/ipc-error.util.ts`): as mensagens do back são em inglês e ficam só no log. `invalid_input` não vira toast, é para o formulário.
 - Trate por `error.kind` quando a UI precisar de algo além do toast:
 
 | `kind`          | O que fazer                                                                |
@@ -170,7 +172,8 @@ export function useRequest() {
 
 ### `store/`: Pinia
 
-- `pinia` ainda **não está instalado**. Pergunte ao usuário antes de adicionar.
+- `pinia` está instalado e registrado no `main.ts`. Cada store é uma _setup store_ (`defineStore('id', () => {...})`) em `store/<name>.store.ts`; o composable a consome com `storeToRefs`.
+- Hoje: `world` (templates e o mundo aberto), `campaign` (campanhas e filtros), `campaign-wizard` (o assistente de nova campanha), `game` (chat, grupo e diálogos da campanha) e `ai-setting`.
 - Use sempre que o dado for global ou usado por muitos componentes aninhados ou diferentes (ex.: mundo e grupo ativos). Guarda e organiza estado compartilhado, sem chamar `window.api` (quem chama é o composable).
 - A engine é a fonte da verdade. A store é só um espelho do que a engine devolveu.
 
@@ -198,7 +201,7 @@ export function useRequest() {
 
 ### `router/`
 
-- `vue-router` ainda **não está instalado**. Pergunte antes de adicionar e confirme a API na documentação oficial.
+- `vue-router` está instalado e as rotas ficam em `router/app.router.ts`. Confirme a API na documentação oficial antes de mexer.
 - O build empacotado carrega via `file://`, então o histórico deve ser por hash (`createWebHashHistory`), não por path.
 - Navegue com `RouterLink` / `useRouter`. Nada de `window.location` nem `<a href>` interno.
 
@@ -213,13 +216,20 @@ Layout base da aplicação: barra de título, sidebar, header e demais estrutura
 - Exemplo: `WorldsPage.vue` é composta por `WorldHeroView.vue`, `WorldListView.vue` e `WorldCtaView.vue`.
 - A page apenas organiza as views. Se uma view precisa de dados, usa um composable.
 
-## 4. Narrador e UI gerada (pendente)
+## 4. Narrador e UI gerada
 
-O narrador responde por `gameMaster:takeTurn` (resposta inteira) ou por `gameMaster:streamTurn` (a narração chega aos poucos em `gameMaster:turnEvent`, ouvido com `window.api.on`; ver `api.md` §5.8) e o histórico vem de `gameMaster:listHistory`. O back já ensina OpenUI Lang ao narrador a partir de `NARRATOR_UI_COMPONENTS` (`@shared`), separa prosa de blocos de UI em tempo real (`delta` com `segment` e `kind`), valida cada bloco e devolve `segments` no histórico. **O renderer ainda não tem** a library com os componentes Vue, o `<Renderer>` nem o consumo dos eventos.
+O narrador responde por `gameMaster:streamTurn`: a narração chega aos poucos em `gameMaster:turnEvent` (ver `api.md` §5.8) e o histórico vem de `gameMaster:listHistory`. O back ensina OpenUI Lang ao narrador a partir de `NARRATOR_UI_COMPONENTS` (`@shared`), separa prosa de blocos de UI em tempo real (`delta` com `segment` e `kind`), valida cada bloco e devolve `segments` também no histórico.
 
-Antes de construir a tela de chat ou qualquer UI gerada pela IA, alinhe o desenho com o usuário. Princípios que já valem:
+Como o renderer consome isso:
 
-- Quando o narrador pedir uma rolagem ou teste, o botão da UI chama a **engine** (via um canal IPC a ser criado) e devolve o resultado ao narrador. O cliente nunca rola nem calcula.
+- `composable/turn-stream.composable.ts` (`useTurnStream`) escolhe o `turnId`, ouve antes de chamar, entrega `delta`/`done`/`error` e resolve quando o turno acaba. `useGame().sendMessage` acumula os deltas em `NarrationSegment[]` (`util/narration.util.ts`) e, no `done`, troca tudo pelos `segments` finais.
+- Cada mensagem do narrador é uma lista de blocos (`ChatSegment`): prosa passa por `proseToChatSegments` (parágrafos, diálogo por heurística) e um bloco `ui` vai inteiro para `NarratorUi`, que usa o `<Renderer>` do `@openuidev/vue-lang`. Nunca os dois sobre o mesmo texto.
+- `openui/narrator.library.ts` monta a library a partir de `NARRATOR_UI_COMPONENTS` e falha ao carregar se um nome do vocabulário não tiver componente Vue. Para um componente novo: adicione o nome no `@shared`, o `.vue` em `components/custom/` e o mapeamento em `renderers`.
+- `Choices`: clicar numa opção dispara a ação `continue_conversation` e o chat joga um novo turno com aquele texto. Só a última fala do narrador é clicável, e não durante um turno. Qualquer outra ação que o modelo peça (como abrir URL) é ignorada.
+
+Princípios que valem:
+
+- Quando o narrador pedir uma rolagem ou teste, o botão da UI chama a **engine** (via um canal IPC a ser criado, hoje não existe) e devolve o resultado ao narrador. O cliente nunca rola nem calcula.
 - A mensagem do narrador é texto; qualquer estrutura além disso passa por um contrato explícito, não por parsing solto no componente.
 - Componentes de chat reaproveitam o que o shadcn já traz (`bubble`, `attachment`, `empty`).
 

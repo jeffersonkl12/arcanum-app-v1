@@ -4,7 +4,7 @@ import { ref } from 'vue'
 import { Avatar, AvatarFallback } from '@renderer/components/ui/avatar'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
-import { useCampaign } from '@renderer/composable/campaign.composable'
+import { useStartCampaign } from '@renderer/composable/start-campaign.composable'
 
 const props = defineProps<{
   playerName: string
@@ -16,8 +16,8 @@ const emit = defineEmits<{
   createNpc: []
 }>()
 
-const { partyMembers, visibleWorldNpcs, npcSearch, addPartyMember, removePartyMember } =
-  useCampaign()
+const { partyMembers, visibleNpcs, npcSearch, addPartyMember, removePartyMember } =
+  useStartCampaign()
 
 const searchField = ref<HTMLLabelElement>()
 
@@ -132,7 +132,7 @@ function initials(name: string): string {
 
       <div class="flex flex-col gap-3">
         <div
-          v-for="npc in visibleWorldNpcs"
+          v-for="npc in visibleNpcs"
           :key="npc.id"
           class="flex items-center gap-4 rounded-lg border border-border bg-card px-3 py-2"
         >
@@ -156,7 +156,7 @@ function initials(name: string): string {
             Adicionar
           </Button>
         </div>
-        <p v-if="visibleWorldNpcs.length === 0" class="text-sm text-muted-foreground">
+        <p v-if="visibleNpcs.length === 0" class="text-sm text-muted-foreground">
           Nenhum NPC disponível para adicionar.
         </p>
       </div>

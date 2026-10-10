@@ -15,7 +15,14 @@ import {
   actorGenderValues
 } from '@renderer/constant/actor.constant'
 import { useWorld } from '@renderer/composable/world.composable'
+import { actorHpLimits } from '@renderer/constant/actor.constant'
+import {
+  healthConsistencyIssue,
+  healthFormShape,
+  isHealthConsistent
+} from '@renderer/util/health.util'
 import type { ActorSummary } from '@renderer/composable/world.type'
+import HealthFields from '@renderer/components/custom/HealthFields.vue'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -66,28 +73,33 @@ const formFields = [
   'cultureId',
   'appearance',
   'personality',
-  'background'
+  'background',
+  'hpMax',
+  'hpCurrent'
 ] as const
 
 type FormFieldName = (typeof formFields)[number]
 
 // Mirrors TEXT_LIMITS in the engine: name/shortText 120, longText 5000.
 const createNpcFormSchema = toTypedSchema(
-  z.object({
-    name: z
-      .string('Informe o nome')
-      .trim()
-      .min(1, 'Informe o nome')
-      .max(120, 'O nome pode ter no máximo 120 caracteres'),
-    profession: z.string().max(120, 'A profissão pode ter no máximo 120 caracteres'),
-    age: z.enum(actorAgeValues, 'Selecione a idade'),
-    gender: z.enum(actorGenderValues, 'Selecione o gênero'),
-    languageId: z.string().optional(),
-    cultureId: z.string().optional(),
-    appearance: z.string().max(5000, 'A aparência pode ter no máximo 5000 caracteres'),
-    personality: z.string().max(5000, 'A personalidade pode ter no máximo 5000 caracteres'),
-    background: z.string().max(5000, 'O background pode ter no máximo 5000 caracteres')
-  })
+  z
+    .object({
+      name: z
+        .string('Informe o nome')
+        .trim()
+        .min(1, 'Informe o nome')
+        .max(120, 'O nome pode ter no máximo 120 caracteres'),
+      profession: z.string().max(120, 'A profissão pode ter no máximo 120 caracteres'),
+      age: z.enum(actorAgeValues, 'Selecione a idade'),
+      gender: z.enum(actorGenderValues, 'Selecione o gênero'),
+      languageId: z.string().optional(),
+      cultureId: z.string().optional(),
+      appearance: z.string().max(5000, 'A aparência pode ter no máximo 5000 caracteres'),
+      personality: z.string().max(5000, 'A personalidade pode ter no máximo 5000 caracteres'),
+      background: z.string().max(5000, 'O background pode ter no máximo 5000 caracteres'),
+      ...healthFormShape
+    })
+    .refine(isHealthConsistent, healthConsistencyIssue)
 )
 
 const emptyForm = {
@@ -128,6 +140,9 @@ const onSubmit = handleSubmit(async (values) => {
     appearance: values.appearance,
     personality: values.personality,
     background: values.background,
+    hpMax: values.hpMax,
+    // The current health is only asked when editing; a new actor starts at full health.
+    hpCurrent: isEditing.value ? values.hpCurrent : undefined,
     imageData: imageData.value
   }
 
@@ -181,7 +196,9 @@ function fillForm(actor: ActorSummary | null): void {
       cultureId: actor.cultureId ?? undefined,
       appearance: actor.appearance,
       personality: actor.personality,
-      background: actor.background
+      background: actor.background,
+      hpMax: actor.hpMax,
+      hpCurrent: actor.hpCurrent
     }
   })
 }
@@ -414,6 +431,12 @@ const textareaClass =
                 </FormItem>
               </FormField>
             </div>
+
+            <HealthFields
+              :show-current="isEditing"
+              :default-max="actorHpLimits.defaultNpc"
+              :disabled="isCreatingActor"
+            />
 
             <FormField v-slot="{ componentField }" name="appearance" keep-value>
               <FormItem class="gap-1.5">

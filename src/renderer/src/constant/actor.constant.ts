@@ -39,3 +39,11 @@ export const actorGenderOptions: readonly ActorGenderOption[] = [
   { value: 'male', label: 'Masculino' },
   { value: 'female', label: 'Feminino' }
 ]
+
+/** Mirrors ACTOR_HP in the engine: the range of the maximum health and what a new actor gets. */
+export const actorHpLimits = {
+  minMax: 1,
+  max: 9999,
+  defaultPlayer: 40,
+  defaultNpc: 20
+} as const

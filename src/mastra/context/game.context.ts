@@ -64,6 +64,8 @@ export const partyMemberSchema = z.object({
   isPlayer: z.boolean(),
   age: z.enum(ACTOR_AGES),
   gender: z.enum(ACTOR_GENDERS),
+  hpCurrent: z.number().int(),
+  hpMax: z.number().int(),
   profession: z.string().nullable(),
   appearance: z.string().nullable(),
   personality: z.string().nullable(),

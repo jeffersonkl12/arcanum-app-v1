@@ -1,5 +1,6 @@
 export * from '@constant/actor-age.constant'
 export * from '@constant/actor-gender.constant'
+export * from '@constant/actor-hp.constant'
 export * from '@constant/ai-model.constant'
 export * from '@constant/check-outcome.constant'
 export * from '@constant/image.constant'

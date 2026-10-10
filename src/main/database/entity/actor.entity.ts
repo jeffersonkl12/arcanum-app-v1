@@ -1,10 +1,20 @@
-import { ACTOR_AGES, ACTOR_GENDERS } from '@constant'
+import { ACTOR_AGES, ACTOR_GENDERS, ACTOR_HP } from '@constant'
 import { cultureTable } from '@database/entity/culture.entity'
 import { languageTable } from '@database/entity/language.entity'
 import { partyTable } from '@database/entity/party.entity'
 import { worldTable } from '@database/entity/world.entity'
 import { sql } from 'drizzle-orm'
-import { boolean, foreignKey, pgEnum, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  check,
+  foreignKey,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  uniqueIndex,
+  uuid
+} from 'drizzle-orm/pg-core'
 
 export const actorAgeEnum = pgEnum('actor_age', ACTOR_AGES)
 export const actorGenderEnum = pgEnum('actor_gender', ACTOR_GENDERS)
@@ -29,6 +39,10 @@ export const actorTable = pgTable(
     // Relative to the images folder (`actor/<uuid>.png`), never absolute, and only ever written by the
     // image service: it is not part of the create/update schemas.
     imagePath: text('image_path'),
+    // The database default is only a floor: `ActorService` gives a new actor the default of its role
+    // (`ACTOR_HP`), and a new actor starts at full health unless it says otherwise.
+    hpMax: integer('hp_max').notNull().default(ACTOR_HP.defaultNpc),
+    hpCurrent: integer('hp_current').notNull().default(ACTOR_HP.defaultNpc),
     isNpc: boolean('is_npc').notNull().default(true),
     partyId: uuid('party_id')
   },
@@ -53,6 +67,12 @@ export const actorTable = pgTable(
     // A world has at most one player (the only actor that is not an NPC).
     uniqueIndex('actor_world_id_player_unique')
       .on(table.worldId)
-      .where(sql`${table.isNpc} = false`)
+      .where(sql`${table.isNpc} = false`),
+    // Health never goes below zero or above the maximum, and the maximum is at least 1.
+    check(
+      'actor_hp_max_range',
+      sql`${table.hpMax} between ${sql.raw(String(ACTOR_HP.minMax))} and ${sql.raw(String(ACTOR_HP.max))}`
+    ),
+    check('actor_hp_current_range', sql`${table.hpCurrent} between 0 and ${table.hpMax}`)
   ]
 )

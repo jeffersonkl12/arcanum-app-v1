@@ -1,13 +1,11 @@
-import { computed, ref, type ComputedRef, type Ref } from 'vue'
+import { computed, type ComputedRef, type Ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { toast } from 'vue-sonner'
 import type { AiSettingView, UpdateAiSetting } from '@schema'
-import type { IpcError, IpcOutput } from '@shared'
+import type { IpcError } from '@shared'
+import type { AiProviderCatalogEntry } from './ai-setting.type'
 import { useRequest } from './request.composable'
-
-export type AiProviderCatalogEntry = IpcOutput<'aiSetting:catalog'>[number]
-
-const setting = ref<AiSettingView>()
-const catalog = ref<AiProviderCatalogEntry[]>([])
+import { useAiSettingStore } from '@renderer/store/ai-setting.store'
 
 export function useAiSetting(): {
   setting: Ref<AiSettingView | undefined>
@@ -19,6 +17,7 @@ export function useAiSetting(): {
   saveAiSetting: (input: UpdateAiSetting) => Promise<AiSettingView | undefined>
   clearApiKey: () => Promise<AiSettingView | undefined>
 } {
+  const { setting, catalog } = storeToRefs(useAiSettingStore())
   const { isLoading, error, request } = useRequest()
 
   const selectedProvider = computed(() =>
@@ -46,6 +45,7 @@ export function useAiSetting(): {
     const updated = await request('aiSetting:clearApiKey')
     if (!updated) return undefined
     setting.value = updated
+    toast.success('Chave de API removida')
     return updated
   }
 

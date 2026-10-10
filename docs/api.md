@@ -21,7 +21,7 @@
 5. [Referência por domínio](#5-referência-por-domínio)
    - [5.1 World](#51-world) · [5.2 Culture](#52-culture) · [5.3 Language](#53-language) · [5.4 Actor](#54-actor) · [5.5 Party](#55-party) · [5.6 Imagens](#56-imagens) · [5.7 AI Setting](#57-ai-setting) · [5.8 Game Master](#58-game-master)
 6. [IA: fluxo do Game Master](#6-ia-fluxo-do-game-master)
-7. [🚧 Chat com OpenUI (planejado)](#7--chat-com-openui-planejado)
+7. [Chat com OpenUI](#7-chat-com-openui)
 8. [Modelo de dados](#8-modelo-de-dados)
 9. [Ciclo de vida do app e dados locais](#9-ciclo-de-vida-do-app-e-dados-locais)
 10. [Lacunas conhecidas](#10-lacunas-conhecidas)
@@ -100,14 +100,15 @@ await window.api.invoke('party:addMember', { partyId, actorId })
 
 ### 2.3 Composable existente (`useRequest`)
 
-`src/renderer/src/composable/request.composable.ts` é o único consumidor real hoje:
+`src/renderer/src/composable/request.composable.ts` é por onde todos os composables chamam a API:
 
 ```ts
-const { isLoading, error, request } = useRequest()
+const { isLoading, error, request, execute } = useRequest()
 const world = await request('world:get', worldId) // data em caso de sucesso, undefined em erro
+const deleted = await execute('actor:delete', actorId) // canais `void`: true em sucesso
 ```
 
-Em erro, ele guarda o `IpcError` e mostra `toast.error(message)` para todo `kind`, **exceto** `invalid_input` (esse é para o formulário exibir por campo, via `issues`).
+Em erro, ele guarda o `IpcError` e mostra um toast com a mensagem **em português** (`translateIpcError`, `util/ipc-error.util.ts`; as mensagens do back são em inglês) para todo `kind`, **exceto** `invalid_input` (esse é para o formulário exibir por campo, via `issues`).
 
 ### 2.4 Tipos que o renderer pode importar
 
@@ -175,19 +176,20 @@ Exemplo de `invalid_input`:
 
 `ConflictError` nasce de dois lugares: regras explícitas nos serviços e a tradução de erros do Postgres (`23505` unique, `23503` foreign key) em `src/main/database/error.database.ts`.
 
-| Origem                            | Mensagem                                                                                                                                | Quando                                                                         |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `actor_world_id_player_unique`    | `The world already has a player`                                                                                                        | 2º ator com `isNpc: false` no mesmo mundo (create ou update)                   |
-| `party_world_id_unique`           | `The world already has a party`                                                                                                         | 2ª party no mesmo mundo                                                        |
-| `actor_culture_world_fk`          | `The culture does not exist in the actor world, or is still in use`                                                                     | Cultura de outro mundo/inexistente, **ou** apagar cultura que ainda tem atores |
-| `actor_language_world_fk`         | `The language does not exist in the actor world, or is still in use`                                                                    | Idem para language                                                             |
-| `actor_party_world_fk`            | `The party does not exist in the actor world, or is still in use`                                                                       | Party de outro mundo/inexistente, **ou** apagar party que ainda tem membros    |
-| Outro FK/unique                   | `cause.detail` do Postgres (ex.: `Key (world_id)=… is not present in table "world".`) ou `The operation violates a data constraint`     | `worldId` inexistente em create, etc.                                          |
-| Imagem grande                     | `The image is too big (the limit is 5 MB)`                                                                                              | `*:setImage` com > 5 MB                                                        |
-| Imagem inválida                   | `The file is not a PNG, JPEG, WebP or GIF image`                                                                                        | Bytes não batem com nenhum formato aceito                                      |
-| Caminho de imagem inválido        | `"<path>" is not a valid image path`                                                                                                    | Caminho que escapa da pasta de imagens (defesa interna)                        |
-| Armazenamento seguro indisponível | `Secure storage is not available on this system (no keyring found), so the API key cannot be saved. Set it in the environment instead.` | `aiSetting:update` com `apiKey` no Linux sem keyring                           |
-| Chave salva ilegível              | `The saved API key can no longer be decrypted (the system keychain changed). Save it again.`                                            | Troca de keychain do SO                                                        |
+| Origem                                          | Mensagem                                                                                                                                | Quando                                                                                                |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `actor_world_id_player_unique`                  | `The world already has a player`                                                                                                        | 2º ator com `isNpc: false` no mesmo mundo (create ou update)                                          |
+| `party_world_id_unique`                         | `The world already has a party`                                                                                                         | 2ª party no mesmo mundo                                                                               |
+| `actor_culture_world_fk`                        | `The culture does not exist in the actor world, or is still in use`                                                                     | Cultura de outro mundo/inexistente, **ou** apagar cultura que ainda tem atores                        |
+| `actor_language_world_fk`                       | `The language does not exist in the actor world, or is still in use`                                                                    | Idem para language                                                                                    |
+| `actor_party_world_fk`                          | `The party does not exist in the actor world, or is still in use`                                                                       | Party de outro mundo/inexistente, **ou** apagar party que ainda tem membros                           |
+| `actor_hp_max_range` / `actor_hp_current_range` | `The maximum health must be at least 1` / `The current health must be between 0 and the maximum`                                        | Vida fora da faixa (o serviço barra antes com `The current health cannot be higher than the maximum`) |
+| Outro FK/unique                                 | `cause.detail` do Postgres (ex.: `Key (world_id)=… is not present in table "world".`) ou `The operation violates a data constraint`     | `worldId` inexistente em create, etc.                                                                 |
+| Imagem grande                                   | `The image is too big (the limit is 5 MB)`                                                                                              | `*:setImage` com > 5 MB                                                                               |
+| Imagem inválida                                 | `The file is not a PNG, JPEG, WebP or GIF image`                                                                                        | Bytes não batem com nenhum formato aceito                                                             |
+| Caminho de imagem inválido                      | `"<path>" is not a valid image path`                                                                                                    | Caminho que escapa da pasta de imagens (defesa interna)                                               |
+| Armazenamento seguro indisponível               | `Secure storage is not available on this system (no keyring found), so the API key cannot be saved. Set it in the environment instead.` | `aiSetting:update` com `apiKey` no Linux sem keyring                                                  |
+| Chave salva ilegível                            | `The saved API key can no longer be decrypted (the system keychain changed). Save it again.`                                            | Troca de keychain do SO                                                                               |
 
 > ⚠️ **Mensagens de FK são ambíguas de propósito.** "não existe no mundo, **ou** ainda está em uso" cobre dois casos distintos (referência inválida × apagar algo em uso). Se a UI precisar distinguir, ela deve saber o contexto da operação (estava criando/atualizando ou apagando?).
 
@@ -200,6 +202,7 @@ Exemplo de `invalid_input`:
 | `WORLD_GENRES`   | `fantasy` `high_fantasy` `dark_fantasy` `grimdark` `medieval` `mythological` `steampunk` `cyberpunk` `sci_fi` `post_apocalyptic` `horror` `western` |
 | `ACTOR_AGES`     | `baby` `child` `adolescent` `young_adult` `middle_aged` `old` `elder`                                                                               |
 | `ACTOR_GENDERS`  | `male` `female`                                                                                                                                     |
+| `ACTOR_HP`       | `hpMax` de 1 a 9999 · padrão ao criar: **40** (jogador) e **20** (NPC)                                                                              |
 | `AI_PROVIDERS`   | `google` `openai` `anthropic` `deepseek`                                                                                                            |
 | `ROLL_MODES`     | `normal` `advantage` `disadvantage` (só usado pela IA; não há IPC de rolagem)                                                                       |
 | `CHECK_OUTCOMES` | `critical_failure` `failure` `success` `critical_success`                                                                                           |
@@ -377,6 +380,8 @@ Personagem do mundo: o **jogador** (`isNpc: false`) ou um **NPC** (`isNpc: true`
 | `appearance`  | `string \| null` | opcional, ≤ 5000               |                                                    |
 | `personality` | `string \| null` | opcional, ≤ 5000               |                                                    |
 | `background`  | `string \| null` | opcional, ≤ 5000               |                                                    |
+| `hpMax`       | `number` (int)   | opcional, 1–9999               | Omitido: 40 se `isNpc: false`, senão 20            |
+| `hpCurrent`   | `number` (int)   | opcional, 0–`hpMax`            | Omitido: começa com a vida cheia (`hpMax`)         |
 | `isNpc`       | `boolean`        | opcional, _default_ **`true`** | `false` = jogador. **No máximo 1 por mundo**       |
 | `imagePath`   | `string \| null` | **não aceito** (ignorado)      | Só muda por `actor:setImage` / `actor:removeImage` |
 
@@ -398,6 +403,7 @@ await window.api.invoke('actor:create', {
 
 - Já existe um jogador no mundo e você cria/atualiza outro ator com `isNpc: false` → `The world already has a player`.
 - `cultureId`/`languageId`/`partyId` apontando para algo de **outro mundo** ou inexistente. A garantia é do banco, por FK composta `(id, world_id)`.
+- `hpCurrent` maior que `hpMax` → `The current health cannot be higher than the maximum`. No `update`, mandar só `hpMax` menor que a vida atual **baixa a vida atual junto**; mandar só `hpCurrent` é conferido contra o `hpMax` salvo. O banco repete a regra por `CHECK` (`actor_hp_max_range`, `actor_hp_current_range`).
 - `worldId` inexistente → `conflict` com o `detail` cru do Postgres.
 
 > O vínculo com a party pode ser feito por `actor:update { partyId }` **ou** por `party:addMember`. Os dois escrevem a mesma coluna.
@@ -681,7 +687,7 @@ O system prompt do narrador é a junção de _layers_ (um `.md` cada), nesta ord
 | 1   | `identity` | estático | Quem é o narrador                                                                                                                                                                                                             |
 | 2   | `rules`    | estático | Nunca inventar mecânica · rolar `rollCheckTool` só para ações incertas e relevantes · o resultado é final · delegar NPC novo ao `npcCreator` **antes** de narrá-lo · responder no idioma do jogador · nunca agir pelo jogador |
 | 3   | `world`    | dinâmico | `name`, `genre`, `description` (opcional)                                                                                                                                                                                     |
-| 4   | `party`    | dinâmico | Membros: `name`, `isPlayer`, `age`, `gender` e, se houver, `profession`, `appearance`, `personality`, `background`                                                                                                            |
+| 4   | `party`    | dinâmico | Membros: `name`, `isPlayer`, `age`, `gender`, `hpCurrent`/`hpMax` (só leitura para a IA) e, se houver, `profession`, `appearance`, `personality`, `background`                                                                |
 
 - Camadas estáticas vêm primeiro (prefixo imutável ajuda o cache do provedor). Dinâmicas, do que menos muda para o que mais muda.
 - Dinâmicas são **Handlebars em modo `strict`**: campo ausente **lança erro**. Campo opcional precisa de `{{#if campo}}`.
@@ -768,9 +774,9 @@ Se a engine rejeitar (`ConflictError`), a tool devolve `{ created: false, reason
 
 ---
 
-## 7. 🚧 Chat com OpenUI (planejado)
+## 7. Chat com OpenUI
 
-> **Estado atual:** o **back está pronto**: o vocabulário de componentes (`NARRATOR_UI_COMPONENTS`, em `@shared`), o layer de prompt gerado por `library.prompt()` e o streaming de turnos (§5.8) existem. **Falta o renderer**: a library com os componentes Vue, o `<Renderer>` e o consumo dos eventos. O chat atual ainda é texto puro, dividido por `toChatSegments` e renderizado em `<p>`.
+> **Estado atual:** back e renderer estão prontos: o vocabulário (`NARRATOR_UI_COMPONENTS`, em `@shared`), o layer de prompt, o streaming de turnos (§5.8), a library Vue (`src/renderer/src/openui/`), o `<Renderer>` no chat e o consumo dos eventos (`useTurnStream`). Falta a **rolagem de dado por botão** (não há IPC; ver risco 2).
 > Os trechos de API da lib foram conferidos no README instalado e nos `.d.ts` da 0.4.0. O que é proposta de arquitetura está marcado como tal.
 
 ### 7.1 O que o OpenUI faz (e o que não faz)
@@ -874,22 +880,23 @@ import { library } from './library'
 | Evento main → renderer    | `ipcEventContract`, `RendererEvents` (`@lib`), `window.api.on` | O preload só deixa ouvir canais do contrato e entrega só o payload (nunca o `event` do Electron)                                                                        |
 | `vue-lang` no main        | `electron.vite.config.ts` (`esmOnlyDeps`)                      | O pacote só tem condição `import`; o main é CJS, então ele é empacotado em vez de externo (senão `ERR_PACKAGE_PATH_NOT_EXPORTED`)                                       |
 
-**O que falta (🚧, renderer)**
+**No renderer (✅)**
 
-| Peça                    | Onde                                       | Observação                                                                                                                                     |
-| ----------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Library com componentes | renderer (ex.: `src/renderer/src/openui/`) | `NARRATOR_UI_COMPONENTS.map(spec => defineComponent({ ...spec, component: <Vue> }))`. Todo nome novo no vocabulário precisa do componente aqui |
-| `<Renderer>` no chat    | renderer                                   | Em `inlineMode` o modelo escreve prosa + um bloco ` ```openui-lang `; só o bloco vai para o `<Renderer>`, a prosa segue pelo `toChatSegments`  |
-| Consumo dos eventos     | renderer (composable)                      | Acumular `delta`, trocar por `done.text`, tratar `error`. Exemplo na §5.8                                                                      |
-| Ação do `Choices`       | renderer                                   | Clicar numa opção deve chamar `streamTurn` com o texto dela (via `onAction`). O jogador pode sempre digitar outra coisa                        |
-| Persistência do formato | memória do Mastra                          | Ver risco 3                                                                                                                                    |
+| Peça                    | Onde                                                                | Observação                                                                                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Library com componentes | `openui/narrator.library.ts`                                        | `NARRATOR_UI_COMPONENTS.map(spec => defineComponent({ ...spec, component }))`. Falha ao carregar se um nome do vocabulário não tiver componente Vue em `renderers`             |
+| Componentes             | `components/custom/NarratorStack.vue`, `NarratorChoices.vue`        | Todo nome novo no vocabulário precisa do componente aqui                                                                                                                       |
+| `<Renderer>` no chat    | `components/custom/NarratorUi.vue`, usado por `GameChatMessage.vue` | Só o bloco `ui` vai para o `<Renderer>`; a prosa segue por `proseToChatSegments`                                                                                               |
+| Consumo dos eventos     | `composable/turn-stream.composable.ts`, `game.composable.ts`        | Acumula `delta` por posição, troca tudo pelos `segments` do `done`, trata `error`                                                                                              |
+| Ação do `Choices`       | `NarratorUi.vue` (`onAction`)                                       | `continue_conversation` vira um novo turno com o texto da opção. Só a última fala do narrador é clicável, e não durante um turno. Outras ações (como `open_url`) são ignoradas |
+| Persistência do formato | memória do Mastra                                                   | Ver risco 3                                                                                                                                                                    |
 
 ### 7.4 Riscos e decisões em aberto
 
 1. **A UI gerada não pode tocar o estado por conta própria.** `Query()`/`Mutation()` do OpenUI chamam o `toolProvider`. Se ele existir, **cada função deve ser um wrapper de `window.api.invoke`** (passa por validação e pela engine). Nunca implemente regra de jogo dentro de um componente ou do `toolProvider`. Isso quebraria o princípio "engine decide".
 2. **Rolagem de dado por botão.** `docs/frontend.md` §4 prevê um botão de rolagem que chama a engine e devolve o resultado ao narrador. **Não existe IPC de rolagem** hoje (o `DiceCheckService` só é alcançado pela tool da IA). É um canal novo a desenhar.
 3. ✅ **Histórico.** A memória do Mastra guarda a resposta crua, com o bloco OpenUI Lang e a cerca (verificado com um modelo falso: o que sai do stream e o que `listHistory` devolve são idênticos). `listHistory` já devolve `segments`, então reidratar o chat é renderizar os `ui` com `isStreaming = false`.
-4. **Dois renderizadores competindo.** `toChatSegments` (heurística de diálogo por aspas/travessão) e o `<Renderer>` não podem coexistir sobre o mesmo texto. Definir uma regra única: com `inlineMode`, a prosa continua passando pelo `toChatSegments` e só o bloco OpenUI vai para o `<Renderer>`.
+4. **Dois renderizadores competindo.** `proseToChatSegments` (heurística de diálogo por aspas/travessão) e o `<Renderer>` não podem coexistir sobre o mesmo texto. ✅ Resolvido: `toChatSegments(segments)` manda a prosa para `proseToChatSegments` e só o bloco `ui` para o `<Renderer>`.
 5. **Fonte única do vocabulário.** O prompt (main/Mastra) e a library (renderer/Vue) precisam descrever os **mesmos** componentes. Se divergirem, o modelo emite componentes desconhecidos (`unknown-component`) que a lib tolera, mas renderiza mal. Decidir onde mora a definição (por exemplo, schemas Zod em `@shared`, sem Vue, e o mapeamento para componentes no renderer).
 6. **Resultado de dado alucinado.** O modelo pode escrever `RollResult("success", [6])` sem ter chamado a tool. Mitigação: a regra do layer ("só use o que a tool devolveu") **não é garantia**. Se isso importar, valide no main (comparar o que a UI exibe com os resultados das tool-calls do turno) ou deixe o componente de dado ser alimentado pelo resultado real da tool, não pelo texto do modelo.
 7. **Telemetria da lib.** `@openuidev/lang-core` envia telemetria pseudônima no `postinstall` (desative com `OPENUI_TELEMETRY_DISABLED=1` ou `DO_NOT_TRACK=1`). A telemetria em runtime (geração de prompt e parse) é **opt-in**: só liga com `OPENUI_RUNTIME_TELEMETRY_ENABLED`, que o app não define.
@@ -919,14 +926,14 @@ Banco do jogo: **PGlite** (Postgres embutido) via Drizzle, em `userData/data/gam
             ai_setting  (linha única, sem relação)
 ```
 
-| Tabela       | Colunas principais                                                                                                                                                  | Constraints relevantes                                                                                                                                                                                                                |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `world`      | `id`, `name`, `is_template`, `description`, `genre`, `source_world_id`, `image_path`                                                                                | `source_world_id` → `world.id` **ON DELETE SET NULL**                                                                                                                                                                                 |
-| `actor`      | `id`, `world_id`, `name`, `age`, `gender`, `culture_id`, `language_id`, `party_id`, `profession`, `appearance`, `personality`, `background`, `image_path`, `is_npc` | `world_id` **CASCADE**. Índice único parcial `actor_world_id_player_unique` em `(world_id) WHERE is_npc = false`. FKs compostas `(culture_id, world_id)`, `(language_id, world_id)`, `(party_id, world_id)` sem ON DELETE (NO ACTION) |
-| `culture`    | `id`, `world_id`, `name`, `description`                                                                                                                             | `world_id` CASCADE · `UNIQUE (id, world_id)`                                                                                                                                                                                          |
-| `language`   | `id`, `world_id`, `name`, `description`                                                                                                                             | `world_id` CASCADE · `UNIQUE (id, world_id)`                                                                                                                                                                                          |
-| `party`      | `id`, `world_id`                                                                                                                                                    | `world_id` CASCADE · `party_world_id_unique` · `UNIQUE (id, world_id)`                                                                                                                                                                |
-| `ai_setting` | `id` (boolean, sempre `true`), `provider`, `model`, `temperature`, `encrypted_key`, `key_hint`                                                                      | `CHECK` de linha única · `CHECK ((encrypted_key IS NULL) = (key_hint IS NULL))`                                                                                                                                                       |
+| Tabela       | Colunas principais                                                                                                                                                                          | Constraints relevantes                                                                                                                                                                                                                                                                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `world`      | `id`, `name`, `is_template`, `description`, `genre`, `source_world_id`, `image_path`                                                                                                        | `source_world_id` → `world.id` **ON DELETE SET NULL**                                                                                                                                                                                                                                                                                                      |
+| `actor`      | `id`, `world_id`, `name`, `age`, `gender`, `culture_id`, `language_id`, `party_id`, `profession`, `appearance`, `personality`, `background`, `image_path`, `hp_max`, `hp_current`, `is_npc` | `world_id` **CASCADE**. Índice único parcial `actor_world_id_player_unique` em `(world_id) WHERE is_npc = false`. `CHECK` `actor_hp_max_range` (`hp_max` entre 1 e 9999) e `actor_hp_current_range` (`hp_current` entre 0 e `hp_max`). FKs compostas `(culture_id, world_id)`, `(language_id, world_id)`, `(party_id, world_id)` sem ON DELETE (NO ACTION) |
+| `culture`    | `id`, `world_id`, `name`, `description`                                                                                                                                                     | `world_id` CASCADE · `UNIQUE (id, world_id)`                                                                                                                                                                                                                                                                                                               |
+| `language`   | `id`, `world_id`, `name`, `description`                                                                                                                                                     | `world_id` CASCADE · `UNIQUE (id, world_id)`                                                                                                                                                                                                                                                                                                               |
+| `party`      | `id`, `world_id`                                                                                                                                                                            | `world_id` CASCADE · `party_world_id_unique` · `UNIQUE (id, world_id)`                                                                                                                                                                                                                                                                                     |
+| `ai_setting` | `id` (boolean, sempre `true`), `provider`, `model`, `temperature`, `encrypted_key`, `key_hint`                                                                                              | `CHECK` de linha única · `CHECK ((encrypted_key IS NULL) = (key_hint IS NULL))`                                                                                                                                                                                                                                                                            |
 
 **Por que as FKs são compostas?** `(culture_id, world_id)` referenciando `culture(id, world_id)` faz o **banco** garantir que o ator e sua cultura/idioma/party pertencem ao mesmo mundo. Nenhum serviço precisa conferir isso. Como são `NO ACTION`, apagar uma cultura em uso falha com `conflict`. As FKs só valem enquanto a coluna opcional não é `NULL`.
 
@@ -937,6 +944,7 @@ Banco do jogo: **PGlite** (Postgres embutido) via Drizzle, em `userData/data/gam
 3. `…_legal_sebastian_shaw`: `actor.image_path`
 4. `…_mixed_firebrand`: `world.image_path`
 5. `…_open_slayback`: `world.source_world_id` + FK `SET NULL`
+6. `…_dry_sentinel`: `actor.hp_max`, `actor.hp_current` e seus `CHECK`s (jogadores já existentes recebem 40)
 
 Não existem tabelas de cena, sessão, combate, inventário ou NPC separado: um NPC é um `actor` com `is_npc = true`.
 
@@ -972,23 +980,23 @@ Nunca aponte dois processos para o mesmo diretório PGlite. Fora do app (Mastra 
 
 ## 10. Lacunas conhecidas
 
-| #   | Lacuna                                                                      | Impacto                                                                                            |
-| --- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| 1   | 🚧 Cancelamento de turno em streaming                                       | Um turno em andamento só termina sozinho; o mundo fica travado até lá                              |
-| 2   | 🚧 OpenUI sem library Vue nem `<Renderer>` no renderer                      | O back emite blocos `openui-lang`, mas nada os desenha ainda ([§7](#7--chat-com-openui-planejado)) |
-| 3   | 🚧 IPC de rolagem de dados                                                  | A UI não pode pedir uma checagem; só a IA rola                                                     |
-| 4   | 🚧 Combate, HP, atributos, perícias, inventário                             | O HP exibido no renderer é **mock** (`mockHpByName`)                                               |
-| 5   | 🚧 Cenas e sessões                                                          | Só existe um thread de chat por mundo                                                              |
-| 6   | 🚧 Tool de leitura de estado para a IA                                      | Estado só chega por layers a cada turno                                                            |
-| 7   | 🚧 Imagem em culture/language                                               | Escopos de imagem: só `world` e `actor`                                                            |
-| 8   | 🚧 Paginação em qualquer `list*`                                            | Devolve tudo; aceitável no escopo single-player                                                    |
-| 9   | 🚧 Limpeza do thread do Mastra ao apagar mundo                              | Conversas órfãs em `storage.db`                                                                    |
-| 10  | 🚧 `party:update`                                                           | Por desenho: a party não tem campos editáveis                                                      |
-| 11  | ⚠️ `.env` não vai no build; sem `.env.example`; `dotenv` sem uso confirmado | Em produção a chave deve vir de `aiSetting:update`                                                 |
-| 12  | ⚠️ Nenhum teste automatizado                                                | Não há script `test` em `package.json`                                                             |
-| 13  | ⚠️ NPC Creator e memória fixos em Google                                    | Exigem `GOOGLE_API_KEY` mesmo se o narrador usar outro provider                                    |
-| 14  | ⚠️ Mensagens de erro em inglês                                              | Zod e serviços devolvem inglês; a tradução é responsabilidade da UI                                |
-| 15  | ⚠️ `aiSettingService.resolve()` não é rota                                  | Por segurança: devolve a chave em claro e nunca deve cruzar o IPC                                  |
+| #   | Lacuna                                                                      | Impacto                                                                                                                      |
+| --- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 🚧 Cancelamento de turno em streaming                                       | Um turno em andamento só termina sozinho; o mundo fica travado até lá                                                        |
+| 2   | ✅ OpenUI no renderer (library Vue, `<Renderer>`, eventos)                  | Resolvido ([§7](#7-chat-com-openui))                                                                                         |
+| 3   | 🚧 IPC de rolagem de dados                                                  | A UI não pode pedir uma checagem; só a IA rola                                                                               |
+| 4   | 🚧 Combate, atributos, perícias, inventário                                 | A vida existe (`hpMax`/`hpCurrent`, editável por `actor:update`), mas nada a muda no jogo: sem dano, cura nem tool para a IA |
+| 5   | 🚧 Cenas e sessões                                                          | Só existe um thread de chat por mundo                                                                                        |
+| 6   | 🚧 Tool de leitura de estado para a IA                                      | Estado só chega por layers a cada turno                                                                                      |
+| 7   | 🚧 Imagem em culture/language                                               | Escopos de imagem: só `world` e `actor`                                                                                      |
+| 8   | 🚧 Paginação em qualquer `list*`                                            | Devolve tudo; aceitável no escopo single-player                                                                              |
+| 9   | 🚧 Limpeza do thread do Mastra ao apagar mundo                              | Conversas órfãs em `storage.db`                                                                                              |
+| 10  | 🚧 `party:update`                                                           | Por desenho: a party não tem campos editáveis                                                                                |
+| 11  | ⚠️ `.env` não vai no build; sem `.env.example`; `dotenv` sem uso confirmado | Em produção a chave deve vir de `aiSetting:update`                                                                           |
+| 12  | ⚠️ Nenhum teste automatizado                                                | Não há script `test` em `package.json`                                                                                       |
+| 13  | ⚠️ NPC Creator e memória fixos em Google                                    | Exigem `GOOGLE_API_KEY` mesmo se o narrador usar outro provider                                                              |
+| 14  | ⚠️ Mensagens de erro em inglês                                              | Zod e serviços devolvem inglês; a tradução é responsabilidade da UI                                                          |
+| 15  | ⚠️ `aiSettingService.resolve()` não é rota                                  | Por segurança: devolve a chave em claro e nunca deve cruzar o IPC                                                            |
 
 ---
 

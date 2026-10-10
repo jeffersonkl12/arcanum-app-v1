@@ -92,7 +92,7 @@ const onSubmit = handleSubmit(async (values) => {
   const editing = isEditing.value
   const saved = entity.value
     ? await updateWorld(entity.value.id, payload)
-    : await createWorld({ ...payload, isTemplate: false })
+    : await createWorld({ ...payload, isTemplate: true })
 
   if (!saved) {
     applyCreateErrors(createError.value)

@@ -9,6 +9,7 @@ import { z } from 'zod'
 import StartCampaignCharacterStep from './StartCampaignCharacterStep.vue'
 import StartCampaignPartyStep from './StartCampaignPartyStep.vue'
 import StartCampaignPrologueStep from './StartCampaignPrologueStep.vue'
+import CreateNpcDialog from './CreateNpcDialog.vue'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -19,6 +20,13 @@ import {
   DialogTrigger
 } from '@renderer/components/ui/dialog'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import {
   Stepper,
   StepperIndicator,
   StepperItem,
@@ -28,9 +36,12 @@ import {
 } from '@renderer/components/ui/stepper'
 import { actorAgeValues, actorGenderValues } from '@renderer/constant/actor.constant'
 import { startCampaignSteps } from '@renderer/constant/campaign.constant'
+import { healthFormShape } from '@renderer/util/health.util'
 import { useCampaign } from '@renderer/composable/campaign.composable'
 import type { CampaignPrologueMode, StartCampaignStep } from '@renderer/composable/campaign.type'
+import { useStartCampaign } from '@renderer/composable/start-campaign.composable'
 import { useWorld } from '@renderer/composable/world.composable'
+import type { ActorSummary } from '@renderer/composable/world.type'
 import { cn } from '@renderer/lib/utils'
 import { toast } from 'vue-sonner'
 
@@ -49,7 +60,9 @@ const startCampaignFormSchema = toTypedSchema(
     appearance: z.string().max(5000, 'A aparência pode ter no máximo 5000 caracteres'),
     personality: z.string().max(5000, 'A personalidade pode ter no máximo 5000 caracteres'),
     background: z.string().max(5000, 'O background pode ter no máximo 5000 caracteres'),
-    prologue: z.string().max(5000, 'O prólogo pode ter no máximo 5000 caracteres')
+    prologue: z.string().max(5000, 'O prólogo pode ter no máximo 5000 caracteres'),
+    // The current health is not asked: a campaign starts at full health.
+    hpMax: healthFormShape.hpMax
   })
 )
 
@@ -62,44 +75,78 @@ const emptyForm = {
   prologue: ''
 }
 
-const open = ref(false)
+withDefaults(
+  defineProps<{
+    /** When false, the dialog is opened only through the store (no trigger button). */
+    showTrigger?: boolean
+  }>(),
+  { showTrigger: true }
+)
+
+const npcOpen = ref(false)
 const step = ref<StartCampaignStep>(1)
 const prologueMode = ref<CampaignPrologueMode>('custom')
 const imagePreviewUrl = ref<string>()
 const imageData = ref<Uint8Array>()
-const isStarting = ref(false)
 
 const router = useRouter()
-const { startCampaign, resetWizardParty, partyMemberIds } = useCampaign()
-const { languages, cultures, currentWorld, loadWorld, visibleWorlds } = useWorld()
-const { handleSubmit, resetForm, validateField, values } = useForm({
+const { loadWorld } = useWorld()
+const { templateOptions, templateFilter, loadTemplateOptions } = useCampaign()
+const {
+  isOpen,
+  preferredTemplateId,
+  templateId,
+  languages,
+  cultures,
+  partyMemberIds,
+  isLoadingOptions,
+  isStarting,
+  loadOptions,
+  reset: resetParty,
+  addNpcCandidate,
+  addPartyMember,
+  startCampaign
+} = useStartCampaign()
+const { handleSubmit, resetForm, setFieldValue, validateField, values } = useForm({
   validationSchema: startCampaignFormSchema,
   initialValues: emptyForm
 })
 
-const worldId = computed(() => currentWorld.value?.id ?? visibleWorlds.value[0]?.id ?? 'eldoria')
-const worldName = computed(
-  () => currentWorld.value?.name ?? visibleWorlds.value[0]?.name ?? 'Eldoria'
+const templateName = computed(
+  () => templateOptions.value.find((option) => option.id === templateId.value)?.name ?? 'Mundo'
 )
 
-watch(open, async (isOpen) => {
-  if (isOpen) {
+watch(isOpen, async (opening) => {
+  if (!opening) {
+    resetForm({ values: emptyForm })
+    clearImage()
+    resetParty()
+    preferredTemplateId.value = undefined
+    templateId.value = undefined
     step.value = 1
     prologueMode.value = 'custom'
-    resetWizardParty()
-    await loadWorld(worldId.value)
     return
   }
-  resetForm({ values: emptyForm })
-  clearImage()
+
   step.value = 1
   prologueMode.value = 'custom'
-  resetWizardParty()
+  const options = await loadTemplateOptions()
+  const wanted = preferredTemplateId.value ?? templateFilter.value
+  const initial = options.find((option) => option.id === wanted) ?? options[0]
+  if (initial) await loadOptions(initial.id)
 })
 
 onBeforeUnmount(() => {
   clearImage()
 })
+
+/** The culture and the language belong to a world, so the ones picked for another one are void. */
+async function pickTemplate(id: unknown): Promise<void> {
+  if (typeof id !== 'string' || id === templateId.value) return
+  setFieldValue('languageId', undefined)
+  setFieldValue('cultureId', undefined)
+  await loadOptions(id)
+}
 
 function clearImage(): void {
   if (imagePreviewUrl.value) URL.revokeObjectURL(imagePreviewUrl.value)
@@ -119,6 +166,10 @@ async function onImageSelected(event: Event): Promise<void> {
 
 async function goNext(): Promise<void> {
   if (step.value === 1) {
+    if (!templateId.value) {
+      toast.error('Escolha o mundo da campanha')
+      return
+    }
     const fields = [
       'name',
       'profession',
@@ -128,7 +179,8 @@ async function goNext(): Promise<void> {
       'cultureId',
       'appearance',
       'personality',
-      'background'
+      'background',
+      'hpMax'
     ] as const
     const results = await Promise.all(fields.map((field) => validateField(field)))
     if (results.some((result) => !result.valid)) return
@@ -146,49 +198,59 @@ function goBack(): void {
 }
 
 const onStart = handleSubmit(async (formValues) => {
+  if (!templateId.value) return
   if (prologueMode.value === 'custom') {
     const prologueResult = await validateField('prologue')
     if (!prologueResult.valid) return
   }
 
-  isStarting.value = true
-  try {
-    startCampaign({
-      worldId: worldId.value,
-      worldName: worldName.value,
-      character: {
-        name: formValues.name,
-        profession: formValues.profession,
-        age: formValues.age,
-        gender: formValues.gender,
-        languageId: formValues.languageId,
-        cultureId: formValues.cultureId,
-        appearance: formValues.appearance,
-        personality: formValues.personality,
-        background: formValues.background
-      },
-      partyMemberIds: [...partyMemberIds.value],
-      prologueMode: prologueMode.value,
-      prologue: formValues.prologue
-    })
-    // Proposed: campaign:start not in ipcContract; draft stays local until the engine owns this flow.
-    void imageData.value
-    toast.success('Campanha iniciada')
-    open.value = false
-    void router.push({ name: 'game', params: { worldId: worldId.value } })
-  } finally {
-    isStarting.value = false
-  }
+  const campaignId = await startCampaign({
+    templateId: templateId.value,
+    character: {
+      name: formValues.name,
+      profession: formValues.profession,
+      age: formValues.age,
+      gender: formValues.gender,
+      languageId: formValues.languageId,
+      cultureId: formValues.cultureId,
+      appearance: formValues.appearance,
+      personality: formValues.personality,
+      background: formValues.background,
+      hpMax: formValues.hpMax,
+      imageData: imageData.value
+    },
+    partyMemberIds: [...partyMemberIds.value],
+    prologueMode: prologueMode.value,
+    prologue: formValues.prologue
+  })
+  if (!campaignId) return
+
+  toast.success('Campanha iniciada')
+  isOpen.value = false
+  void router.push({ name: 'game', params: { worldId: campaignId } })
 })
 
-function onCreateNpc(): void {
-  toast.message('Crie NPCs pelo detalhe do mundo por enquanto.')
+/** A new NPC is made in the template, so the dialog works on it as the open world. */
+async function onCreateNpc(): Promise<void> {
+  if (!templateId.value) return
+  await loadWorld(templateId.value)
+  npcOpen.value = true
+}
+
+function onNpcCreated(actor: ActorSummary): void {
+  addNpcCandidate({
+    id: actor.id,
+    name: actor.name,
+    subtitle: actor.subtitle,
+    imagePath: actor.imagePath
+  })
+  addPartyMember(actor.id)
 }
 </script>
 
 <template>
-  <Dialog v-model:open="open">
-    <DialogTrigger as-child>
+  <Dialog v-model:open="isOpen">
+    <DialogTrigger v-if="showTrigger" as-child>
       <Button
         type="button"
         class="h-auto gap-2 rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-primary-hover"
@@ -221,45 +283,44 @@ function onCreateNpc(): void {
               class="w-full items-center justify-between px-10"
               :linear="true"
             >
-              <template v-for="(item, index) in startCampaignSteps" :key="item.step">
-                <StepperItem
-                  v-slot="{ state }"
-                  :step="item.step"
-                  class="flex items-center gap-2"
-                  :completed="step > item.step"
+              <StepperItem
+                v-for="(item, index) in startCampaignSteps"
+                :key="item.step"
+                v-slot="{ state }"
+                :step="item.step"
+                class="flex items-center gap-2"
+                :completed="step > item.step"
+              >
+                <StepperTrigger
+                  class="flex items-center gap-2 rounded-none p-0 disabled:opacity-100"
                 >
-                  <StepperTrigger
-                    class="flex items-center gap-2 rounded-none p-0 disabled:opacity-100"
+                  <StepperIndicator
+                    :class="
+                      cn(
+                        'size-7 text-meta font-bold',
+                        state === 'active' && 'bg-primary text-primary-foreground',
+                        state === 'completed' && 'border border-primary bg-primary/20 text-primary',
+                        state === 'inactive' && 'border border-border bg-transparent text-tertiary'
+                      )
+                    "
                   >
-                    <StepperIndicator
-                      :class="
-                        cn(
-                          'size-7 text-meta font-bold',
-                          state === 'active' && 'bg-primary text-primary-foreground',
-                          state === 'completed' &&
-                            'border border-primary bg-primary/20 text-primary',
-                          state === 'inactive' &&
-                            'border border-border bg-transparent text-tertiary'
-                        )
-                      "
-                    >
-                      <Check v-if="state === 'completed'" class="size-3.5" />
-                      <span v-else>{{ item.step }}</span>
-                    </StepperIndicator>
-                    <StepperTitle
-                      :class="
-                        cn(
-                          'text-sm',
-                          state === 'active' && 'font-semibold text-foreground',
-                          state === 'completed' && 'font-medium text-foreground',
-                          state === 'inactive' && 'font-medium text-tertiary'
-                        )
-                      "
-                    >
-                      {{ item.title }}
-                    </StepperTitle>
-                  </StepperTrigger>
-                </StepperItem>
+                    <Check v-if="state === 'completed'" class="size-3.5" />
+                    <span v-else>{{ item.step }}</span>
+                  </StepperIndicator>
+                  <StepperTitle
+                    :class="
+                      cn(
+                        'text-sm',
+                        state === 'active' && 'font-semibold text-foreground',
+                        state === 'completed' && 'font-medium text-foreground',
+                        state === 'inactive' && 'font-medium text-tertiary'
+                      )
+                    "
+                  >
+                    {{ item.title }}
+                  </StepperTitle>
+                </StepperTrigger>
+                <!-- A separator only works inside its item, which it reads the state from. -->
                 <StepperSeparator
                   v-if="index < startCampaignSteps.length - 1"
                   :class="
@@ -269,8 +330,31 @@ function onCreateNpc(): void {
                     )
                   "
                 />
-              </template>
+              </StepperItem>
             </Stepper>
+          </div>
+
+          <div v-if="step === 1" class="flex flex-col gap-1.5">
+            <span class="text-meta font-medium text-muted-foreground">Mundo da campanha</span>
+            <Select
+              :model-value="templateId"
+              :disabled="isStarting || templateOptions.length === 0"
+              @update:model-value="void pickTemplate($event)"
+            >
+              <SelectTrigger
+                class="h-auto w-full rounded-lg border-border bg-background px-3 py-2.5 text-meta data-placeholder:text-tertiary"
+              >
+                <SelectValue placeholder="Selecione um mundo" />
+              </SelectTrigger>
+              <SelectContent position="popper" class="bg-card">
+                <SelectItem v-for="option in templateOptions" :key="option.id" :value="option.id">
+                  {{ option.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p v-if="templateOptions.length === 0" class="text-meta text-tertiary">
+              Crie um mundo antes de iniciar uma campanha.
+            </p>
           </div>
 
           <StartCampaignCharacterStep
@@ -284,9 +368,9 @@ function onCreateNpc(): void {
           <StartCampaignPartyStep
             v-else-if="step === 2"
             :player-name="values.name ?? ''"
-            :world-name="worldName"
+            :world-name="templateName"
             :disabled="isStarting"
-            @create-npc="onCreateNpc"
+            @create-npc="void onCreateNpc()"
           />
           <StartCampaignPrologueStep
             v-else
@@ -321,7 +405,7 @@ function onCreateNpc(): void {
               v-if="step < 3"
               type="button"
               class="h-auto gap-2 rounded-full px-6 py-2.5 text-sm font-bold hover:bg-primary-hover"
-              :disabled="isStarting"
+              :disabled="isStarting || isLoadingOptions"
               @click="goNext"
             >
               Próximo
@@ -339,6 +423,7 @@ function onCreateNpc(): void {
             </Button>
           </div>
         </form>
+        <CreateNpcDialog v-model:open="npcOpen" :show-trigger="false" @saved="onNpcCreated" />
       </DialogContent>
     </DialogPortal>
   </Dialog>

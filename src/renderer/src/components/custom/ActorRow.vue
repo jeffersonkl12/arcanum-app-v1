@@ -2,12 +2,15 @@
 import { Pencil, Trash2 } from '@lucide/vue'
 import { toImageUrl } from '@shared'
 import { Avatar, AvatarFallback, AvatarImage } from '@renderer/components/ui/avatar'
+import HealthBar from '@renderer/components/custom/HealthBar.vue'
 import { Button } from '@renderer/components/ui/button'
 
 const props = defineProps<{
   name: string
   subtitle: string
   imagePath?: string | null
+  hpCurrent: number
+  hpMax: number
 }>()
 
 defineEmits<{
@@ -34,6 +37,9 @@ function initials(value: string): string {
     <div class="flex min-w-0 flex-1 flex-col gap-1">
       <p class="truncate font-body text-base font-bold text-foreground">{{ name }}</p>
       <p class="truncate text-sm text-muted-foreground">{{ subtitle }}</p>
+    </div>
+    <div class="w-40 shrink-0">
+      <HealthBar :current="hpCurrent" :max="hpMax" />
     </div>
     <div class="flex items-center gap-2">
       <Button

@@ -57,9 +57,7 @@ function onConfirm(event: Event): void {
           {{ description }}
         </AlertDialogDescription>
       </AlertDialogHeader>
-      <AlertDialogFooter
-        class="border-border bg-transparent sm:justify-end"
-      >
+      <AlertDialogFooter class="border-border bg-transparent sm:justify-end">
         <AlertDialogCancel
           class="h-auto rounded-full bg-transparent px-4 py-2.5 text-sm font-semibold"
           :disabled="confirming"

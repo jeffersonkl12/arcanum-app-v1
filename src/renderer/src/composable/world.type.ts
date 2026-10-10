@@ -5,6 +5,7 @@ export interface WorldSummary {
   name: string
   description: string
   genre: string
+  imagePath?: string | null
   campaignCount: number
 }
 
@@ -29,17 +30,14 @@ export interface ActorSummary {
   appearance: string
   personality: string
   background: string
+  hpCurrent: number
+  hpMax: number
 }
 
 export interface NamedEntitySummary {
   id: string
   name: string
   description: string
-}
-
-export interface ActiveCampaign {
-  id: string
-  title: string
 }
 
 export type WorldEntityTab = 'npcs' | 'languages' | 'cultures'

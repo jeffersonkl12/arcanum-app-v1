@@ -3,7 +3,7 @@ import { Pencil, Trash2, X } from '@lucide/vue'
 import { DialogContent, DialogPortal } from 'reka-ui'
 import { computed } from 'vue'
 import { toImageUrl } from '@shared'
-import { hpPercent, isCriticalHp } from '@renderer/composable/game.mapper'
+import HealthBar from '@renderer/components/custom/HealthBar.vue'
 import type { CharacterSheet } from '@renderer/composable/game.type'
 import { Badge } from '@renderer/components/ui/badge'
 import { Button } from '@renderer/components/ui/button'
@@ -14,10 +14,8 @@ import {
   DialogOverlay,
   DialogTitle
 } from '@renderer/components/ui/dialog'
-import { Progress } from '@renderer/components/ui/progress'
 import { Separator } from '@renderer/components/ui/separator'
 import { Spinner } from '@renderer/components/ui/spinner'
-import { cn } from '@renderer/lib/utils'
 
 const open = defineModel<boolean>('open', { required: true })
 
@@ -31,13 +29,6 @@ const emit = defineEmits<{
   edit: []
   delete: []
 }>()
-
-const percent = computed(() =>
-  props.sheet ? hpPercent(props.sheet.hpCurrent, props.sheet.hpMax) : 0
-)
-const critical = computed(() =>
-  props.sheet ? isCriticalHp(props.sheet.hpCurrent, props.sheet.hpMax) : false
-)
 
 const infoCells = computed(() => {
   if (!props.sheet) return []
@@ -112,22 +103,12 @@ const narrativeFields = computed(() => {
 
           <Separator />
 
-          <div class="flex flex-col gap-2">
-            <div class="flex items-center justify-between">
-              <span class="text-badge font-semibold tracking-wide text-tertiary uppercase">
-                Pontos de vida
-              </span>
-              <span class="text-xs font-semibold text-muted-foreground">
-                {{ sheet.hpCurrent }} / {{ sheet.hpMax }}
-              </span>
-            </div>
-            <Progress
-              :model-value="percent"
-              :class="
-                cn('h-2 bg-border', critical && '[&_[data-slot=progress-indicator]]:bg-destructive')
-              "
-            />
-          </div>
+          <HealthBar
+            :current="sheet.hpCurrent"
+            :max="sheet.hpMax"
+            label="Pontos de vida"
+            size="md"
+          />
 
           <Separator />
 

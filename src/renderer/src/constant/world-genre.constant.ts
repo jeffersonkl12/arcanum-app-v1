@@ -3,6 +3,10 @@ import type { CreateWorld } from '@schema'
 /** Coarse groups used by the worlds dashboard filters. */
 export type WorldGenreGroup = 'Fantasia' | 'Ficção' | 'Terror'
 
+export const worldGenreFilters = ['Todos', 'Fantasia', 'Ficção', 'Terror'] as const
+
+export type WorldGenreFilter = (typeof worldGenreFilters)[number]
+
 export const worldGenreValues = [
   'fantasy',
   'high_fantasy',
@@ -51,4 +55,10 @@ export function worldGenreValue(genre: string): WorldGenreValue | undefined {
 
 export function worldGenreGroup(genre: string): WorldGenreGroup | undefined {
   return worldGenreOptions.find((option) => option.label === genre || option.value === genre)?.group
+}
+
+/** The genres a dashboard filter stands for; `undefined` for "Todos" (no filter). */
+export function worldGenresOfFilter(filter: WorldGenreFilter): WorldGenreValue[] | undefined {
+  if (filter === 'Todos') return undefined
+  return worldGenreOptions.filter((option) => option.group === filter).map((option) => option.value)
 }

@@ -153,6 +153,8 @@ function toPartyMember(actor: Actor): PartyMember {
     isPlayer: !actor.isNpc,
     age: actor.age,
     gender: actor.gender,
+    hpCurrent: actor.hpCurrent,
+    hpMax: actor.hpMax,
     profession: actor.profession,
     appearance: actor.appearance,
     personality: actor.personality,

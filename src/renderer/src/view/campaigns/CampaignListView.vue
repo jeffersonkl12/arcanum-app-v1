@@ -1,18 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { CampaignCard } from '@renderer/components/custom'
 import { Button } from '@renderer/components/ui/button'
 import { useCampaign } from '@renderer/composable/campaign.composable'
-import { useWorld } from '@renderer/composable/world.composable'
 import { cn } from '@renderer/lib/utils'
 
-const { campaigns, visibleCampaigns, worldFilter } = useCampaign()
-const { worlds } = useWorld()
-
-const worldFilters = computed(() => {
-  const usedIds = new Set(campaigns.value.map((campaign) => campaign.worldId))
-  return worlds.value.filter((world) => usedIds.has(world.id))
-})
+const { visibleCampaigns, filterTemplates, templateFilter } = useCampaign()
 </script>
 
 <template>
@@ -20,35 +12,35 @@ const worldFilters = computed(() => {
     <div class="flex flex-wrap gap-2">
       <Button
         type="button"
-        :variant="worldFilter === 'all' ? 'secondary' : 'outline'"
+        :variant="templateFilter === 'all' ? 'secondary' : 'outline'"
         :class="
           cn(
             'h-auto rounded-full px-4 py-1.5 text-meta font-medium',
-            worldFilter === 'all'
+            templateFilter === 'all'
               ? 'border-transparent'
               : 'bg-transparent text-tertiary hover:text-foreground'
           )
         "
-        @click="worldFilter = 'all'"
+        @click="templateFilter = 'all'"
       >
         Todos
       </Button>
       <Button
-        v-for="world in worldFilters"
-        :key="world.id"
+        v-for="template in filterTemplates"
+        :key="template.id"
         type="button"
-        :variant="worldFilter === world.id ? 'secondary' : 'outline'"
+        :variant="templateFilter === template.id ? 'secondary' : 'outline'"
         :class="
           cn(
             'h-auto rounded-full px-4 py-1.5 text-meta font-medium',
-            worldFilter === world.id
+            templateFilter === template.id
               ? 'border-transparent'
               : 'bg-transparent text-tertiary hover:text-foreground'
           )
         "
-        @click="worldFilter = world.id"
+        @click="templateFilter = template.id"
       >
-        {{ world.name }}
+        {{ template.name }}
       </Button>
     </div>
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -56,12 +48,15 @@ const worldFilters = computed(() => {
         v-for="campaign in visibleCampaigns"
         :id="campaign.id"
         :key="campaign.id"
-        :world-id="campaign.worldId"
         :name="campaign.name"
         :genre="campaign.genre"
         :description="campaign.description"
         :status="campaign.status"
+        :image-path="campaign.imagePath"
       />
     </div>
+    <p v-if="visibleCampaigns.length === 0" class="text-sm text-tertiary">
+      Nenhuma campanha encontrada.
+    </p>
   </section>
 </template>
