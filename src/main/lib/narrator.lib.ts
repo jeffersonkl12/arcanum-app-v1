@@ -2,12 +2,13 @@ import type { Mastra } from '@mastra/core/mastra'
 import { RequestContext } from '@mastra/core/request-context'
 import type {
   GameContext,
+  IDiceChecker,
   INpcRegistry,
   PartySnapshot,
   WorldBrief
 } from '../../mastra/context/game.context'
 
-/** Upper bound of model/tool steps in one turn: narrator, delegation to a specialist, narrator. */
+/** Upper bound of model/tool steps in one turn: narrator, tool or specialist, narrator. */
 const MAX_STEPS_PER_TURN = 10
 
 export interface NarratorTurn {
@@ -15,6 +16,7 @@ export interface NarratorTurn {
   world: WorldBrief
   party: PartySnapshot
   npcRegistry: INpcRegistry
+  diceChecker: IDiceChecker
   message: string
 }
 
@@ -40,7 +42,14 @@ export interface INarratorGateway {
 export class NarratorGateway implements INarratorGateway {
   constructor(private readonly loadMastra: () => Promise<Mastra>) {}
 
-  async narrate({ worldId, world, party, npcRegistry, message }: NarratorTurn): Promise<string> {
+  async narrate({
+    worldId,
+    world,
+    party,
+    npcRegistry,
+    diceChecker,
+    message
+  }: NarratorTurn): Promise<string> {
     const narrator = (await this.loadMastra()).getAgent('narrator')
 
     const requestContext = new RequestContext<GameContext>()
@@ -48,6 +57,7 @@ export class NarratorGateway implements INarratorGateway {
     requestContext.set('world', world)
     requestContext.set('party', party)
     requestContext.set('npcRegistry', npcRegistry)
+    requestContext.set('diceChecker', diceChecker)
 
     const result = await narrator.generate(message, {
       requestContext,

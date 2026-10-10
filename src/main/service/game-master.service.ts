@@ -2,6 +2,7 @@ import { ConflictError } from '@error'
 import type { INarratorGateway, CampaignMessage } from '@lib/narrator.lib'
 import type { Actor } from '@schema/actor.schema'
 import type { IActorService } from '@service/actor.service'
+import type { IDiceCheckService } from '@service/dice-check.service'
 import type { IPartyService } from '@service/party.service'
 import type { IWorldService } from '@service/world.service'
 import type {
@@ -21,14 +22,16 @@ export interface IGameMasterService {
 
 /**
  * Entry point of the AI game master. The AI only proposes; this class hands it the engine through
- * `INpcRegistry`, which validates every NPC with the same rules as any other actor.
+ * `INpcRegistry`, which validates every NPC with the same rules as any other actor, and rolls its
+ * checks through the dice check service.
  */
 export class GameMasterService implements IGameMasterService {
   constructor(
     private readonly narrator: INarratorGateway,
     private readonly worldService: IWorldService,
     private readonly actorService: IActorService,
-    private readonly partyService: IPartyService
+    private readonly partyService: IPartyService,
+    private readonly diceCheckService: IDiceCheckService
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
@@ -39,6 +42,7 @@ export class GameMasterService implements IGameMasterService {
       world: { name: world.name, genre: world.genre, description: world.description },
       party: await this.loadParty(worldId),
       npcRegistry: this.createNpcRegistry(),
+      diceChecker: this.diceCheckService,
       message: playerMessage
     })
   }

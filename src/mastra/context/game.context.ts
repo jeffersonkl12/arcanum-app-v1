@@ -3,6 +3,8 @@ import { z } from 'zod'
 // Mastra CLI, which does not resolve the `@constant` alias.
 import { ACTOR_AGES } from '../../main/constant/actor-age.constant'
 import { ACTOR_GENDERS } from '../../main/constant/actor-gender.constant'
+import { CHECK_OUTCOMES } from '../../main/constant/check-outcome.constant'
+import { ROLL_MODES, type RollMode } from '../../main/constant/roll-mode.constant'
 import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
 
 /** What the AI proposes for an NPC. The engine validates and persists it. */
@@ -28,6 +30,22 @@ export type CreateNpcResult = { ok: true; npc: CreatedNpc } | { ok: false; reaso
  */
 export interface INpcRegistry {
   createNpc(worldId: string, draft: NpcDraft): Promise<CreateNpcResult>
+}
+
+/** What the engine rolled for a check. The AI narrates it and never changes it. */
+export const checkResultSchema = z.object({
+  mode: z.enum(ROLL_MODES),
+  dice: z.array(z.number().int()),
+  highest: z.number().int(),
+  outcome: z.enum(CHECK_OUTCOMES),
+  succeeded: z.boolean()
+})
+
+export type CheckResult = z.infer<typeof checkResultSchema>
+
+/** Port to the engine's dice check (2d6 normally, 3d6 with advantage, 1d6 with disadvantage). */
+export interface IDiceChecker {
+  check(mode?: RollMode): CheckResult
 }
 
 /** The part of the world the narrator needs in its prompt. */
@@ -73,6 +91,13 @@ export const gameContextSchema = z.object({
       value !== null &&
       typeof (value as INpcRegistry).createNpc === 'function',
     'npcRegistry must implement INpcRegistry'
+  ),
+  diceChecker: z.custom<IDiceChecker>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as IDiceChecker).check === 'function',
+    'diceChecker must implement IDiceChecker'
   )
 })
 

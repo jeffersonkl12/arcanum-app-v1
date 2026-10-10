@@ -1,5 +1,6 @@
 import { NarratorGateway } from '@lib/narrator.lib'
 import { database } from '@module/database.module'
+import { diceCheckService } from '@module/dice.module'
 import { loadMastra } from '@module/mastra.module'
 import { ActorRepository } from '@repository/actor.repository'
 import { CultureRepository } from '@repository/culture.repository'
@@ -29,5 +30,6 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   new NarratorGateway(loadMastra),
   worldService,
   actorService,
-  partyService
+  partyService,
+  diceCheckService
 )

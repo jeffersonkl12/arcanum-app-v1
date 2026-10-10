@@ -14,6 +14,7 @@ import {
 import { narratorAgent } from './agents/narrator/narrator.agent'
 import { npcCreatorAgent } from './agents/npc-creator/npc-creator.agent'
 import { createNpcTool } from './tools/create-npc.tool'
+import { rollCheckTool } from './tools/roll-check.tool'
 
 // Electron main sets ARCANUM_MASTRA_DIR (userData/data/mastra) before this module loads. This file
 // cannot import Electron (the Mastra CLI loads it in its own process), so outside the app it falls
@@ -23,7 +24,7 @@ mkdirSync(dataDir, { recursive: true })
 
 export const mastra = new Mastra({
   agents: { narrator: narratorAgent, npcCreator: npcCreatorAgent },
-  tools: { createNpcTool },
+  tools: { createNpcTool, rollCheckTool },
   storage: new MastraCompositeStore({
     id: 'composite-storage',
     default: new LibSQLStore({

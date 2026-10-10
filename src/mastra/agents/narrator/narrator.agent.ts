@@ -4,6 +4,7 @@ import { narratorMemory } from '../../memory/narrator.memory'
 import { NARRATOR_MODEL } from '../../models.config'
 import { layeredInstructions } from '../../prompt/compose.prompt'
 import { dynamicLayer, staticLayer } from '../../prompt/layer.prompt'
+import { rollCheckTool } from '../../tools/roll-check.tool'
 import { npcCreatorAgent } from '../npc-creator/npc-creator.agent'
 
 const AGENT = 'narrator'
@@ -31,6 +32,7 @@ export const narratorAgent = new Agent({
   instructions: layeredInstructions(layers),
   model: NARRATOR_MODEL,
   agents: { npcCreator: npcCreatorAgent },
+  tools: { rollCheckTool },
   requestContextSchema: gameContextSchema,
   memory: narratorMemory
 })
