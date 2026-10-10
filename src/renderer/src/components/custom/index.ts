@@ -1,6 +1,7 @@
 export { default as ActorRow } from '@renderer/components/custom/ActorRow.vue'
 export { default as CampaignCard } from '@renderer/components/custom/CampaignCard.vue'
 export { default as CharacterSheetDialog } from '@renderer/components/custom/CharacterSheetDialog.vue'
+export { default as ConfirmDialog } from '@renderer/components/custom/ConfirmDialog.vue'
 export { default as CreateNamedEntityDialog } from '@renderer/components/custom/CreateNamedEntityDialog.vue'
 export { default as CreateNpcDialog } from '@renderer/components/custom/CreateNpcDialog.vue'
 export { default as CreateWorldDialog } from '@renderer/components/custom/CreateWorldDialog.vue'

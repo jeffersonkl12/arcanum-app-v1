@@ -1,7 +1,12 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 import type { Actor } from '@schema'
 import { useRequest } from '@renderer/composable/request.composable'
+import { useWorld } from '@renderer/composable/world.composable'
+import { toActorSummary } from '@renderer/composable/world.mapper'
+import type { ActorSummary } from '@renderer/composable/world.type'
 import {
+  actorSummaryToCharacterSheet,
+  characterSheetToActorSummary,
   formatMessageTime,
   toCharacterSheet,
   toGameChatMessage,
@@ -213,9 +218,11 @@ const sheetOpen = ref(false)
 const selectedSheet = ref<CharacterSheet>()
 const isSheetLoading = ref(false)
 const isDeletingSheet = ref(false)
+const editOpen = ref(false)
+const editingActor = ref<ActorSummary | null>(null)
 
 watch(sheetOpen, (open) => {
-  if (!open) selectedSheet.value = undefined
+  if (!open && !editOpen.value) selectedSheet.value = undefined
 })
 
 function resolveHp(actor: Actor): { current: number; max: number } {
@@ -250,6 +257,8 @@ export function useGame(): {
   sidebarTab: Ref<'party' | 'journal'>
   sheetOpen: Ref<boolean>
   selectedSheet: Ref<CharacterSheet | undefined>
+  editOpen: Ref<boolean>
+  editingActor: Ref<ActorSummary | null>
   isLoading: Ref<boolean>
   isSending: Ref<boolean>
   isSheetLoading: Ref<boolean>
@@ -260,9 +269,11 @@ export function useGame(): {
   openCharacterSheet: (actorId: string) => Promise<void>
   closeCharacterSheet: () => void
   deleteSelectedCharacter: () => Promise<void>
-  requestEditCharacter: () => void
+  requestEditCharacter: () => Promise<void>
+  applyCharacterSaved: (actor: ActorSummary) => Promise<void>
 } {
   const { isLoading, error, request } = useRequest()
+  const { loadWorld, languages, cultures } = useWorld()
 
   const canSend = computed(
     () => draft.value.trim().length > 0 && !isSending.value && !isLoading.value
@@ -338,9 +349,67 @@ export function useGame(): {
     }
   }
 
-  function requestEditCharacter(): void {
-    // Proposed: actor edit dialog from the game sheet is not wired yet.
-    toast.message('Edição pela ficha ainda não está disponível')
+  async function requestEditCharacter(): Promise<void> {
+    const sheet = selectedSheet.value
+    const worldId = session.value?.worldId
+    if (!sheet || !worldId || isDeletingSheet.value) return
+
+    await loadWorld(worldId)
+
+    let actor: ActorSummary | undefined
+    if (mockSheets[sheet.id] || sheet.id.startsWith('mock-') || !isEngineWorldId(worldId)) {
+      actor = characterSheetToActorSummary(sheet, languages.value, cultures.value)
+    } else {
+      const raw = await request('actor:get', sheet.id)
+      if (!raw) return
+      const cultureList = (await request('culture:listByWorld', worldId)) ?? []
+      actor = toActorSummary(raw, cultureList)
+    }
+
+    editingActor.value = actor
+    sheetOpen.value = false
+    editOpen.value = true
+  }
+
+  async function applyCharacterSaved(actor: ActorSummary): Promise<void> {
+    const worldId = session.value?.worldId
+    if (!worldId) return
+
+    const previous = mockSheets[actor.id] ?? selectedSheet.value
+    const languageName = languages.value.find((item) => item.id === actor.languageId)?.name
+    const cultureName = cultures.value.find((item) => item.id === actor.cultureId)?.name
+    const hpCurrent = previous?.hpCurrent ?? 20
+    const hpMax = previous?.hpMax ?? 20
+    const imagePath = actor.imagePath ?? previous?.imagePath
+
+    if (mockSheets[actor.id] || actor.id.startsWith('mock-') || !isEngineWorldId(worldId)) {
+      const sheet = actorSummaryToCharacterSheet(
+        { ...actor, imagePath },
+        hpCurrent,
+        hpMax,
+        {
+          badgeLabel: previous?.badgeLabel ?? 'NPC',
+          isNpc: previous?.isNpc ?? true,
+          languageName,
+          cultureName
+        }
+      )
+      mockSheets[actor.id] = sheet
+
+      const card: PartyMemberCardModel = {
+        id: actor.id,
+        name: actor.name,
+        roleLabel: actor.subtitle,
+        imagePath: imagePath ?? undefined,
+        hpCurrent,
+        hpMax
+      }
+      if (player.value?.id === actor.id) player.value = card
+      npcs.value = npcs.value.map((npc) => (npc.id === actor.id ? card : npc))
+      return
+    }
+
+    await loadGame(worldId)
   }
 
   async function loadGame(worldId: string): Promise<void> {
@@ -468,6 +537,8 @@ export function useGame(): {
     sidebarTab,
     sheetOpen,
     selectedSheet,
+    editOpen,
+    editingActor,
     isLoading,
     isSending,
     isSheetLoading,
@@ -478,6 +549,7 @@ export function useGame(): {
     openCharacterSheet,
     closeCharacterSheet,
     deleteSelectedCharacter,
-    requestEditCharacter
+    requestEditCharacter,
+    applyCharacterSaved
   }
 }

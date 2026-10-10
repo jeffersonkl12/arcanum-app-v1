@@ -7,6 +7,7 @@ import type {
   GameChatMessage,
   PartyMemberCardModel
 } from './game.type'
+import type { ActorSummary, NamedEntitySummary } from './world.type'
 
 type CampaignMessage = IpcOutput<'gameMaster:listHistory'>[number]
 
@@ -108,6 +109,77 @@ export function toCharacterSheet(
     genderLabel: actorGenderLabel(actor.gender),
     languageLabel: languageName?.trim() || '—',
     cultureLabel: cultureName?.trim() || '—',
+    appearance: actor.appearance?.trim() || '—',
+    personality: actor.personality?.trim() || '—',
+    background: actor.background?.trim() || '—'
+  }
+}
+
+function displayToForm(value: string): string {
+  return value === '—' ? '' : value
+}
+
+function resolveNamedId(label: string, items: NamedEntitySummary[]): string | undefined {
+  const trimmed = displayToForm(label).trim()
+  if (!trimmed) return undefined
+  const exact = items.find((item) => item.name === trimmed)
+  if (exact) return exact.id
+  const first = trimmed.split(',')[0]?.trim()
+  return items.find((item) => item.name === first)?.id
+}
+
+/** Rebuilds an edit form model from a sheet when only labels are available (mock party). */
+export function characterSheetToActorSummary(
+  sheet: CharacterSheet,
+  languages: NamedEntitySummary[],
+  cultures: NamedEntitySummary[]
+): ActorSummary {
+  const profession = sheet.roleLabel.split('•')[0]?.trim() ?? ''
+  const age =
+    actorAgeOptions.find((option) => option.label === sheet.ageLabel)?.value ?? 'young_adult'
+  const gender =
+    actorGenderOptions.find((option) => option.label === sheet.genderLabel)?.value ?? 'male'
+
+  return {
+    id: sheet.id,
+    name: sheet.name,
+    subtitle: sheet.roleLabel,
+    imagePath: sheet.imagePath,
+    profession,
+    age,
+    gender,
+    languageId: resolveNamedId(sheet.languageLabel, languages) ?? null,
+    cultureId: resolveNamedId(sheet.cultureLabel, cultures) ?? null,
+    appearance: displayToForm(sheet.appearance),
+    personality: displayToForm(sheet.personality),
+    background: displayToForm(sheet.background)
+  }
+}
+
+export function actorSummaryToCharacterSheet(
+  actor: ActorSummary,
+  hpCurrent: number,
+  hpMax: number,
+  options: {
+    badgeLabel: string
+    isNpc: boolean
+    languageName?: string
+    cultureName?: string
+  }
+): CharacterSheet {
+  return {
+    id: actor.id,
+    name: actor.name,
+    roleLabel: actor.subtitle,
+    badgeLabel: options.badgeLabel,
+    isNpc: options.isNpc,
+    imagePath: actor.imagePath ?? undefined,
+    hpCurrent,
+    hpMax,
+    ageLabel: actorAgeLabel(actor.age),
+    genderLabel: actorGenderLabel(actor.gender),
+    languageLabel: options.languageName?.trim() || '—',
+    cultureLabel: options.cultureName?.trim() || '—',
     appearance: actor.appearance?.trim() || '—',
     personality: actor.personality?.trim() || '—',
     background: actor.background?.trim() || '—'

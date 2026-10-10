@@ -44,6 +44,18 @@ import { Textarea } from '@renderer/components/ui/textarea'
 const open = defineModel<boolean>('open', { default: false })
 const entity = defineModel<ActorSummary | null>('entity', { default: null })
 
+withDefaults(
+  defineProps<{
+    /** When false, the dialog is controlled only via `open` (no trigger button). */
+    showTrigger?: boolean
+  }>(),
+  { showTrigger: true }
+)
+
+const emit = defineEmits<{
+  saved: [actor: ActorSummary]
+}>()
+
 const formFields = [
   'name',
   'profession',
@@ -126,6 +138,7 @@ const onSubmit = handleSubmit(async (values) => {
     applyCreateErrors(createActorError.value)
     return
   }
+  emit('saved', saved)
   open.value = false
 })
 
@@ -217,7 +230,7 @@ const textareaClass =
 
 <template>
   <Dialog v-model:open="open">
-    <DialogTrigger as-child>
+    <DialogTrigger v-if="showTrigger" as-child>
       <Button
         type="button"
         class="h-auto gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-primary-hover"

@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { Search } from '@lucide/vue'
 import {
   ActorRow,
+  ConfirmDialog,
   CreateNamedEntityDialog,
   CreateNpcDialog,
   EntityRow
@@ -22,6 +23,15 @@ const languageOpen = ref(false)
 const editingLanguage = ref<NamedEntitySummary | null>(null)
 const cultureOpen = ref(false)
 const editingCulture = ref<NamedEntitySummary | null>(null)
+const deleteConfirmOpen = ref(false)
+const pendingDeleteActor = ref<ActorSummary | null>(null)
+const isDeletingActor = ref(false)
+
+const deleteDescription = computed(() => {
+  const name = pendingDeleteActor.value?.name
+  if (!name) return 'Esta ação não pode ser desfeita.'
+  return `Tem certeza que deseja apagar ${name}? Esta ação não pode ser desfeita.`
+})
 
 const searchPlaceholder = computed(() => {
   if (entityTab.value === 'languages') return 'Buscar idiomas...'
@@ -46,6 +56,24 @@ function openEditLanguage(language: NamedEntitySummary): void {
 function openEditCulture(culture: NamedEntitySummary): void {
   editingCulture.value = culture
   cultureOpen.value = true
+}
+
+function requestDeleteActor(actor: ActorSummary): void {
+  pendingDeleteActor.value = actor
+  deleteConfirmOpen.value = true
+}
+
+async function confirmDeleteActor(): Promise<void> {
+  const actor = pendingDeleteActor.value
+  if (!actor || isDeletingActor.value) return
+  isDeletingActor.value = true
+  try {
+    await deleteActor(actor.id)
+    deleteConfirmOpen.value = false
+    pendingDeleteActor.value = null
+  } finally {
+    isDeletingActor.value = false
+  }
 }
 
 const tabTriggerClass = cn(
@@ -107,7 +135,7 @@ const tabTriggerClass = cn(
           :subtitle="actor.subtitle"
           :image-path="actor.imagePath"
           @edit="openEditNpc(actor)"
-          @remove="deleteActor(actor.id)"
+          @remove="requestDeleteActor(actor)"
         />
         <p v-if="visibleActors.length === 0" class="text-sm text-tertiary">
           Nenhum NPC encontrado.
@@ -140,5 +168,16 @@ const tabTriggerClass = cn(
         </p>
       </TabsContent>
     </Tabs>
+
+    <ConfirmDialog
+      v-model:open="deleteConfirmOpen"
+      title="Apagar personagem"
+      :description="deleteDescription"
+      confirm-label="Apagar"
+      cancel-label="Cancelar"
+      confirm-variant="destructive"
+      :confirming="isDeletingActor"
+      @confirm="void confirmDeleteActor()"
+    />
   </section>
 </template>
