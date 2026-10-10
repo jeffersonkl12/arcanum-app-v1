@@ -1,5 +1,5 @@
 import { WORLD_GENRES } from '@constant'
-import { boolean, pgEnum, pgTable, text, uuid } from 'drizzle-orm/pg-core'
+import { boolean, pgEnum, pgTable, text, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
 
 export const worldGenreEnum = pgEnum('world_genre', WORLD_GENRES)
 
@@ -10,6 +10,11 @@ export const worldTable = pgTable('world', {
   isTemplate: boolean('is_template').notNull().default(false),
   description: text('description').notNull().default(''),
   genre: worldGenreEnum('genre').notNull(),
+  // The template a campaign was cloned from, set only by the clone. Deleting the template keeps the
+  // campaign and forgets where it came from.
+  sourceWorldId: uuid('source_world_id').references((): AnyPgColumn => worldTable.id, {
+    onDelete: 'set null'
+  }),
   // Relative to the images folder (`world/<uuid>.png`), never absolute, and only ever written by the
   // image service: it is not part of the create/update schemas.
   imagePath: text('image_path')

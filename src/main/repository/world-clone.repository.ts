@@ -55,6 +55,8 @@ export class WorldCloneRepository implements IWorldCloneRepository {
             id: randomUUID(),
             name: name ?? source.name,
             isTemplate: false,
+            // A copy of a campaign still points to the template it came from.
+            sourceWorldId: source.isTemplate ? source.id : source.sourceWorldId,
             imagePath: copyImagePath('world', source.imagePath, imageCopies)
           })
           .returning()

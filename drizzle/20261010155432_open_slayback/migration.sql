@@ -1,0 +1,2 @@
+ALTER TABLE "world" ADD COLUMN "source_world_id" uuid;--> statement-breakpoint
+ALTER TABLE "world" ADD CONSTRAINT "world_source_world_id_world_id_fkey" FOREIGN KEY ("source_world_id") REFERENCES "world"("id") ON DELETE SET NULL;
