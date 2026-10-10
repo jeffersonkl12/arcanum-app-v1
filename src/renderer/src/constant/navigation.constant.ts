@@ -12,4 +12,6 @@ export const mainNavigation: AppNavItem[] = [
   { label: 'Campanhas', icon: BookOpen, routeName: 'campaigns' }
 ]
 
-export const footerNavigation: AppNavItem[] = [{ label: 'Configurações', icon: Settings }]
+export const footerNavigation: AppNavItem[] = [
+  { label: 'Configurações', icon: Settings, routeName: 'settings' }
+]

@@ -50,8 +50,13 @@ function open(item: AppNavItem): void {
           v-for="item in footerNavigation"
           :key="item.label"
           type="button"
-          variant="ghost"
-          class="h-auto w-full justify-start gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground"
+          :variant="isActive(item) ? 'secondary' : 'ghost'"
+          :class="
+            cn(
+              'h-auto w-full justify-start gap-3 rounded-lg px-4 py-3 text-sm',
+              isActive(item) ? 'font-semibold' : 'font-medium text-muted-foreground'
+            )
+          "
           @click="open(item)"
         >
           <component :is="item.icon" class="size-5" />
