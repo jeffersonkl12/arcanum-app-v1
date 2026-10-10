@@ -28,7 +28,7 @@ src/renderer/
     └── main.ts
 ```
 
-As pastas são criadas **quando surgem pela primeira vez** (como no resto do projeto). Hoje existem `assets`, `components/ui`, `lib` e os arquivos da raiz; `components/Versions.vue` e o `App.vue` atual são resto do template do electron-vite.
+As pastas são criadas **quando surgem pela primeira vez** (como no resto do projeto). Hoje existem `assets`, `components/ui`, `components/custom`, `composable`, `constant`, `lib`, `page`, `router`, `template` e `view`. `components/Versions.vue` é resto do template do electron-vite.
 
 Não há `service/` nem `boot/` no renderer. A camada de acesso a dados é o próprio contrato de IPC (`window.api.invoke`, tipado por `ipcContract`). Uma lib global que precise iniciar antes do app montar é inicializada no `main.ts`; só crie uma pasta `boot/` se aparecerem várias.
 
