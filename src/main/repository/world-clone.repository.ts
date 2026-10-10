@@ -1,0 +1,92 @@
+import { randomUUID } from 'node:crypto'
+import type { Database } from '@database/client.database'
+import { actorTable } from '@database/entity/actor.entity'
+import { cultureTable } from '@database/entity/culture.entity'
+import { languageTable } from '@database/entity/language.entity'
+import { partyTable } from '@database/entity/party.entity'
+import { worldTable } from '@database/entity/world.entity'
+import { translateDatabaseError } from '@database/error.database'
+import type { World } from '@schema/world.schema'
+
+export interface IWorldCloneRepository {
+  /**
+   * Copies a world and everything that belongs to it (cultures, languages, party and actors, with
+   * their links) into a new, non-template world, all or nothing. Returns `undefined` when the
+   * source world does not exist.
+   */
+  clone(sourceWorldId: string, name?: string): Promise<World | undefined>
+}
+
+/** Rows of one entity copied into the new world, and how the old ids map to the new ones. */
+interface Copy<TRow> {
+  rows: TRow[]
+  newIds: ReadonlyMap<string, string>
+}
+
+export class WorldCloneRepository implements IWorldCloneRepository {
+  constructor(private readonly database: Database) {}
+
+  async clone(sourceWorldId: string, name?: string): Promise<World | undefined> {
+    try {
+      return await this.database.transaction(async (tx) => {
+        const source = await tx.query.world.findFirst({ where: { id: sourceWorldId } })
+        if (!source) return undefined
+
+        const [world] = await tx
+          .insert(worldTable)
+          .values({ ...source, id: randomUUID(), name: name ?? source.name, isTemplate: false })
+          .returning()
+
+        const where = { worldId: sourceWorldId }
+        const cultures = copyInto(world.id, await tx.query.culture.findMany({ where }))
+        const languages = copyInto(world.id, await tx.query.language.findMany({ where }))
+        const parties = copyInto(world.id, await tx.query.party.findMany({ where }))
+        const actors = copyInto(world.id, await tx.query.actor.findMany({ where }))
+
+        // Actors point to the other three through composite foreign keys, so those go in first.
+        // Drizzle rejects an insert without rows, hence the guards.
+        if (cultures.rows.length > 0) await tx.insert(cultureTable).values(cultures.rows)
+        if (languages.rows.length > 0) await tx.insert(languageTable).values(languages.rows)
+        if (parties.rows.length > 0) await tx.insert(partyTable).values(parties.rows)
+        if (actors.rows.length > 0) {
+          await tx.insert(actorTable).values(
+            actors.rows.map((actor) => ({
+              ...actor,
+              cultureId: remapId(cultures.newIds, actor.cultureId),
+              languageId: remapId(languages.newIds, actor.languageId),
+              partyId: remapId(parties.newIds, actor.partyId)
+            }))
+          )
+        }
+
+        return world
+      })
+    } catch (error) {
+      throw translateDatabaseError(error)
+    }
+  }
+}
+
+/**
+ * Gives every row a new id in the new world. The row is spread, so a column added to an entity
+ * later is copied without touching this file.
+ */
+function copyInto<TRow extends { id: string; worldId: string }>(
+  worldId: string,
+  sourceRows: TRow[]
+): Copy<TRow> {
+  const newIds = new Map(sourceRows.map((row) => [row.id, randomUUID()]))
+  const rows = sourceRows.map((row) => ({ ...row, id: newIds.get(row.id)!, worldId }))
+
+  return { rows, newIds }
+}
+
+/** The id an optional link must point to in the copy. A missing target would be a bug here: the composite foreign keys keep every link inside its world. */
+function remapId(newIds: ReadonlyMap<string, string>, id: string | null): string | null {
+  if (id === null) return null
+
+  const newId = newIds.get(id)
+  if (newId === undefined) throw new Error(`Cannot clone: "${id}" is not part of the source world`)
+
+  return newId
+}
