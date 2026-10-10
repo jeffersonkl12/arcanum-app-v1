@@ -18,3 +18,14 @@ export function resolveMigrationsFolder(): string {
 export function resolveMastraDataFolder(): string {
   return join(app.getPath('userData'), 'data', 'mastra')
 }
+
+/**
+ * Folder with the markdown layers of every agent's system prompt (`<agent>/layers/{static,dynamic}/<layer>.md`):
+ * shipped as an extra resource when packaged, in the source tree in dev. Exposed to `src/mastra`
+ * through `ARCANUM_AGENTS_DIR`.
+ */
+export function resolveAgentsFolder(): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, 'agents')
+    : join(app.getAppPath(), 'src', 'mastra', 'agents')
+}

@@ -1,0 +1,79 @@
+import { z } from 'zod'
+// Pure constants of the engine. Imported by relative path because this folder is also loaded by the
+// Mastra CLI, which does not resolve the `@constant` alias.
+import { ACTOR_AGES } from '../../main/constant/actor-age.constant'
+import { ACTOR_GENDERS } from '../../main/constant/actor-gender.constant'
+import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
+
+/** What the AI proposes for an NPC. The engine validates and persists it. */
+export const npcDraftSchema = z.object({
+  name: z.string().trim().min(1).max(TEXT_LIMITS.name),
+  age: z.enum(ACTOR_AGES),
+  gender: z.enum(ACTOR_GENDERS),
+  profession: z.string().max(TEXT_LIMITS.shortText).optional(),
+  appearance: z.string().max(TEXT_LIMITS.longText).optional(),
+  personality: z.string().max(TEXT_LIMITS.longText).optional(),
+  background: z.string().max(TEXT_LIMITS.longText).optional()
+})
+
+export type NpcDraft = z.infer<typeof npcDraftSchema>
+
+export type CreatedNpc = NpcDraft & { id: string }
+
+export type CreateNpcResult = { ok: true; npc: CreatedNpc } | { ok: false; reason: string }
+
+/**
+ * Port to the game engine, implemented in the main process. `src/mastra` never touches the
+ * database: the engine owns the game state and the AI only goes through this interface.
+ */
+export interface INpcRegistry {
+  createNpc(worldId: string, draft: NpcDraft): Promise<CreateNpcResult>
+}
+
+/** The part of the world the narrator needs in its prompt. */
+export const worldBriefSchema = z.object({
+  name: z.string(),
+  genre: z.string(),
+  description: z.string()
+})
+
+export type WorldBrief = z.infer<typeof worldBriefSchema>
+
+/** One actor of the party, as the prompt shows it. Optional fields are `null` when unset. */
+export const partyMemberSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  isPlayer: z.boolean(),
+  age: z.enum(ACTOR_AGES),
+  gender: z.enum(ACTOR_GENDERS),
+  profession: z.string().nullable(),
+  appearance: z.string().nullable(),
+  personality: z.string().nullable(),
+  background: z.string().nullable()
+})
+
+export type PartyMember = z.infer<typeof partyMemberSchema>
+
+/** The world's party; `members` is empty while the world has no party or nobody joined it. */
+export const partySchema = z.object({ members: z.array(partyMemberSchema) })
+
+export type PartySnapshot = z.infer<typeof partySchema>
+
+/**
+ * Values the main process must provide on every agent call (`RequestContext`). It is how the engine
+ * is injected into agents and tools, which keeps them free of singletons.
+ */
+export const gameContextSchema = z.object({
+  worldId: z.string().min(1),
+  world: worldBriefSchema,
+  party: partySchema,
+  npcRegistry: z.custom<INpcRegistry>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as INpcRegistry).createNpc === 'function',
+    'npcRegistry must implement INpcRegistry'
+  )
+})
+
+export type GameContext = z.infer<typeof gameContextSchema>

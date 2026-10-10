@@ -1,4 +1,6 @@
+import { NarratorGateway } from '@lib/narrator.lib'
 import { database } from '@module/database.module'
+import { loadMastra } from '@module/mastra.module'
 import { ActorRepository } from '@repository/actor.repository'
 import { CultureRepository } from '@repository/culture.repository'
 import { LanguageRepository } from '@repository/language.repository'
@@ -6,6 +8,7 @@ import { PartyRepository } from '@repository/party.repository'
 import { WorldRepository } from '@repository/world.repository'
 import { ActorService, type IActorService } from '@service/actor.service'
 import { CultureService, type ICultureService } from '@service/culture.service'
+import { GameMasterService, type IGameMasterService } from '@service/game-master.service'
 import { LanguageService, type ILanguageService } from '@service/language.service'
 import { PartyService, type IPartyService } from '@service/party.service'
 import { WorldService, type IWorldService } from '@service/world.service'
@@ -21,4 +24,10 @@ export const actorService: IActorService = new ActorService(actorRepository)
 export const partyService: IPartyService = new PartyService(
   new PartyRepository(database),
   actorRepository
+)
+export const gameMasterService: IGameMasterService = new GameMasterService(
+  new NarratorGateway(loadMastra),
+  worldService,
+  actorService,
+  partyService
 )

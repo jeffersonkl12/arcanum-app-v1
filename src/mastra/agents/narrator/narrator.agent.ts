@@ -1,0 +1,36 @@
+import { Agent } from '@mastra/core/agent'
+import { gameContextSchema, type GameContext } from '../../context/game.context'
+import { narratorMemory } from '../../memory/narrator.memory'
+import { NARRATOR_MODEL } from '../../models.config'
+import { layeredInstructions } from '../../prompt/compose.prompt'
+import { dynamicLayer, staticLayer } from '../../prompt/layer.prompt'
+import { npcCreatorAgent } from '../npc-creator/npc-creator.agent'
+
+const AGENT = 'narrator'
+
+/**
+ * System prompt of the narrator, from highest to lowest priority. The static layers come first and
+ * never change, which keeps the start of the prompt cacheable; the dynamic ones follow, ordered
+ * from the state that changes least to the one that changes most. Files live next to this one.
+ */
+const layers = [
+  staticLayer(AGENT, 'identity'),
+  staticLayer(AGENT, 'rules'),
+  dynamicLayer(AGENT, 'world', (context: GameContext) => context.world),
+  dynamicLayer(AGENT, 'party', (context: GameContext) => context.party)
+]
+
+/**
+ * The game master the player talks to. It is the supervisor: it delegates to specialists as if they
+ * were tools, receives their result, and is always the one that answers the player.
+ */
+export const narratorAgent = new Agent({
+  id: 'narrator',
+  name: 'Narrator',
+  description: 'The AI game master: narrates the story and answers the player.',
+  instructions: layeredInstructions(layers),
+  model: NARRATOR_MODEL,
+  agents: { npcCreator: npcCreatorAgent },
+  requestContextSchema: gameContextSchema,
+  memory: narratorMemory
+})

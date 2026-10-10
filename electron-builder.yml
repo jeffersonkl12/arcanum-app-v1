@@ -14,6 +14,11 @@ asarUnpack:
 extraResources:
   - from: drizzle
     to: drizzle
+  # Markdown layers of the agents' system prompts, read from disk at runtime.
+  - from: src/mastra/agents
+    to: agents
+    filter:
+      - '**/*.md'
 win:
   executableName: electron-chat
 nsis:

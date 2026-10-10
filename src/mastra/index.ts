@@ -11,8 +11,9 @@ import {
   MastraPlatformExporter,
   SensitiveDataFilter
 } from '@mastra/observability'
-import { weatherWorkflow } from './workflows/weather-workflow'
-import { weatherAgent } from './agents/weather-agent'
+import { narratorAgent } from './agents/narrator/narrator.agent'
+import { npcCreatorAgent } from './agents/npc-creator/npc-creator.agent'
+import { createNpcTool } from './tools/create-npc.tool'
 
 // Electron main sets ARCANUM_MASTRA_DIR (userData/data/mastra) before this module loads. This file
 // cannot import Electron (the Mastra CLI loads it in its own process), so outside the app it falls
@@ -21,8 +22,8 @@ const dataDir = resolve(process.env.ARCANUM_MASTRA_DIR ?? join(process.cwd(), '.
 mkdirSync(dataDir, { recursive: true })
 
 export const mastra = new Mastra({
-  workflows: { weatherWorkflow },
-  agents: { weatherAgent },
+  agents: { narrator: narratorAgent, npcCreator: npcCreatorAgent },
+  tools: { createNpcTool },
   storage: new MastraCompositeStore({
     id: 'composite-storage',
     default: new LibSQLStore({

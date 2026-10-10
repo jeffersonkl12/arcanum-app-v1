@@ -102,6 +102,11 @@ Exempt: config and infra files (`*.config.ts`, `tsconfig*.json`, `electron-build
 - Load the `mastra` skill before any Mastra work; never rely on cached knowledge, the APIs change between versions.
 - Register all agents, tools, workflows and scorers in `src/mastra/index.ts`.
 - The skills live in `.agents/skills` (locked by `skills-lock.json`) and are exposed to Claude Code through symlinks in `.claude/skills`.
+- Each agent has its own folder, `src/mastra/agents/<agent>/`, with `<agent>.agent.ts` and a `layers/` folder holding the markdown files of its system prompt, split into `static/` and `dynamic/`.
+- A system prompt is built from **layers**, one markdown file each, joined in the order the agent lists them (`layeredInstructions` in `src/mastra/prompt`). Order is priority: what is first and last in the final prompt is weighed most by the model, so list the most important layers at the edges.
+  - `layers/static/<name>.md`: content that never changes, emitted verbatim. Keep static layers first; an unchanging prefix lets the provider cache the prompt.
+  - `layers/dynamic/<name>.md`: Handlebars template rendered on every run from the request context (game state read from the database by the main process). Dynamic layers follow the static ones, from the state that changes least to the one that changes most. Templates run in strict mode: a missing field throws.
+  - The `.md` files are read from disk at runtime, not bundled: main sets `ARCANUM_AGENTS_DIR` (`resolveAgentsFolder` in `@lib`), and packaged builds ship them as an extra resource (`electron-builder.yml`).
 - Open item: `dev` and `build` run `electron-vite`, and there is no script for Mastra Studio yet. Add one before relying on Studio.
 
 ## Framework and library documentation
