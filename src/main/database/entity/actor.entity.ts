@@ -1,0 +1,55 @@
+import { ACTOR_AGES, ACTOR_GENDERS } from '@constant'
+import { cultureTable } from '@database/entity/culture.entity'
+import { languageTable } from '@database/entity/language.entity'
+import { partyTable } from '@database/entity/party.entity'
+import { worldTable } from '@database/entity/world.entity'
+import { sql } from 'drizzle-orm'
+import { boolean, foreignKey, pgEnum, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+
+export const actorAgeEnum = pgEnum('actor_age', ACTOR_AGES)
+export const actorGenderEnum = pgEnum('actor_gender', ACTOR_GENDERS)
+
+/** A character of the world: the player (`isNpc = false`) or an NPC. */
+export const actorTable = pgTable(
+  'actor',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    worldId: uuid('world_id')
+      .notNull()
+      .references(() => worldTable.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    age: actorAgeEnum('age').notNull(),
+    gender: actorGenderEnum('gender').notNull(),
+    cultureId: uuid('culture_id'),
+    languageId: uuid('language_id'),
+    profession: text('profession'),
+    appearance: text('appearance'),
+    personality: text('personality'),
+    background: text('background'),
+    isNpc: boolean('is_npc').notNull().default(true),
+    partyId: uuid('party_id')
+  },
+  (table) => [
+    // Composite foreign keys (id + world) make it impossible to link an actor to another world's
+    // culture, language or party. They are not enforced while the optional column is null.
+    foreignKey({
+      name: 'actor_culture_world_fk',
+      columns: [table.cultureId, table.worldId],
+      foreignColumns: [cultureTable.id, cultureTable.worldId]
+    }),
+    foreignKey({
+      name: 'actor_language_world_fk',
+      columns: [table.languageId, table.worldId],
+      foreignColumns: [languageTable.id, languageTable.worldId]
+    }),
+    foreignKey({
+      name: 'actor_party_world_fk',
+      columns: [table.partyId, table.worldId],
+      foreignColumns: [partyTable.id, partyTable.worldId]
+    }),
+    // A world has at most one player (the only actor that is not an NPC).
+    uniqueIndex('actor_world_id_player_unique')
+      .on(table.worldId)
+      .where(sql`${table.isNpc} = false`)
+  ]
+)
