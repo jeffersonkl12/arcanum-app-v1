@@ -10,3 +10,11 @@ export function resolveDataFile(name: string): string {
 export function resolveMigrationsFolder(): string {
   return app.isPackaged ? join(process.resourcesPath, 'drizzle') : join(app.getAppPath(), 'drizzle')
 }
+
+/**
+ * Folder holding every file Mastra persists (storage and observability). Exposed to `src/mastra`
+ * through `ARCANUM_MASTRA_DIR` because that code cannot import Electron.
+ */
+export function resolveMastraDataFolder(): string {
+  return join(app.getPath('userData'), 'data', 'mastra')
+}

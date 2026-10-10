@@ -27,6 +27,7 @@
     "@electric-sql/pglite": "^0.5.8",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@lancedb/lancedb": "^0.40.0",
     "@mastra/core": "^1.75.0",
     "@mastra/duckdb": "^1.13.0",
     "@mastra/libsql": "^1.25.1",

@@ -68,7 +68,6 @@ Folders are created when first needed, not up front. When one is created, declar
 ### Pending decisions
 
 - `src/mastra` has no alias yet. `@mastra` cannot be used: it collides with the npm scope `@mastra/*` (`@mastra/core`, ...) and would shadow those packages. Pick a non-conflicting alias (e.g. `@ai`).
-- `tsconfig.node.json` `include` does not cover `src/mastra`, so it is not typechecked today. Add it when real code lands there.
 - `src/mastra` is also loaded by the Mastra CLI's own bundler (Studio / `mastra` commands), which may not resolve these aliases. Check the Mastra docs before importing through an alias from inside `src/mastra`; until then use relative imports there.
 
 ## Barrel files (`index.ts`)
@@ -127,6 +126,8 @@ The game database is PGlite at `userData/data/game` (`resolveDataFile` in `@lib`
 1. Entities go in `src/main/database/entity/*.entity.ts` and are re-exported from `entity/index.ts` (the only schema file drizzle-kit reads); relations in `relation.database.ts`.
 2. After changing an entity, run `db:generate`; it needs no database. Commit the new folder in `drizzle/` (SQL + snapshot) and never edit one that was already shipped.
 3. The app applies pending migrations on startup (`initializeDatabase` in `@module/database.module.ts`, before the window opens) and closes PGlite on quit. Packaged builds ship `drizzle/` as an extra resource (`electron-builder.yml`); `drizzle/.gitkeep` keeps the folder present while there are no migrations.
+
+Mastra's own files (LibSQL `storage.db`, DuckDB `observability.duckdb`) live in `userData/data/mastra` (`resolveMastraDataFolder` in `@lib`). Main passes that folder to `src/mastra` through `ARCANUM_MASTRA_DIR`, set by `loadMastra` in `@module/mastra.module.ts`, which loads `src/mastra` with a dynamic import so the variable is set first. Never import `src/mastra` statically from main. Outside the app (Mastra CLI / Studio) `src/mastra` falls back to `.data/mastra` (git-ignored), so Studio and the app never share a file. The Mastra CLI bundler only extracts config from a literal `export const mastra = new Mastra({...})`, so keep that shape in `src/mastra/index.ts`.
 
 Pending: the reset/seed workflow for development.
 
