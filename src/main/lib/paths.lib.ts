@@ -6,6 +6,11 @@ export function resolveDataFile(name: string): string {
   return join(app.getPath('userData'), 'data', name)
 }
 
+/** Folder holding the images of the entities (`<scope>/<uuid>.<ext>`); the database stores paths relative to it. */
+export function resolveImagesFolder(): string {
+  return join(app.getPath('userData'), 'data', 'images')
+}
+
 /** Folder with the SQL migrations: shipped as an extra resource when packaged, at the root in dev. */
 export function resolveMigrationsFolder(): string {
   return app.isPackaged ? join(process.resourcesPath, 'drizzle') : join(app.getAppPath(), 'drizzle')

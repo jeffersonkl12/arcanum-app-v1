@@ -9,5 +9,8 @@ export const worldTable = pgTable('world', {
   name: text('name').notNull(),
   isTemplate: boolean('is_template').notNull().default(false),
   description: text('description').notNull().default(''),
-  genre: worldGenreEnum('genre').notNull()
+  genre: worldGenreEnum('genre').notNull(),
+  // Relative to the images folder (`world/<uuid>.png`), never absolute, and only ever written by the
+  // image service: it is not part of the create/update schemas.
+  imagePath: text('image_path')
 })

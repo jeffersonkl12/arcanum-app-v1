@@ -2,6 +2,7 @@ import { NarratorGateway } from '@lib/narrator.lib'
 import { SecretCipher } from '@lib/secret-cipher.lib'
 import { database } from '@module/database.module'
 import { diceCheckService } from '@module/dice.module'
+import { imageStorage } from '@module/image.module'
 import { loadMastra } from '@module/mastra.module'
 import { ActorRepository } from '@repository/actor.repository'
 import { AiSettingRepository } from '@repository/ai-setting.repository'
@@ -23,7 +24,8 @@ const actorRepository = new ActorRepository(database)
 
 export const worldService: IWorldService = new WorldService(new WorldRepository(database))
 export const worldCloneService: IWorldCloneService = new WorldCloneService(
-  new WorldCloneRepository(database)
+  new WorldCloneRepository(database),
+  imageStorage
 )
 export const cultureService: ICultureService = new CultureService(new CultureRepository(database))
 export const languageService: ILanguageService = new LanguageService(

@@ -10,6 +10,7 @@ import {
   isTrustedSender,
   registerIpcRoutes
 } from '@ipc'
+import { actorImageService, worldImageService } from '@module/image.module'
 import {
   actorService,
   aiSettingService,
@@ -27,10 +28,10 @@ export function registerIpc(): void {
   registerIpcRoutes(
     ipcMain,
     {
-      ...createWorldRoutes(worldService, worldCloneService),
+      ...createWorldRoutes(worldService, worldCloneService, worldImageService),
       ...createCultureRoutes(cultureService),
       ...createLanguageRoutes(languageService),
-      ...createActorRoutes(actorService),
+      ...createActorRoutes(actorService, actorImageService),
       ...createPartyRoutes(partyService),
       ...createAiSettingRoutes(aiSettingService),
       ...createGameMasterRoutes(gameMasterService)

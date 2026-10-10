@@ -26,6 +26,9 @@ export const actorTable = pgTable(
     appearance: text('appearance'),
     personality: text('personality'),
     background: text('background'),
+    // Relative to the images folder (`actor/<uuid>.png`), never absolute, and only ever written by the
+    // image service: it is not part of the create/update schemas.
+    imagePath: text('image_path'),
     isNpc: boolean('is_npc').notNull().default(true),
     partyId: uuid('party_id')
   },

@@ -10,6 +10,7 @@ import type {
   Culture,
   Language,
   Party,
+  SetImage,
   UpdateActor,
   UpdateCulture,
   UpdateLanguage,
@@ -56,6 +57,9 @@ export const ipcContract = {
   'world:delete': channel<string, void>(),
   /** Copies a whole world (typically a template) to start a new campaign. */
   'world:clone': channel<CloneWorld, World>(),
+  /** Sets or replaces the world's image with the bytes of the file; returns the new `imagePath`. */
+  'world:setImage': channel<SetImage, string>(),
+  'world:removeImage': channel<string, void>(),
 
   'culture:listByWorld': channel<string, Culture[]>(),
   'culture:get': channel<string, Culture>(),
@@ -74,6 +78,9 @@ export const ipcContract = {
   'actor:create': channel<CreateActor, Actor>(),
   'actor:update': channel<Update<UpdateActor>, Actor>(),
   'actor:delete': channel<string, void>(),
+  /** Sets or replaces the actor's image with the bytes of the file; returns the new `imagePath`. */
+  'actor:setImage': channel<SetImage, string>(),
+  'actor:removeImage': channel<string, void>(),
 
   'party:findByWorld': channel<string, Party | undefined>(),
   'party:create': channel<CreateParty, Party>(),

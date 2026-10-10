@@ -149,6 +149,14 @@ The game database is PGlite at `userData/data/game` (`resolveDataFile` in `@lib`
 
 Mastra's own files (LibSQL `storage.db`, DuckDB `observability.duckdb`) live in `userData/data/mastra` (`resolveMastraDataFolder` in `@lib`). Main passes that folder to `src/mastra` through `ARCANUM_MASTRA_DIR`, set by `loadMastra` in `@module/mastra.module.ts`, which loads `src/mastra` with a dynamic import so the variable is set first. Never import `src/mastra` statically from main. Outside the app (Mastra CLI / Studio) `src/mastra` falls back to `.data/mastra` (git-ignored), so Studio and the app never share a file. The Mastra CLI bundler only extracts config from a literal `export const mastra = new Mastra({...})`, so keep that shape in `src/mastra/index.ts`.
 
+Images are files, never database content. They live in `userData/data/images/<scope>/<uuid>.<ext>` (`resolveImagesFolder` in `@lib`), and the entity keeps only a path **relative** to that folder in an `image_path` column (`actor/<uuid>.png`), so the data survives a change of location. Rules:
+
+- The column is kept out of the entity's create/update schemas (`.omit({ imagePath: true })`): the renderer never sends a path, it sends the bytes (`actor:setImage` with `{ id, data: Uint8Array }`). Only `ImageService` writes the column, through `ImageRepository`.
+- The format is detected from the bytes (PNG, JPEG, WebP, GIF; no SVG) and the size is capped (`IMAGE_LIMITS`); each image gets a new uuid name, so a replaced picture has a new URL and is never served from cache.
+- The renderer shows an image with `toImageUrl(imagePath)` from `@shared` (`arcanum-image://local/...`), served by main (`ImageProtocol` in `@lib`) only from inside the images folder. The CSP `img-src` of `index.html` allows the scheme.
+- Deleting an entity does not delete its file: `ImageSweepService` removes unused files at startup. A world clone copies its images (`WorldCloneService`).
+- To give another entity an image: add its scope to `IMAGE_SCOPES`, an `image_path` column to its table (then `db:generate`), omit it from its schemas, and register an `ImageService` and its sweep owner in `@module/image.module.ts`, plus `<domain>:setImage` / `<domain>:removeImage` channels. If the entity is cloned with its world, copy its images in `WorldCloneRepository` like the actors.
+
 Pending: the reset/seed workflow for development.
 
 ## Project notes

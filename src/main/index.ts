@@ -2,7 +2,17 @@ import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { closeDatabase, initializeDatabase, registerIpc } from '@module'
+import {
+  closeDatabase,
+  initializeDatabase,
+  registerImageScheme,
+  registerIpc,
+  serveImages,
+  sweepOrphanImages
+} from '@module'
+
+// Electron only accepts custom schemes before the app is ready.
+registerImageScheme()
 
 function createWindow(): void {
   // Create the browser window.
@@ -51,6 +61,8 @@ app.whenReady().then(async () => {
   })
 
   await initializeDatabase()
+  await sweepOrphanImages()
+  serveImages()
   registerIpc()
 
   createWindow()

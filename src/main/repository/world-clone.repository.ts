@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import type { ImageScope } from '@constant'
 import type { Database } from '@database/client.database'
 import { actorTable } from '@database/entity/actor.entity'
 import { cultureTable } from '@database/entity/culture.entity'
@@ -7,14 +8,27 @@ import { partyTable } from '@database/entity/party.entity'
 import { worldTable } from '@database/entity/world.entity'
 import { translateDatabaseError } from '@database/error.database'
 import type { World } from '@schema/world.schema'
+import { buildCopyImagePath } from '@util/image-path.util'
+
+/** An image file the copy of a world needs: the rows already point to `to`, but the file is not there yet. */
+export interface ImageCopy {
+  from: string
+  to: string
+}
+
+export interface WorldClone {
+  world: World
+  imageCopies: ImageCopy[]
+}
 
 export interface IWorldCloneRepository {
   /**
    * Copies a world and everything that belongs to it (cultures, languages, party and actors, with
    * their links) into a new, non-template world, all or nothing. Returns `undefined` when the
-   * source world does not exist.
+   * source world does not exist. The database cannot copy files, so the images come back as
+   * `imageCopies` for the caller to copy once the transaction has committed.
    */
-  clone(sourceWorldId: string, name?: string): Promise<World | undefined>
+  clone(sourceWorldId: string, name?: string): Promise<WorldClone | undefined>
 }
 
 /** Rows of one entity copied into the new world, and how the old ids map to the new ones. */
@@ -26,15 +40,23 @@ interface Copy<TRow> {
 export class WorldCloneRepository implements IWorldCloneRepository {
   constructor(private readonly database: Database) {}
 
-  async clone(sourceWorldId: string, name?: string): Promise<World | undefined> {
+  async clone(sourceWorldId: string, name?: string): Promise<WorldClone | undefined> {
     try {
       return await this.database.transaction(async (tx) => {
         const source = await tx.query.world.findFirst({ where: { id: sourceWorldId } })
         if (!source) return undefined
 
+        const imageCopies: ImageCopy[] = []
+
         const [world] = await tx
           .insert(worldTable)
-          .values({ ...source, id: randomUUID(), name: name ?? source.name, isTemplate: false })
+          .values({
+            ...source,
+            id: randomUUID(),
+            name: name ?? source.name,
+            isTemplate: false,
+            imagePath: copyImagePath('world', source.imagePath, imageCopies)
+          })
           .returning()
 
         const where = { worldId: sourceWorldId }
@@ -54,12 +76,13 @@ export class WorldCloneRepository implements IWorldCloneRepository {
               ...actor,
               cultureId: remapId(cultures.newIds, actor.cultureId),
               languageId: remapId(languages.newIds, actor.languageId),
-              partyId: remapId(parties.newIds, actor.partyId)
+              partyId: remapId(parties.newIds, actor.partyId),
+              imagePath: copyImagePath('actor', actor.imagePath, imageCopies)
             }))
           )
         }
 
-        return world
+        return { world, imageCopies }
       })
     } catch (error) {
       throw translateDatabaseError(error)
@@ -89,4 +112,18 @@ function remapId(newIds: ReadonlyMap<string, string>, id: string | null): string
   if (newId === undefined) throw new Error(`Cannot clone: "${id}" is not part of the source world`)
 
   return newId
+}
+
+/** The path the copy of an entity's image will have, noted in `imageCopies` so the file gets copied. */
+function copyImagePath(
+  scope: ImageScope,
+  imagePath: string | null,
+  imageCopies: ImageCopy[]
+): string | null {
+  if (imagePath === null) return null
+
+  const copyPath = buildCopyImagePath(scope, imagePath)
+  imageCopies.push({ from: imagePath, to: copyPath })
+
+  return copyPath
 }

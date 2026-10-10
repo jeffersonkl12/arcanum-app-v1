@@ -1,0 +1,1 @@
+ALTER TABLE "world" ADD COLUMN "image_path" text;

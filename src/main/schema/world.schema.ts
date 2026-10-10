@@ -6,7 +6,7 @@ import { z } from 'zod'
 export const createWorldSchema = createInsertSchema(worldTable, {
   name: (schema) => schema.trim().min(1).max(TEXT_LIMITS.name),
   description: (schema) => schema.max(TEXT_LIMITS.longText)
-}).omit({ id: true })
+}).omit({ id: true, imagePath: true })
 
 export const updateWorldSchema = createWorldSchema.partial()
 

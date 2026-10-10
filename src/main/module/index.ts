@@ -1,5 +1,6 @@
 export * from '@module/database.module'
 export * from '@module/dice.module'
 export * from '@module/game.module'
+export * from '@module/image.module'
 export * from '@module/ipc.module'
 export * from '@module/mastra.module'

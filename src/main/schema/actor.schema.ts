@@ -9,7 +9,7 @@ export const createActorSchema = createInsertSchema(actorTable, {
   appearance: (schema) => schema.max(TEXT_LIMITS.longText),
   personality: (schema) => schema.max(TEXT_LIMITS.longText),
   background: (schema) => schema.max(TEXT_LIMITS.longText)
-}).omit({ id: true })
+}).omit({ id: true, imagePath: true })
 
 /** The world of an existing actor cannot change: its culture, language and party belong to it. */
 export const updateActorSchema = createActorSchema.omit({ worldId: true }).partial()

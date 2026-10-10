@@ -1,6 +1,7 @@
 export * from '@schema/actor.schema'
 export * from '@schema/ai-setting.schema'
 export * from '@schema/culture.schema'
+export * from '@schema/image.schema'
 export * from '@schema/language.schema'
 export * from '@schema/party.schema'
 export * from '@schema/world-clone.schema'

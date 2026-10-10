@@ -1,0 +1,1 @@
+ALTER TABLE "actor" ADD COLUMN "image_path" text;
