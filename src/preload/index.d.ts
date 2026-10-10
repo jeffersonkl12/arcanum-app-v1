@@ -1,8 +1,7 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
+import type { ArcanumApi } from '@shared'
 
 declare global {
   interface Window {
-    electron: ElectronAPI
-    api: unknown
+    api: ArcanumApi
   }
 }

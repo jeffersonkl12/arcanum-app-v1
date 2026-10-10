@@ -33,11 +33,11 @@ Always use the `package.json` scripts (`dev`, `build`, `lint`, `format`, `typech
 | Process  | Folder             | Responsibility                                                      |
 | -------- | ------------------ | ------------------------------------------------------------------- |
 | Main     | `src/main`         | Engine, database, Mastra, IPC handlers, everything with Node access |
-| Preload  | `src/preload`      | The only bridge: exposes a typed API with `contextBridge`           |
+| Preload  | `src/preload`      | The only bridge: exposes `window.api` with `contextBridge`          |
 | Renderer | `src/renderer/src` | Vue UI (alias `@renderer`)                                          |
 
-- The renderer talks to the main process only through IPC (`ipcMain.handle` / `ipcRenderer.invoke`, exposed by the preload and typed in `src/preload/index.d.ts`). There is no local HTTP server.
-- The renderer never imports from `src/main` and has no Node access.
+- The renderer talks to the main process only through IPC (`ipcMain.handle` / `ipcRenderer.invoke`, exposed by the preload as `window.api` and typed in `src/preload/index.d.ts`). There is no local HTTP server.
+- The renderer never imports from `src/main` at runtime and has no Node access. The only exception is `import type` (schemas, `@shared`), which is erased at build time.
 - Secrets (API keys) stay in main and are never sent to the renderer.
 - `.env` is excluded from the packaged app (`electron-builder.yml`), so a production build needs another source for keys.
 
@@ -63,12 +63,27 @@ Folders are created when first needed, not up front. When one is created, declar
 - `electron.vite.config.ts` (`resolve.alias` of `main`, and of `preload` if it uses it), because that is what the bundle resolves;
 - the root `tsconfig.json` `compilerOptions.paths` (inherited by `tsconfig.node.json`), because that is what typecheck, the editor, `tsx` and drizzle-kit resolve. drizzle-kit only reads the root `tsconfig.json`, which is why the paths live there.
 
-`@renderer` already exists in `electron.vite.config.ts` and `tsconfig.web.json`.
+`@renderer` is declared in `electron.vite.config.ts` and in the root `tsconfig.json` (`tsconfig.web.json` inherits its `paths` from there, because it type-checks the main-side types the IPC contract imports).
+
+`@shared` (`src/shared`) is the contract between the three processes and the only code all of them may import at runtime: the IPC channels and their types (see [IPC](#ipc)). It may import types from `src/main` but nothing at runtime, because the preload bundles it.
 
 ### Pending decisions
 
 - `src/mastra` has no alias yet. `@mastra` cannot be used: it collides with the npm scope `@mastra/*` (`@mastra/core`, ...) and would shadow those packages. Pick a non-conflicting alias (e.g. `@ai`).
 - `src/mastra` is also loaded by the Mastra CLI's own bundler (Studio / `mastra` commands), which may not resolve these aliases. Check the Mastra docs before importing through an alias from inside `src/mastra`; until then use relative imports there.
+
+## IPC
+
+`src/shared/ipc-contract.shared.ts` (`ipcContract`) is the single source of truth: its keys (`domain:action`) are the only channels the preload lets through, and its types say what each one takes and returns. Adding a channel is three steps, and the compiler fails until all three are done:
+
+1. Declare it in `ipcContract`.
+2. Implement it in `src/main/ipc/<domain>.ipc.ts` with `route(zodSchema, (input) => service.method(...))`. Handlers stay thin, depend on service interfaces, and never parse input themselves. A new domain's routes are wired in `@module/ipc.module.ts`, the composition root.
+3. Call it from the renderer: `await window.api.invoke('world:clone', { sourceWorldId })`.
+
+- **Responses:** a call never rejects; it resolves with `IpcResponse<T>` (`{ ok: true, data }` or `{ ok: false, error: { kind, message, issues? } }`). Electron only carries the `message` of a thrown error across IPC and the context bridge drops custom error properties, so a rejected promise would lose the `kind`. `NotFoundError`, `ConflictError` and Zod failures map to `not_found`, `conflict` and `invalid_input`; anything else is logged in main and reaches the renderer as a generic `internal`.
+- **Security:** the preload never exposes `ipcRenderer`, only `invoke` over the channels of the contract. Main answers only frames of the app itself (`isTrustedSender`).
+- **One argument:** a channel takes a single input; use an object when it needs several values (`{ id, patch }`).
+- **Not covered yet:** streaming (e.g. the narrator typing) and events from main to the renderer. They need `webContents.send` and a subscription in the preload; add them to the contract when needed.
 
 ## Barrel files (`index.ts`)
 

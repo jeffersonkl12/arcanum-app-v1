@@ -2,7 +2,7 @@ import { resolve } from 'path'
 import { defineConfig } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
 
-// Engine layers under src/main. Keep in sync with `paths` in tsconfig.node.json.
+// Engine layers under src/main. Keep in sync with `paths` in tsconfig.json.
 const mainLayers = [
   'config',
   'database',
@@ -17,19 +17,28 @@ const mainLayers = [
   'error'
 ]
 
+// Contract between the processes (IPC channels and their types); the only code all three share.
+const sharedAlias = { '@shared': resolve('src/shared') }
+
 export default defineConfig({
   main: {
     resolve: {
-      alias: Object.fromEntries(
-        mainLayers.map((layer) => [`@${layer}`, resolve(`src/main/${layer}`)])
-      )
+      alias: {
+        ...Object.fromEntries(
+          mainLayers.map((layer) => [`@${layer}`, resolve(`src/main/${layer}`)])
+        ),
+        ...sharedAlias
+      }
     }
   },
-  preload: {},
+  preload: {
+    resolve: { alias: sharedAlias }
+  },
   renderer: {
     resolve: {
       alias: {
-        '@renderer': resolve('src/renderer/src')
+        '@renderer': resolve('src/renderer/src'),
+        ...sharedAlias
       }
     },
     plugins: [vue()]

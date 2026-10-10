@@ -76,6 +76,18 @@
       ],
       "@error/*": [
         "src/main/error/*"
+      ],
+      "@shared": [
+        "src/shared"
+      ],
+      "@shared/*": [
+        "src/shared/*"
+      ],
+      "@renderer": [
+        "src/renderer/src"
+      ],
+      "@renderer/*": [
+        "src/renderer/src/*"
       ]
     }
   }
