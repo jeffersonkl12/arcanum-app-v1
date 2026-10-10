@@ -13,6 +13,11 @@ const MAX_STEPS_PER_TURN = 10
 
 export interface NarratorTurn {
   worldId: string
+  /** Mastra model id (`provider/model`) the narrator runs on in this turn. */
+  model: `${string}/${string}`
+  /** Key saved in the app for the model's provider; `undefined` leaves Mastra to read the environment. */
+  apiKey?: string
+  temperature: number
   world: WorldBrief
   party: PartySnapshot
   npcRegistry: INpcRegistry
@@ -44,6 +49,9 @@ export class NarratorGateway implements INarratorGateway {
 
   async narrate({
     worldId,
+    model,
+    apiKey,
+    temperature,
     world,
     party,
     npcRegistry,
@@ -54,6 +62,7 @@ export class NarratorGateway implements INarratorGateway {
 
     const requestContext = new RequestContext<GameContext>()
     requestContext.set('worldId', worldId)
+    requestContext.set('narratorModel', { id: model, apiKey })
     requestContext.set('world', world)
     requestContext.set('party', party)
     requestContext.set('npcRegistry', npcRegistry)
@@ -62,6 +71,7 @@ export class NarratorGateway implements INarratorGateway {
     const result = await narrator.generate(message, {
       requestContext,
       maxSteps: MAX_STEPS_PER_TURN,
+      modelSettings: { temperature },
       memory: {
         resource: worldId,
         thread: { id: campaignThreadId(worldId), title: world.name, metadata: { worldId } }

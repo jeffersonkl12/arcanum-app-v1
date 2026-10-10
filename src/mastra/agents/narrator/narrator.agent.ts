@@ -1,7 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 import { gameContextSchema, type GameContext } from '../../context/game.context'
 import { narratorMemory } from '../../memory/narrator.memory'
-import { NARRATOR_MODEL } from '../../models.config'
 import { layeredInstructions } from '../../prompt/compose.prompt'
 import { dynamicLayer, staticLayer } from '../../prompt/layer.prompt'
 import { rollCheckTool } from '../../tools/roll-check.tool'
@@ -30,7 +29,8 @@ export const narratorAgent = new Agent({
   name: 'Narrator',
   description: 'The AI game master: narrates the story and answers the player.',
   instructions: layeredInstructions(layers),
-  model: NARRATOR_MODEL,
+  // Chosen by the player for each world and read from the database by the main process.
+  model: ({ requestContext }) => requestContext.get('narratorModel'),
   agents: { npcCreator: npcCreatorAgent },
   tools: { rollCheckTool },
   requestContextSchema: gameContextSchema,

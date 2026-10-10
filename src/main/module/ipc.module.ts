@@ -1,6 +1,7 @@
 import { is } from '@electron-toolkit/utils'
 import {
   createActorRoutes,
+  createAiSettingRoutes,
   createCultureRoutes,
   createGameMasterRoutes,
   createLanguageRoutes,
@@ -11,6 +12,7 @@ import {
 } from '@ipc'
 import {
   actorService,
+  aiSettingService,
   cultureService,
   gameMasterService,
   languageService,
@@ -30,6 +32,7 @@ export function registerIpc(): void {
       ...createLanguageRoutes(languageService),
       ...createActorRoutes(actorService),
       ...createPartyRoutes(partyService),
+      ...createAiSettingRoutes(aiSettingService),
       ...createGameMasterRoutes(gameMasterService)
     },
     {

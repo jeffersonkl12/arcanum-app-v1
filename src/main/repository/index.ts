@@ -1,4 +1,5 @@
 export * from '@repository/actor.repository'
+export * from '@repository/ai-setting.repository'
 export * from '@repository/base.repository'
 export * from '@repository/culture.repository'
 export * from '@repository/language.repository'

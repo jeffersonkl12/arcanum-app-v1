@@ -83,6 +83,14 @@ export type PartySnapshot = z.infer<typeof partySchema>
  */
 export const gameContextSchema = z.object({
   worldId: z.string().min(1),
+  /**
+   * The model the player chose for the narrator (a global setting): a Mastra id (`provider/model`) and the
+   * key saved in the app for its provider. Without a key Mastra reads the provider's environment variable.
+   */
+  narratorModel: z.object({
+    id: z.templateLiteral([z.string().min(1), '/', z.string().min(1)]),
+    apiKey: z.string().min(1).optional()
+  }),
   world: worldBriefSchema,
   party: partySchema,
   npcRegistry: z.custom<INpcRegistry>(

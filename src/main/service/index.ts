@@ -1,4 +1,5 @@
 export * from '@service/actor.service'
+export * from '@service/ai-setting.service'
 export * from '@service/base.service'
 export * from '@service/culture.service'
 export * from '@service/dice-check.service'

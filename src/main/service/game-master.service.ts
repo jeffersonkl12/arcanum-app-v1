@@ -1,7 +1,9 @@
+import { toMastraModelId } from '@constant'
 import { ConflictError } from '@error'
 import type { INarratorGateway, CampaignMessage } from '@lib/narrator.lib'
 import type { Actor } from '@schema/actor.schema'
 import type { IActorService } from '@service/actor.service'
+import type { IAiSettingService } from '@service/ai-setting.service'
 import type { IDiceCheckService } from '@service/dice-check.service'
 import type { IPartyService } from '@service/party.service'
 import type { IWorldService } from '@service/world.service'
@@ -29,6 +31,7 @@ export class GameMasterService implements IGameMasterService {
   constructor(
     private readonly narrator: INarratorGateway,
     private readonly worldService: IWorldService,
+    private readonly aiSettingService: IAiSettingService,
     private readonly actorService: IActorService,
     private readonly partyService: IPartyService,
     private readonly diceCheckService: IDiceCheckService
@@ -36,9 +39,13 @@ export class GameMasterService implements IGameMasterService {
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
     const world = await this.worldService.get(worldId)
+    const { provider, model, temperature, apiKey } = await this.aiSettingService.resolve()
 
     return this.narrator.narrate({
       worldId,
+      model: toMastraModelId(provider, model),
+      apiKey,
+      temperature,
       world: { name: world.name, genre: world.genre, description: world.description },
       party: await this.loadParty(worldId),
       npcRegistry: this.createNpcRegistry(),

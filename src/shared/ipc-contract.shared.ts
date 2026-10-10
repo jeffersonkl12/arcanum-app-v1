@@ -14,9 +14,12 @@ import type {
   UpdateCulture,
   UpdateLanguage,
   UpdateWorld,
+  UpdateAiSetting,
   World,
+  AiSettingView,
   WorldFilter
 } from '@schema'
+import type { AiProviderCatalogEntry } from '@service/ai-setting.service'
 
 /** Types only exist at compile time, so a channel carries them as a phantom. */
 interface ChannelTypes<TInput, TOutput> {
@@ -78,6 +81,15 @@ export const ipcContract = {
   'party:listMembers': channel<string, Actor[]>(),
   'party:addMember': channel<PartyMembership, Actor>(),
   'party:removeMember': channel<PartyMembership, Actor>(),
+
+  /** Providers and models to pick from, most capable first, and whether the environment has each key. */
+  'aiSetting:catalog': channel<undefined, AiProviderCatalogEntry[]>(),
+  /** The global AI setting (the default until one is saved); the API key is reported, never sent. */
+  'aiSetting:get': channel<undefined, AiSettingView>(),
+  /** Saves provider, model, temperature and, if sent, the API key; all kept across restarts. */
+  'aiSetting:update': channel<UpdateAiSetting, AiSettingView>(),
+  /** Forgets the saved API key. */
+  'aiSetting:clearApiKey': channel<undefined, AiSettingView>(),
 
   /** Plays one turn of the campaign; slow, because the narrator is an LLM. */
   'gameMaster:takeTurn': channel<{ worldId: string; message: string }, string>(),

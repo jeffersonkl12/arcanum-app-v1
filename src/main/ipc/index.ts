@@ -1,4 +1,5 @@
 export * from '@ipc/actor.ipc'
+export * from '@ipc/ai-setting.ipc'
 export * from '@ipc/common.ipc'
 export * from '@ipc/culture.ipc'
 export * from '@ipc/error.ipc'
