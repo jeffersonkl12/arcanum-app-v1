@@ -1,0 +1,419 @@
+<script setup lang="ts">
+import { toTypedSchema } from '@vee-validate/zod'
+import { Camera, Plus, X } from '@lucide/vue'
+import { DialogContent, DialogPortal } from 'reka-ui'
+import { useForm } from 'vee-validate'
+import { onBeforeUnmount, ref, watch } from 'vue'
+import { z } from 'zod'
+import {
+  actorAgeOptions,
+  actorAgeValues,
+  actorGenderOptions,
+  actorGenderValues
+} from '@renderer/constant/actor.constant'
+import { useWorld } from '@renderer/composable/world.composable'
+import { Button } from '@renderer/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogDescription,
+  DialogOverlay,
+  DialogTitle,
+  DialogTrigger
+} from '@renderer/components/ui/dialog'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@renderer/components/ui/form'
+import { Input } from '@renderer/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import { Textarea } from '@renderer/components/ui/textarea'
+import type { IpcError } from '@shared'
+
+const formFields = [
+  'name',
+  'profession',
+  'age',
+  'gender',
+  'languageId',
+  'cultureId',
+  'appearance',
+  'personality',
+  'background'
+] as const
+
+type FormFieldName = (typeof formFields)[number]
+
+// Mirrors TEXT_LIMITS in the engine: name/shortText 120, longText 5000.
+const createNpcFormSchema = toTypedSchema(
+  z.object({
+    name: z
+      .string('Informe o nome')
+      .trim()
+      .min(1, 'Informe o nome')
+      .max(120, 'O nome pode ter no máximo 120 caracteres'),
+    profession: z.string().max(120, 'A profissão pode ter no máximo 120 caracteres'),
+    age: z.enum(actorAgeValues, 'Selecione a idade'),
+    gender: z.enum(actorGenderValues, 'Selecione o gênero'),
+    languageId: z.string().optional(),
+    cultureId: z.string().optional(),
+    appearance: z.string().max(5000, 'A aparência pode ter no máximo 5000 caracteres'),
+    personality: z.string().max(5000, 'A personalidade pode ter no máximo 5000 caracteres'),
+    background: z.string().max(5000, 'O background pode ter no máximo 5000 caracteres')
+  })
+)
+
+const emptyForm = {
+  name: '',
+  profession: '',
+  appearance: '',
+  personality: '',
+  background: ''
+}
+
+const open = ref(false)
+const imageInput = ref<HTMLInputElement>()
+const imagePreviewUrl = ref<string>()
+const imageData = ref<Uint8Array>()
+
+const { createActor, isCreatingActor, createActorError, languages, cultures } = useWorld()
+const { handleSubmit, resetForm, setErrors } = useForm({
+  validationSchema: createNpcFormSchema,
+  initialValues: emptyForm
+})
+
+const onSubmit = handleSubmit(async (values) => {
+  const created = await createActor({
+    name: values.name,
+    profession: values.profession,
+    age: values.age,
+    gender: values.gender,
+    languageId: values.languageId || null,
+    cultureId: values.cultureId || null,
+    appearance: values.appearance,
+    personality: values.personality,
+    background: values.background,
+    imageData: imageData.value
+  })
+  if (!created) {
+    applyCreateErrors(createActorError.value)
+    return
+  }
+  open.value = false
+})
+
+watch(open, (isOpen) => {
+  if (!isOpen) {
+    resetForm({ values: emptyForm })
+    clearImage()
+  }
+})
+
+onBeforeUnmount(() => {
+  clearImage()
+})
+
+function applyCreateErrors(error: IpcError | undefined): void {
+  if (error?.kind !== 'invalid_input') return
+  const fieldErrors: Partial<Record<FormFieldName, string>> = {}
+  for (const issue of error.issues ?? []) {
+    if (!isFormField(issue.path)) continue
+    fieldErrors[issue.path] = issue.message
+  }
+  setErrors(fieldErrors)
+}
+
+function isFormField(path: string): path is FormFieldName {
+  return formFields.some((field) => field === path)
+}
+
+function clearImage(): void {
+  if (imagePreviewUrl.value) URL.revokeObjectURL(imagePreviewUrl.value)
+  imagePreviewUrl.value = undefined
+  imageData.value = undefined
+  if (imageInput.value) imageInput.value.value = ''
+}
+
+function openImagePicker(): void {
+  imageInput.value?.click()
+}
+
+async function onImageSelected(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  clearImage()
+  imagePreviewUrl.value = URL.createObjectURL(file)
+  imageData.value = new Uint8Array(await file.arrayBuffer())
+}
+
+const fieldLabelClass = 'text-meta font-medium text-muted-foreground'
+const fieldControlClass =
+  'h-auto rounded-lg border-border bg-background px-3.5 py-2.5 text-sm shadow-none placeholder:text-tertiary'
+const selectTriggerClass =
+  'h-auto w-full rounded-lg border-border bg-background px-3.5 py-2.5 text-sm data-placeholder:text-tertiary'
+const textareaClass =
+  'field-sizing-fixed h-20 resize-none rounded-lg border-border bg-background px-3.5 py-2.5 text-sm shadow-none placeholder:text-tertiary'
+</script>
+
+<template>
+  <Dialog v-model:open="open">
+    <DialogTrigger as-child>
+      <Button
+        type="button"
+        class="h-auto gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-primary-hover"
+      >
+        <Plus class="size-4" />
+        Adicionar NPC
+      </Button>
+    </DialogTrigger>
+    <DialogPortal>
+      <DialogOverlay class="bg-black/60 supports-backdrop-filter:backdrop-blur-none" />
+      <DialogContent
+        class="fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[680px] max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-xl border border-border bg-card p-8 text-foreground shadow-dialog outline-none duration-100 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95"
+      >
+        <form class="flex flex-col gap-8" @submit="onSubmit">
+          <DialogDescription class="sr-only">
+            Informe os dados do personagem: nome, idade, gênero, cultura e descrição.
+          </DialogDescription>
+          <div class="flex items-center justify-between gap-4">
+            <DialogTitle class="font-body text-xl font-bold">Adicionar Personagem</DialogTitle>
+            <DialogClose class="text-tertiary" :disabled="isCreatingActor">
+              <X class="size-5" />
+              <span class="sr-only">Fechar</span>
+            </DialogClose>
+          </div>
+
+          <div class="flex flex-col gap-5">
+            <div class="flex items-center gap-6">
+              <input
+                ref="imageInput"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                class="sr-only"
+                :disabled="isCreatingActor"
+                @change="onImageSelected"
+              />
+              <button
+                type="button"
+                class="flex size-20 shrink-0 flex-col items-center justify-center overflow-hidden rounded-full border border-border bg-background text-tertiary"
+                :disabled="isCreatingActor"
+                @click="openImagePicker"
+              >
+                <img
+                  v-if="imagePreviewUrl"
+                  :src="imagePreviewUrl"
+                  alt="Prévia do personagem"
+                  class="size-full object-cover"
+                />
+                <Camera v-else class="size-6" />
+                <span class="sr-only">Escolher imagem do personagem</span>
+              </button>
+
+              <div class="flex min-w-0 flex-1 flex-col gap-4">
+                <FormField v-slot="{ componentField }" name="name" keep-value>
+                  <FormItem class="gap-1.5">
+                    <FormLabel :class="fieldLabelClass">Nome</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        placeholder="Ex: Elara Moonwhisper"
+                        autocomplete="off"
+                        :disabled="isCreatingActor"
+                        :class="fieldControlClass"
+                        v-bind="componentField"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
+
+                <FormField v-slot="{ componentField }" name="profession" keep-value>
+                  <FormItem class="gap-1.5">
+                    <FormLabel :class="fieldLabelClass">Profissão / Classe</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        placeholder="Ex: Arquimaga"
+                        autocomplete="off"
+                        :disabled="isCreatingActor"
+                        :class="fieldControlClass"
+                        v-bind="componentField"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              <FormField v-slot="{ componentField }" name="age" keep-value>
+                <FormItem class="gap-1.5">
+                  <FormLabel :class="fieldLabelClass">Idade</FormLabel>
+                  <Select v-bind="componentField" :disabled="isCreatingActor">
+                    <FormControl>
+                      <SelectTrigger :class="selectTriggerClass">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent position="popper" class="bg-card">
+                      <SelectItem
+                        v-for="option in actorAgeOptions"
+                        :key="option.value"
+                        :value="option.value"
+                      >
+                        {{ option.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+
+              <FormField v-slot="{ componentField }" name="gender" keep-value>
+                <FormItem class="gap-1.5">
+                  <FormLabel :class="fieldLabelClass">Gênero</FormLabel>
+                  <Select v-bind="componentField" :disabled="isCreatingActor">
+                    <FormControl>
+                      <SelectTrigger :class="selectTriggerClass">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent position="popper" class="bg-card">
+                      <SelectItem
+                        v-for="option in actorGenderOptions"
+                        :key="option.value"
+                        :value="option.value"
+                      >
+                        {{ option.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+
+              <FormField v-slot="{ componentField }" name="languageId" keep-value>
+                <FormItem class="gap-1.5">
+                  <FormLabel :class="fieldLabelClass">Idioma</FormLabel>
+                  <Select v-bind="componentField" :disabled="isCreatingActor">
+                    <FormControl>
+                      <SelectTrigger :class="selectTriggerClass">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent position="popper" class="bg-card">
+                      <SelectItem
+                        v-for="language in languages"
+                        :key="language.id"
+                        :value="language.id"
+                      >
+                        {{ language.name }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+
+              <FormField v-slot="{ componentField }" name="cultureId" keep-value>
+                <FormItem class="gap-1.5">
+                  <FormLabel :class="fieldLabelClass">Cultura</FormLabel>
+                  <Select v-bind="componentField" :disabled="isCreatingActor">
+                    <FormControl>
+                      <SelectTrigger :class="selectTriggerClass">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent position="popper" class="bg-card">
+                      <SelectItem v-for="culture in cultures" :key="culture.id" :value="culture.id">
+                        {{ culture.name }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </div>
+
+            <FormField v-slot="{ componentField }" name="appearance" keep-value>
+              <FormItem class="gap-1.5">
+                <FormLabel :class="fieldLabelClass">Aparência</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Descreva as características físicas, roupas, marcas..."
+                    :disabled="isCreatingActor"
+                    :class="textareaClass"
+                    v-bind="componentField"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            <FormField v-slot="{ componentField }" name="personality" keep-value>
+              <FormItem class="gap-1.5">
+                <FormLabel :class="fieldLabelClass">Personalidade</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Traços marcantes, medos, motivações..."
+                    :disabled="isCreatingActor"
+                    :class="textareaClass"
+                    v-bind="componentField"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            <FormField v-slot="{ componentField }" name="background" keep-value>
+              <FormItem class="gap-1.5">
+                <FormLabel :class="fieldLabelClass">Background / História</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="De onde veio e o que busca neste mundo..."
+                    :disabled="isCreatingActor"
+                    :class="textareaClass"
+                    v-bind="componentField"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+          </div>
+
+          <div class="flex justify-end gap-4">
+            <DialogClose as-child>
+              <Button
+                type="button"
+                variant="outline"
+                class="h-auto rounded-full bg-transparent px-4 py-2.5 text-sm font-semibold"
+                :disabled="isCreatingActor"
+              >
+                Cancelar
+              </Button>
+            </DialogClose>
+            <Button
+              type="submit"
+              class="h-auto rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-primary-hover"
+              :disabled="isCreatingActor"
+            >
+              Salvar Personagem
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </DialogPortal>
+  </Dialog>
+</template>

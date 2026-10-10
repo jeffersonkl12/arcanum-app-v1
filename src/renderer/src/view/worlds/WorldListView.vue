@@ -34,6 +34,7 @@ const { visibleWorlds, genreFilter, genreFilters } = useWorld()
     <div class="grid grid-cols-[repeat(auto-fit,minmax(18rem,1fr))] gap-6">
       <WorldCard
         v-for="world in visibleWorlds"
+        :id="world.id"
         :key="world.id"
         :name="world.name"
         :description="world.description"

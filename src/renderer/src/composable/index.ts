@@ -1,3 +1,5 @@
+export * from '@renderer/composable/campaign.composable'
+export * from '@renderer/composable/campaign.type'
 export * from '@renderer/composable/request.composable'
 export * from '@renderer/composable/world.composable'
 export * from '@renderer/composable/world.mapper'

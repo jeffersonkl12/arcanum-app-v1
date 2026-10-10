@@ -9,7 +9,7 @@ export interface AppNavItem {
 
 export const mainNavigation: AppNavItem[] = [
   { label: 'Mundos', icon: Globe, routeName: 'worlds' },
-  { label: 'Campanhas', icon: BookOpen }
+  { label: 'Campanhas', icon: BookOpen, routeName: 'campaigns' }
 ]
 
 export const footerNavigation: AppNavItem[] = [{ label: 'Configurações', icon: Settings }]
