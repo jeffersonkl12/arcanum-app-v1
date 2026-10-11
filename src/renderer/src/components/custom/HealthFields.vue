@@ -14,9 +14,15 @@ import {
   NumberFieldIncrement,
   NumberFieldInput
 } from '@renderer/components/ui/number-field'
-import { actorHpLimits } from '@renderer/constant/actor.constant'
+import { useFormContext } from 'vee-validate'
+import DiceRollButton from '@renderer/components/custom/DiceRollButton.vue'
+import { useCharacterRoll } from '@renderer/composable/character-roll.composable'
+import { actorHpLimits, actorRollRules } from '@renderer/constant/actor.constant'
 
-/** The `hpMax` (and, when editing, `hpCurrent`) fields of a form that has `healthFormShape`. */
+/**
+ * The `hpMax` (and, when editing, `hpCurrent`) fields of a form that has `healthFormShape`, with
+ * the die to roll the maximum.
+ */
 defineProps<{
   /** Ask the current health too: only for an actor that already exists. */
   showCurrent?: boolean
@@ -24,6 +30,17 @@ defineProps<{
   defaultMax?: number
   disabled?: boolean
 }>()
+
+const { setFieldValue } = useFormContext()
+const { isRolling, rollHitPoints } = useCharacterRoll()
+
+/** An edited actor is made anew by the roll, so it comes out at full health. */
+async function onRollHitPoints(isEditing?: boolean): Promise<void> {
+  const hitPoints = await rollHitPoints()
+  if (hitPoints === undefined) return
+  setFieldValue('hpMax', hitPoints)
+  if (isEditing) setFieldValue('hpCurrent', hitPoints)
+}
 
 const fieldLabelClass = 'text-meta font-medium text-muted-foreground'
 const inputClass = 'h-auto rounded-lg border-border bg-background px-3.5 py-2.5 text-sm shadow-none'
@@ -33,7 +50,15 @@ const inputClass = 'h-auto rounded-lg border-border bg-background px-3.5 py-2.5 
   <div class="grid grid-cols-2 gap-4">
     <FormField v-slot="{ componentField }" name="hpMax" keep-value>
       <FormItem class="gap-1.5">
-        <FormLabel :class="fieldLabelClass">Vida máxima</FormLabel>
+        <div class="flex items-center justify-between">
+          <FormLabel :class="fieldLabelClass">Vida máxima</FormLabel>
+          <DiceRollButton
+            :label="`Rolar ${actorRollRules.hitPointDice}d6 para a vida máxima`"
+            :rolling="isRolling"
+            :disabled="disabled"
+            @roll="onRollHitPoints(showCurrent)"
+          />
+        </div>
         <NumberField
           :model-value="componentField.modelValue"
           :min="actorHpLimits.minMax"

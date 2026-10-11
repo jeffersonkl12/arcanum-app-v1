@@ -66,7 +66,16 @@ export const actorAttributeOptions: readonly ActorAttributeOption[] = [
   { key: 'intelligence', label: 'Inteligência' }
 ]
 
-export type ActorAttributes = Record<ActorAttributeKey, number>
+/**
+ * How a character made from scratch is rolled: each attribute is the sum of 3d6, and the maximum
+ * health is 1d6.
+ */
+export const actorRollRules = {
+  attributeDice: 3,
+  hitPointDice: 1
+} as const
+
+export type ActorAttributes =Record<ActorAttributeKey, number>
 
 /** Mirrors ACTOR_HP in the engine: the range of the maximum health and what a new actor gets. */
 export const actorHpLimits = {
