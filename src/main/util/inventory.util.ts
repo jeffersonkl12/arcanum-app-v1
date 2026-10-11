@@ -58,51 +58,51 @@ export function buildInventory(actorId: string, items: Item[]): Inventory {
   }
 }
 
+/** Where an item goes when equipped, and the items that have to come off to make room. */
+export interface EquipPlan {
+  slot: EquipmentSlot
+  release: Item[]
+}
+
 /**
- * Where an item goes when equipped, given what the actor already has equipped. A piece of clothing
- * goes to its own place, which must be free. A light weapon takes the main hand, or the off hand
- * when the main hand holds another light weapon (two light weapons at most). A heavy or ranged
- * weapon needs both hands, so both must be free, and it is kept in the main hand. Throws
- * `ConflictError` when it cannot be equipped; the caller must unequip something first.
+ * Where an item goes when equipped, given what the actor already has equipped, and what it
+ * replaces. A piece of clothing goes to its own place, replacing the piece worn there. A light
+ * weapon takes the main hand, or the off hand when the main hand holds another light weapon (two
+ * light weapons at most); with both hands full of light weapons it replaces the off hand, and it
+ * replaces a weapon that takes both hands. A heavy or ranged weapon takes both hands, replacing
+ * whatever is in them, and is kept in the main hand. Throws `ConflictError` for an item that
+ * cannot be equipped at all.
  */
-export function chooseEquipmentSlot(item: Item, equipment: Inventory['equipment']): EquipmentSlot {
+export function planEquip(item: Item, equipment: Inventory['equipment']): EquipPlan {
   if (item.equippedSlot !== null) {
     throw new ConflictError('The item is already equipped')
   }
 
   if (item.wearSlot !== null) {
-    return requireFree(item.wearSlot, equipment)
+    return { slot: item.wearSlot, release: occupants(equipment, item.wearSlot) }
   }
 
   if (item.weaponClass === null) {
     throw new ConflictError('Only weapons and clothing can be equipped')
   }
 
-  const { main_hand: main, off_hand: off } = equipment
+  const main = equipment.main_hand
 
   if (item.weaponClass !== 'light') {
-    if (main || off) {
-      throw new ConflictError('A weapon that takes both hands needs both hands free')
-    }
-
-    return 'main_hand'
+    return { slot: 'main_hand', release: occupants(equipment, 'main_hand', 'off_hand') }
   }
 
   if (!main) {
-    return 'main_hand'
+    return { slot: 'main_hand', release: [] }
   }
 
-  if (!off && main.weaponClass === 'light') {
-    return 'off_hand'
+  if (main.weaponClass !== 'light') {
+    return { slot: 'main_hand', release: [main] }
   }
 
-  throw new ConflictError('Both hands are busy, or the weapon in hand needs both')
+  return { slot: 'off_hand', release: occupants(equipment, 'off_hand') }
 }
 
-function requireFree(slot: EquipmentSlot, equipment: Inventory['equipment']): EquipmentSlot {
-  if (equipment[slot]) {
-    throw new ConflictError(`The ${slot} is already in use`)
-  }
-
-  return slot
+function occupants(equipment: Inventory['equipment'], ...slots: EquipmentSlot[]): Item[] {
+  return slots.flatMap((slot) => equipment[slot] ?? [])
 }

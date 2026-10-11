@@ -94,7 +94,7 @@ export const ipcContract = {
   'inventory:get': channel<string, Inventory>(),
   /** Creates an item straight into the actor's inventory; `conflict` if it does not fit in the 12 slots. */
   'inventory:addItem': channel<{ actorId: string; item: CreateItem }, Item>(),
-  /** Equips a carried item where it belongs; `conflict` if that place is taken, so unequip first. */
+  /** Equips a carried item where it belongs, unequipping what it replaces; returns the new inventory. */
   'inventory:equip': channel<string, Inventory>(),
   'inventory:unequip': channel<string, Inventory>(),
 

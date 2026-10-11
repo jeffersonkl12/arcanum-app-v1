@@ -9,7 +9,7 @@ import {
   assertFitsCapacity,
   assertItemRules,
   buildInventory,
-  chooseEquipmentSlot,
+  planEquip,
   sumSlots
 } from '@util/inventory.util'
 
@@ -29,7 +29,7 @@ export interface IInventoryService {
   give(itemId: string, actorId: string): Promise<Inventory>
   /** Takes the item out of the inventory (unequipping it); it stays in the world. */
   drop(itemId: string): Promise<Item>
-  /** Equips a carried item where it belongs; `ConflictError` if that place is taken (unequip first). */
+  /** Equips a carried item where it belongs, unequipping whatever it replaces. */
   equip(itemId: string): Promise<Inventory>
   unequip(itemId: string): Promise<Inventory>
   /** Uses up a carried consumable: it is deleted and returned so its effect can be applied. */
@@ -40,7 +40,7 @@ export interface IInventoryService {
  * An item belongs to a world and may be carried by one actor of that world. An actor carries at
  * most `INVENTORY_CAPACITY` slots (tiny items take none), and can wear one piece of clothing on the
  * torso and one on the head, and hold either one weapon or two light weapons; weapons that take
- * both hands need both free. Every rule breach is a `ConflictError`. The checks are not atomic
+ * both hands take both (equipping over something unequips it). Every rule breach is a `ConflictError`. The checks are not atomic
  * with the writes, which is fine for a single local player; the database still refuses two items
  * in the same place, and an item carried by an actor of another world.
  */
@@ -176,8 +176,12 @@ export class InventoryService implements IInventoryService {
     const actorId = this.requireCarrier(item)
     const { equipment } = await this.get(actorId)
 
-    const equippedSlot = chooseEquipmentSlot(item, equipment)
-    await this.requireUpdated(itemId, { equippedSlot })
+    // What is in the way comes off first (the database allows one item per place).
+    const { slot, release } = planEquip(item, equipment)
+    for (const replaced of release) {
+      await this.requireUpdated(replaced.id, { equippedSlot: null })
+    }
+    await this.requireUpdated(itemId, { equippedSlot: slot })
 
     return this.get(actorId)
   }
