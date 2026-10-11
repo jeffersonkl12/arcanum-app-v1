@@ -16,12 +16,14 @@ import {
 } from '@renderer/constant/actor.constant'
 import { useWorld } from '@renderer/composable/world.composable'
 import { actorHpLimits } from '@renderer/constant/actor.constant'
+import { attributeFormShape } from '@renderer/util/attribute.util'
 import {
   healthConsistencyIssue,
   healthFormShape,
   isHealthConsistent
 } from '@renderer/util/health.util'
 import type { ActorSummary } from '@renderer/composable/world.type'
+import AttributeFields from '@renderer/components/custom/AttributeFields.vue'
 import HealthFields from '@renderer/components/custom/HealthFields.vue'
 import { Button } from '@renderer/components/ui/button'
 import {
@@ -78,7 +80,10 @@ const formFields = [
   'personality',
   'background',
   'hpMax',
-  'hpCurrent'
+  'hpCurrent',
+  'strength',
+  'dexterity',
+  'intelligence'
 ] as const
 
 type FormFieldName = (typeof formFields)[number]
@@ -100,7 +105,8 @@ const createNpcFormSchema = toTypedSchema(
       appearance: z.string().max(5000, 'A aparência pode ter no máximo 5000 caracteres'),
       personality: z.string().max(5000, 'A personalidade pode ter no máximo 5000 caracteres'),
       background: z.string().max(5000, 'O background pode ter no máximo 5000 caracteres'),
-      ...healthFormShape
+      ...healthFormShape,
+      ...attributeFormShape
     })
     .refine(isHealthConsistent, healthConsistencyIssue)
 )
@@ -159,6 +165,9 @@ const onSubmit = handleSubmit(async (values) => {
     hpMax: values.hpMax,
     // The current health is only asked when editing; a new actor starts at full health.
     hpCurrent: isEditing.value ? values.hpCurrent : undefined,
+    strength: values.strength,
+    dexterity: values.dexterity,
+    intelligence: values.intelligence,
     imageData: imageData.value
   }
 
@@ -231,7 +240,10 @@ function fillForm(actor: ActorSummary | null): void {
       personality: actor.personality,
       background: actor.background,
       hpMax: actor.hpMax,
-      hpCurrent: actor.hpCurrent
+      hpCurrent: actor.hpCurrent,
+      strength: actor.strength,
+      dexterity: actor.dexterity,
+      intelligence: actor.intelligence
     }
   })
 }
@@ -477,6 +489,8 @@ const textareaClass =
               :default-max="actorHpLimits.defaultNpc"
               :disabled="isCreatingActor"
             />
+
+            <AttributeFields :disabled="isCreatingActor" />
 
             <Tabs v-model="activeTab" class="flex w-full flex-col gap-5">
               <TabsList

@@ -4,6 +4,7 @@ import { DialogContent, DialogPortal } from 'reka-ui'
 import { computed, ref, watch } from 'vue'
 import { toImageUrl } from '@shared'
 import ActorInventoryList from '@renderer/components/custom/ActorInventoryList.vue'
+import AttributeStats from '@renderer/components/custom/AttributeStats.vue'
 import HealthBar from '@renderer/components/custom/HealthBar.vue'
 import type { CharacterSheet } from '@renderer/composable/game.type'
 import { Badge } from '@renderer/components/ui/badge'
@@ -126,6 +127,8 @@ const narrativeFields = computed(() => {
             label="Pontos de vida"
             size="md"
           />
+
+          <AttributeStats :attributes="sheet.attributes" />
 
           <Separator />
 

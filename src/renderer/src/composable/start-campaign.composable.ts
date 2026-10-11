@@ -216,6 +216,10 @@ export function useStartCampaign(): {
       ...(character.hpMax === undefined
         ? {}
         : { hpMax: character.hpMax, hpCurrent: character.hpMax }),
+      // Omitted, a score is the engine's default (or what the template's player already has).
+      ...(character.strength === undefined ? {} : { strength: character.strength }),
+      ...(character.dexterity === undefined ? {} : { dexterity: character.dexterity }),
+      ...(character.intelligence === undefined ? {} : { intelligence: character.intelligence }),
       cultureId: (character.cultureId && cultureIds.get(character.cultureId)) || null,
       languageId: (character.languageId && languageIds.get(character.languageId)) || null
     }

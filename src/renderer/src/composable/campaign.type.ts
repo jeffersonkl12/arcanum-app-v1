@@ -43,6 +43,10 @@ export interface StartCampaignCharacterDraft {
   background: string
   /** Empty: the engine's default for a player. */
   hpMax?: number
+  /** Empty: the engine's default score. */
+  strength?: number
+  dexterity?: number
+  intelligence?: number
   imageData?: Uint8Array
 }
 

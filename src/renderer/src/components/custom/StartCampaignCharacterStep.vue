@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Camera } from '@lucide/vue'
 import { ref } from 'vue'
+import AttributeFields from '@renderer/components/custom/AttributeFields.vue'
 import HealthFields from '@renderer/components/custom/HealthFields.vue'
 import {
   actorAgeOptions,
@@ -208,6 +209,8 @@ const textareaClass =
       </div>
 
       <HealthFields :default-max="actorHpLimits.defaultPlayer" :disabled="disabled" />
+
+      <AttributeFields :disabled="disabled" />
 
       <div class="flex flex-col gap-4">
         <FormField v-slot="{ componentField }" name="appearance" keep-value>

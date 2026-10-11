@@ -36,6 +36,7 @@ import {
 } from '@renderer/components/ui/stepper'
 import { actorAgeValues, actorGenderValues } from '@renderer/constant/actor.constant'
 import { startCampaignSteps } from '@renderer/constant/campaign.constant'
+import { attributeFormShape } from '@renderer/util/attribute.util'
 import { healthFormShape } from '@renderer/util/health.util'
 import { useCampaign } from '@renderer/composable/campaign.composable'
 import type { CampaignPrologueMode, StartCampaignStep } from '@renderer/composable/campaign.type'
@@ -62,7 +63,8 @@ const startCampaignFormSchema = toTypedSchema(
     background: z.string().max(5000, 'O background pode ter no máximo 5000 caracteres'),
     prologue: z.string().max(5000, 'O prólogo pode ter no máximo 5000 caracteres'),
     // The current health is not asked: a campaign starts at full health.
-    hpMax: healthFormShape.hpMax
+    hpMax: healthFormShape.hpMax,
+    ...attributeFormShape
   })
 )
 
@@ -180,7 +182,10 @@ async function goNext(): Promise<void> {
       'appearance',
       'personality',
       'background',
-      'hpMax'
+      'hpMax',
+      'strength',
+      'dexterity',
+      'intelligence'
     ] as const
     const results = await Promise.all(fields.map((field) => validateField(field)))
     if (results.some((result) => !result.valid)) return
@@ -217,6 +222,9 @@ const onStart = handleSubmit(async (formValues) => {
       personality: formValues.personality,
       background: formValues.background,
       hpMax: formValues.hpMax,
+      strength: formValues.strength,
+      dexterity: formValues.dexterity,
+      intelligence: formValues.intelligence,
       imageData: imageData.value
     },
     partyMemberIds: [...partyMemberIds.value],

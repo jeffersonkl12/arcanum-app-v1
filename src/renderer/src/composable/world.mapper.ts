@@ -49,7 +49,10 @@ export function toActorSummary(actor: Actor, cultures: NamedEntitySummary[]): Ac
     personality: actor.personality ?? '',
     background: actor.background ?? '',
     hpCurrent: actor.hpCurrent,
-    hpMax: actor.hpMax
+    hpMax: actor.hpMax,
+    strength: actor.strength,
+    dexterity: actor.dexterity,
+    intelligence: actor.intelligence
   }
 }
 

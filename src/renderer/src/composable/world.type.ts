@@ -34,6 +34,9 @@ export interface ActorSummary {
   background: string
   hpCurrent: number
   hpMax: number
+  strength: number
+  dexterity: number
+  intelligence: number
 }
 
 export interface NamedEntitySummary {

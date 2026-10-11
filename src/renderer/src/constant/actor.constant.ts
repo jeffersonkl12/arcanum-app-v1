@@ -40,6 +40,34 @@ export const actorGenderOptions: readonly ActorGenderOption[] = [
   { value: 'female', label: 'Feminino' }
 ]
 
+/** Mirrors ACTOR_ATTRIBUTE_LIMITS in the engine: the range of a score and what an actor gets. */
+export const actorAttributeLimits = {
+  min: 1,
+  max: 20,
+  default: 10
+} as const
+
+export const actorAttributeKeys = [
+  'strength',
+  'dexterity',
+  'intelligence'
+] as const satisfies readonly (keyof CreateActor)[]
+
+export type ActorAttributeKey = (typeof actorAttributeKeys)[number]
+
+export interface ActorAttributeOption {
+  key: ActorAttributeKey
+  label: string
+}
+
+export const actorAttributeOptions: readonly ActorAttributeOption[] = [
+  { key: 'strength', label: 'Força' },
+  { key: 'dexterity', label: 'Destreza' },
+  { key: 'intelligence', label: 'Inteligência' }
+]
+
+export type ActorAttributes = Record<ActorAttributeKey, number>
+
 /** Mirrors ACTOR_HP in the engine: the range of the maximum health and what a new actor gets. */
 export const actorHpLimits = {
   minMax: 1,

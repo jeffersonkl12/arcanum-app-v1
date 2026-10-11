@@ -113,6 +113,11 @@ export function toCharacterSheet(
     imagePath: actor.imagePath ?? undefined,
     hpCurrent: actor.hpCurrent,
     hpMax: actor.hpMax,
+    attributes: {
+      strength: actor.strength,
+      dexterity: actor.dexterity,
+      intelligence: actor.intelligence
+    },
     ageLabel: actorAgeLabel(actor.age),
     genderLabel: actorGenderLabel(actor.gender),
     languageLabel: languageName?.trim() || '—',

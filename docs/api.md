@@ -966,6 +966,8 @@ Banco do jogo: **PGlite** (Postgres embutido) via Drizzle, em `userData/data/gam
 4. `…_mixed_firebrand`: `world.image_path`
 5. `…_open_slayback`: `world.source_world_id` + FK `SET NULL`
 6. `…_dry_sentinel`: `actor.hp_max`, `actor.hp_current` e seus `CHECK`s (jogadores já existentes recebem 40)
+7. `…_inventory`: tabela `item`, enums de equipamento e `actor_id_world_id_unique`
+8. `…_gorgeous_newton_destine`: `actor.strength`, `actor.dexterity`, `actor.intelligence` (padrão 10) e o `CHECK` `actor_attributes_range`
 
 Não existem tabelas de cena, sessão, combate, inventário ou NPC separado: um NPC é um `actor` com `is_npc = true`.
 
