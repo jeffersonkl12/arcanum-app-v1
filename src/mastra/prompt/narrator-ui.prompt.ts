@@ -15,6 +15,7 @@ export function narratorUiPrompt(): string {
     additionalRules: [
       'Narration, dialogue and descriptions are always plain prose outside the block. Never put them inside it.',
       'Write a block only when it adds something, such as a `RollRequest`. Most replies need no block.',
+      'Use only the components listed in this section. Earlier replies in the conversation may use components that no longer exist (such as `Choices`); never copy them.',
       'Never suggest options, alternatives or next steps to the player, in a block or in prose. The player decides what to do.',
       'At most one block per reply, after the prose, as a fenced `openui-lang` block. Never write one before narrating.',
       "When the player's character attempts something uncertain that matters to the story, end the reply with a `RollRequest` instead of narrating the result: narrate up to the moment of the attempt, then stop. Never ask for a roll for something trivial.",

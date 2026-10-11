@@ -16,8 +16,8 @@ import { MEMORY_MODEL } from '../models.config'
  * default on purpose; Mastra manages the history itself when Observational Memory is on.
  *
  * The narrator may write UI blocks (OpenUI Lang) after its prose. They are presentation, not story:
- * the Observer would spend tokens on `Choices([...])` and could record suggestions as if the player
- * had acted on them. The messages stay untouched in storage (the history shows the blocks); only
+ * the Observer would spend tokens on `RollRequest(...)` and could record a pending roll as if the player
+ * had made it. The messages stay untouched in storage (the history shows the blocks); only
  * the copy the Observer reads loses them.
  */
 export const narratorMemory = new Memory({
