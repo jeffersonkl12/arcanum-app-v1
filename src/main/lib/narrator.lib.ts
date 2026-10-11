@@ -125,6 +125,10 @@ export class NarratorGateway implements INarratorGateway {
     const memory = await (await this.loadMastra()).getAgent('narrator').getMemory()
     if (!memory) return []
 
+    // The thread is created by the first turn, so a new campaign has no history yet (and `recall`
+    // throws for a thread that does not exist).
+    if (!(await memory.getThreadById({ threadId: campaignThreadId(worldId) }))) return []
+
     const { messages } = await memory.recall({
       threadId: campaignThreadId(worldId),
       resourceId: worldId,

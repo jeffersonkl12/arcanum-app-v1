@@ -35,7 +35,7 @@ function initials(value: string): string {
 
 <template>
   <Message :align="props.message.role === 'player' ? 'end' : 'start'" class="items-start gap-3.5">
-    <MessageAvatar>
+    <MessageAvatar class="self-start">
       <Avatar class="size-11 after:border-transparent">
         <AvatarImage
           v-if="props.message.imagePath"
@@ -64,14 +64,14 @@ function initials(value: string): string {
         :align="props.message.role === 'player' ? 'end' : 'start'"
         :class="
           cn(
-            'max-w-155 shadow-lg',
+            'max-w-[min(100%,68rem)] min-w-96 shadow-lg',
             props.message.role === 'master' &&
               '*:data-[slot=bubble-content]:bg-card! *:data-[slot=bubble-content]:text-card-foreground!'
           )
         "
       >
         <BubbleContent
-          class="flex w-full flex-col gap-2.5 rounded-2xl border-border px-5 py-4 font-body text-chat text-foreground"
+          class="flex w-full flex-col gap-3 rounded-2xl border-border px-7 py-6 font-body text-xl leading-relaxed text-foreground"
         >
           <template
             v-for="(segment, index) in props.message.segments"
