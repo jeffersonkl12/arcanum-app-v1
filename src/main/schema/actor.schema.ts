@@ -1,7 +1,11 @@
-import { ACTOR_HP, TEXT_LIMITS } from '@constant'
+import { ACTOR_ATTRIBUTE_LIMITS, ACTOR_HP, TEXT_LIMITS } from '@constant'
 import { actorTable } from '@database/entity/actor.entity'
 import { createInsertSchema } from 'drizzle-orm/zod'
 import type { z } from 'zod'
+
+// Optional: an actor without a given score gets the default one.
+const attributeScore = (schema: z.ZodNumber): z.ZodOptional<z.ZodNumber> =>
+  schema.int().min(ACTOR_ATTRIBUTE_LIMITS.min).max(ACTOR_ATTRIBUTE_LIMITS.max).optional()
 
 export const createActorSchema = createInsertSchema(actorTable, {
   name: (schema) => schema.trim().min(1).max(TEXT_LIMITS.name),
@@ -11,7 +15,10 @@ export const createActorSchema = createInsertSchema(actorTable, {
   background: (schema) => schema.max(TEXT_LIMITS.longText),
   // Optional: the service fills what is missing, so the override must keep them optional.
   hpMax: (schema) => schema.min(ACTOR_HP.minMax).max(ACTOR_HP.max).optional(),
-  hpCurrent: (schema) => schema.min(0).max(ACTOR_HP.max).optional()
+  hpCurrent: (schema) => schema.min(0).max(ACTOR_HP.max).optional(),
+  strength: attributeScore,
+  dexterity: attributeScore,
+  intelligence: attributeScore
 }).omit({ id: true, imagePath: true })
 
 /** The world of an existing actor cannot change: its culture, language and party belong to it. */

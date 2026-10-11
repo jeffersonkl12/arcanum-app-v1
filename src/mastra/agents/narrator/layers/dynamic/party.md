@@ -9,6 +9,7 @@ These are the characters that make up the player's party right now.
 - Age: {{age}}
 - Gender: {{gender}}
 - Health: {{hpCurrent}} of {{hpMax}} hit points
+- Attributes: strength {{strength}}, dexterity {{dexterity}}, intelligence {{intelligence}}
 {{#if profession}}
 - Profession: {{profession}}
 {{/if}}

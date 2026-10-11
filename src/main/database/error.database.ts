@@ -13,6 +13,7 @@ const CONSTRAINT_MESSAGES: Readonly<Record<string, string>> = {
   actor_party_world_fk: 'The party does not exist in the actor world, or is still in use',
   actor_hp_max_range: 'The maximum health must be at least 1',
   actor_hp_current_range: 'The current health must be between 0 and the maximum',
+  actor_attributes_range: 'Strength, dexterity and intelligence must be between 1 and 20',
   item_actor_world_fk: 'The actor does not exist in the item world, or still carries items',
   item_equipped_needs_actor: 'Only an item that is carried can be equipped',
   item_actor_id_equipped_slot_unique: 'That place is already taken by another equipped item',

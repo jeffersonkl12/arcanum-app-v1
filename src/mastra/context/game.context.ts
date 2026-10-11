@@ -2,17 +2,29 @@ import { z } from 'zod'
 // Pure constants of the engine. Imported by relative path because this folder is also loaded by the
 // Mastra CLI, which does not resolve the `@constant` alias.
 import { ACTOR_AGES } from '../../main/constant/actor-age.constant'
+import { ACTOR_ATTRIBUTE_LIMITS } from '../../main/constant/actor-attribute.constant'
 import { ACTOR_GENDERS } from '../../main/constant/actor-gender.constant'
 import { CHECK_OUTCOMES } from '../../main/constant/check-outcome.constant'
 import { ROLL_MODES, type RollMode } from '../../main/constant/roll-mode.constant'
 import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
 import type { IItemRegistry } from './item.context'
 
+const attributeScoreSchema = z
+  .number()
+  .int()
+  .min(ACTOR_ATTRIBUTE_LIMITS.min)
+  .max(ACTOR_ATTRIBUTE_LIMITS.max)
+
 /** What the AI proposes for an NPC. The engine validates and persists it. */
 export const npcDraftSchema = z.object({
   name: z.string().trim().min(1).max(TEXT_LIMITS.name),
   age: z.enum(ACTOR_AGES),
   gender: z.enum(ACTOR_GENDERS),
+  strength: attributeScoreSchema
+    .optional()
+    .describe(`Omit for an average person (${ACTOR_ATTRIBUTE_LIMITS.default}).`),
+  dexterity: attributeScoreSchema.optional(),
+  intelligence: attributeScoreSchema.optional(),
   profession: z.string().max(TEXT_LIMITS.shortText).optional(),
   appearance: z.string().max(TEXT_LIMITS.longText).optional(),
   personality: z.string().max(TEXT_LIMITS.longText).optional(),
@@ -67,6 +79,9 @@ export const partyMemberSchema = z.object({
   gender: z.enum(ACTOR_GENDERS),
   hpCurrent: z.number().int(),
   hpMax: z.number().int(),
+  strength: z.number().int(),
+  dexterity: z.number().int(),
+  intelligence: z.number().int(),
   profession: z.string().nullable(),
   appearance: z.string().nullable(),
   personality: z.string().nullable(),

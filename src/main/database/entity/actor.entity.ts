@@ -1,4 +1,4 @@
-import { ACTOR_AGES, ACTOR_GENDERS, ACTOR_HP } from '@constant'
+import { ACTOR_AGES, ACTOR_ATTRIBUTE_LIMITS, ACTOR_GENDERS, ACTOR_HP } from '@constant'
 import { cultureTable } from '@database/entity/culture.entity'
 import { languageTable } from '@database/entity/language.entity'
 import { partyTable } from '@database/entity/party.entity'
@@ -44,6 +44,10 @@ export const actorTable = pgTable(
     // (`ACTOR_HP`), and a new actor starts at full health unless it says otherwise.
     hpMax: integer('hp_max').notNull().default(ACTOR_HP.defaultNpc),
     hpCurrent: integer('hp_current').notNull().default(ACTOR_HP.defaultNpc),
+    // Every actor has the three attributes; the default is the neutral score.
+    strength: integer('strength').notNull().default(ACTOR_ATTRIBUTE_LIMITS.default),
+    dexterity: integer('dexterity').notNull().default(ACTOR_ATTRIBUTE_LIMITS.default),
+    intelligence: integer('intelligence').notNull().default(ACTOR_ATTRIBUTE_LIMITS.default),
     isNpc: boolean('is_npc').notNull().default(true),
     partyId: uuid('party_id')
   },
@@ -76,6 +80,12 @@ export const actorTable = pgTable(
       'actor_hp_max_range',
       sql`${table.hpMax} between ${sql.raw(String(ACTOR_HP.minMax))} and ${sql.raw(String(ACTOR_HP.max))}`
     ),
-    check('actor_hp_current_range', sql`${table.hpCurrent} between 0 and ${table.hpMax}`)
+    check('actor_hp_current_range', sql`${table.hpCurrent} between 0 and ${table.hpMax}`),
+    check(
+      'actor_attributes_range',
+      sql`${table.strength} between ${sql.raw(String(ACTOR_ATTRIBUTE_LIMITS.min))} and ${sql.raw(String(ACTOR_ATTRIBUTE_LIMITS.max))}
+        and ${table.dexterity} between ${sql.raw(String(ACTOR_ATTRIBUTE_LIMITS.min))} and ${sql.raw(String(ACTOR_ATTRIBUTE_LIMITS.max))}
+        and ${table.intelligence} between ${sql.raw(String(ACTOR_ATTRIBUTE_LIMITS.min))} and ${sql.raw(String(ACTOR_ATTRIBUTE_LIMITS.max))}`
+    )
   ]
 )
