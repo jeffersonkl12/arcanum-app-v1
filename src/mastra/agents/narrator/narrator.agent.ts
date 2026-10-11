@@ -17,6 +17,7 @@ const AGENT = 'narrator'
 const layers = [
   staticLayer(AGENT, 'identity'),
   staticLayer(AGENT, 'rules'),
+  staticLayer(AGENT, 'formatting'),
   generatedLayer('ui', narratorUiPrompt),
   dynamicLayer(AGENT, 'world', (context: GameContext) => context.world),
   dynamicLayer(AGENT, 'party', (context: GameContext) => context.party)

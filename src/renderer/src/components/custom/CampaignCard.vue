@@ -1,10 +1,19 @@
 <script setup lang="ts">
-import { Play } from '@lucide/vue'
+import { ref } from 'vue'
+import { EllipsisVertical, Play, Trash2 } from '@lucide/vue'
 import { toImageUrl } from '@shared'
 import { useRouter } from 'vue-router'
+import ConfirmDialog from '@renderer/components/custom/ConfirmDialog.vue'
 import { Badge } from '@renderer/components/ui/badge'
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardContent, CardDescription, CardTitle } from '@renderer/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@renderer/components/ui/dropdown-menu'
+import { useCampaign } from '@renderer/composable/campaign.composable'
 import type { CampaignStatus } from '@renderer/composable/campaign.type'
 import { campaignStatusLabel } from '@renderer/constant/campaign.constant'
 
@@ -19,6 +28,12 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
+const { deleteCampaign, isDeleting } = useCampaign()
+const deleteConfirmOpen = ref(false)
+
+async function confirmDelete(): Promise<void> {
+  if (await deleteCampaign(props.id)) deleteConfirmOpen.value = false
+}
 
 function manageCampaign(): void {
   void router.push({ name: 'world-detail', params: { worldId: props.id } })
@@ -46,6 +61,29 @@ function continueCampaign(): void {
         <span class="size-1.5 rounded-full bg-primary" />
         {{ campaignStatusLabel[status] }}
       </Badge>
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            class="absolute top-3 right-3 size-8 rounded-full bg-black/70 text-foreground hover:bg-black/90"
+            aria-label="Opções da campanha"
+          >
+            <EllipsisVertical class="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" class="w-auto min-w-44">
+          <DropdownMenuItem
+            variant="destructive"
+            class="gap-2 whitespace-nowrap"
+            @select="deleteConfirmOpen = true"
+          >
+            <Trash2 />
+            Excluir campanha
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
     <CardContent class="flex flex-col gap-4 p-6">
       <div class="flex flex-col gap-1">
@@ -72,5 +110,14 @@ function continueCampaign(): void {
         </Button>
       </div>
     </CardContent>
+    <ConfirmDialog
+      v-model:open="deleteConfirmOpen"
+      :title="`Excluir a campanha &quot;${name}&quot;?`"
+      description="A campanha, seus personagens, NPCs e todas as mensagens da história serão apagados. Esta ação não pode ser desfeita."
+      confirm-label="Excluir"
+      confirm-variant="destructive"
+      :confirming="isDeleting"
+      @confirm="void confirmDelete()"
+    />
   </Card>
 </template>

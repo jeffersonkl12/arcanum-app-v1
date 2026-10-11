@@ -16,6 +16,7 @@ export function toWorldSummary(world: World, campaignCount: number): WorldSummar
 export function toWorldDetail(world: World): WorldDetail {
   return {
     id: world.id,
+    isTemplate: world.isTemplate,
     name: world.name,
     description: world.description,
     genre: worldGenreLabel(world.genre),

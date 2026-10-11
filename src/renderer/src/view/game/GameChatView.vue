@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onMounted, useTemplateRef, watch } from 'vue'
 import { KeyRound } from '@lucide/vue'
 import { RouterLink } from 'vue-router'
 import GameChatComposer from '@renderer/components/custom/GameChatComposer.vue'
@@ -7,6 +7,7 @@ import GameChatMessage from '@renderer/components/custom/GameChatMessage.vue'
 import { Alert, AlertDescription, AlertTitle } from '@renderer/components/ui/alert'
 import { Separator } from '@renderer/components/ui/separator'
 import { useGame } from '@renderer/composable/game.composable'
+import { useSmoothScroll } from '@renderer/composable/smooth-scroll.composable'
 
 const { messages, draft, isSending, isAiKeyMissing, sendMessage } = useGame()
 const scrollRef = useTemplateRef<HTMLElement>('scrollRef')
@@ -16,16 +17,23 @@ const lastMasterId = computed(
   () => messages.value.findLast((message) => message.role === 'master')?.id
 )
 
-watch(
-  messages,
-  async () => {
-    await nextTick()
-    const el = scrollRef.value
-    if (!el) return
-    el.scrollTop = el.scrollHeight
-  },
-  { deep: true }
-)
+useSmoothScroll(scrollRef)
+
+async function scrollToLatest(): Promise<void> {
+  await nextTick()
+  const el = scrollRef.value
+  if (!el) return
+  el.scrollTop = el.scrollHeight
+}
+
+watch(messages, scrollToLatest, { deep: true })
+
+// A campaign with history opens with the chat already full, so the watcher above never fires for it.
+// Markdown and UI blocks settle their height a frame later, hence the second pass.
+onMounted(async () => {
+  await scrollToLatest()
+  requestAnimationFrame(() => void scrollToLatest())
+})
 </script>
 
 <template>

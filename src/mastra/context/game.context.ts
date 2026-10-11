@@ -79,6 +79,11 @@ export const partySchema = z.object({ members: z.array(partyMemberSchema) })
 
 export type PartySnapshot = z.infer<typeof partySchema>
 
+const modelRefSchema = z.object({
+  id: z.templateLiteral([z.string().min(1), '/', z.string().min(1)]),
+  apiKey: z.string().min(1).optional()
+})
+
 /**
  * Values the main process must provide on every agent call (`RequestContext`). It is how the engine
  * is injected into agents and tools, which keeps them free of singletons.
@@ -89,10 +94,12 @@ export const gameContextSchema = z.object({
    * The model the player chose for the narrator (a global setting): a Mastra id (`provider/model`) and the
    * key saved in the app for its provider. Without a key Mastra reads the provider's environment variable.
    */
-  narratorModel: z.object({
-    id: z.templateLiteral([z.string().min(1), '/', z.string().min(1)]),
-    apiKey: z.string().min(1).optional()
-  }),
+  narratorModel: modelRefSchema,
+  /**
+   * The cheap model of the same provider, with the same key, for the specialists and the memory
+   * summarizer, so a single key in the app is all the whole game needs.
+   */
+  helperModel: modelRefSchema,
   world: worldBriefSchema,
   party: partySchema,
   npcRegistry: z.custom<INpcRegistry>(

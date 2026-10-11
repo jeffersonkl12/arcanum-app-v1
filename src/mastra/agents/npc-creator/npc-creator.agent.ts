@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent'
 import { gameContextSchema, type GameContext } from '../../context/game.context'
-import { NPC_CREATOR_MODEL } from '../../models.config'
 import { layeredInstructions } from '../../prompt/compose.prompt'
 import { dynamicLayer } from '../../prompt/layer.prompt'
 import { createNpcTool } from '../../tools/create-npc.tool'
@@ -27,7 +26,8 @@ export const npcCreatorAgent = new Agent({
     'scene (it can invent the missing details). Returns the registered NPC with its id. Use it ' +
     'whenever a new named character appears; it does not narrate.',
   instructions: layeredInstructions(layers),
-  model: NPC_CREATOR_MODEL,
+  // The cheap model of the player's provider, with the key saved in the app.
+  model: ({ requestContext }) => requestContext.get('helperModel'),
   tools: { createNpcTool },
   requestContextSchema: gameContextSchema
   // No memory of its own: Mastra gives each delegation a fresh thread under the resource

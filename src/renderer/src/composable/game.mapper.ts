@@ -38,16 +38,15 @@ export function proseToChatSegments(text: string): ChatSegment[] {
 }
 
 /**
- * The blocks of a narrator reply, in the order it was written: prose goes through
- * `proseToChatSegments`, a UI block stays whole for the OpenUI renderer. Never both over the same
- * text.
+ * The blocks of a narrator reply, in the order it was written: prose stays whole as Markdown for
+ * `NarratorMarkdown` (the narrator already marks its dialogue), a UI block stays whole for the
+ * OpenUI renderer. Never both over the same text.
  */
 export function toChatSegments(segments: NarrationSegment[]): ChatSegment[] {
-  return segments.flatMap((segment): ChatSegment[] =>
-    segment.type === 'prose'
-      ? proseToChatSegments(segment.text)
-      : [{ kind: 'ui', source: segment.source, issues: segment.issues }]
-  )
+  return segments.flatMap((segment): ChatSegment[] => {
+    if (segment.type === 'ui') return [{ kind: 'ui', source: segment.source, issues: segment.issues }]
+    return segment.text.trim() ? [{ kind: 'markdown', text: segment.text }] : []
+  })
 }
 
 export function toGameChatMessage(

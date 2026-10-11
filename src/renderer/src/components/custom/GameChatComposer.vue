@@ -28,9 +28,9 @@ function onKeydown(event: KeyboardEvent): void {
     <div class="flex w-full flex-col gap-4 rounded-lg border border-border bg-card p-5">
       <Textarea
         v-model="draft"
-        rows="2"
+        rows="3"
         placeholder="Descreva sua ação, fala ou pergunta ao Mestre..."
-        class="min-h-0 resize-none border-0 bg-transparent p-0 text-base shadow-none focus-visible:ring-0"
+        class="min-h-24 max-h-56 resize-none border-0 bg-transparent p-0 text-lg md:text-lg shadow-none focus-visible:ring-0"
         :disabled="disabled || sending"
         @keydown="onKeydown"
       />

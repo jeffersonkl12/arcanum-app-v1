@@ -11,6 +11,7 @@ export interface WorldSummary {
 
 export interface WorldDetail {
   id: string
+  isTemplate: boolean
   name: string
   description: string
   genre: string

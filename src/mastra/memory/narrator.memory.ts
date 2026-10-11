@@ -1,8 +1,9 @@
 import type { MastraDBMessage } from '@mastra/core/agent/message-list'
+import type { RequestContext } from '@mastra/core/request-context'
 import { Memory } from '@mastra/memory'
 // Relative on purpose: the Mastra CLI that also loads this folder does not resolve the aliases.
 import { stripNarrationUi } from '../../main/util/narration.util'
-import { MEMORY_MODEL } from '../models.config'
+import type { GameContext } from '../context/game.context'
 
 /**
  * Conversation memory of the narrator, stored in the Mastra storage (LibSQL).
@@ -23,7 +24,9 @@ import { MEMORY_MODEL } from '../models.config'
 export const narratorMemory = new Memory({
   options: {
     observationalMemory: {
-      model: MEMORY_MODEL,
+      // The cheap model of the player's provider, with the key saved in the app.
+      model: ({ requestContext }) =>
+        (requestContext as RequestContext<GameContext>).get('helperModel'),
       // Keep the campaign going if the summarizer model has a bad moment: the messages stay
       // pending and are observed on a later cycle instead of failing the player's turn.
       observation: { failurePolicy: 'continue' },

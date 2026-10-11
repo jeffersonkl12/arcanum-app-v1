@@ -29,7 +29,10 @@ export function createGameMasterRoutes(
       // From here on the turn runs on its own and reports through events, not through this reply.
       void forwardTurn(turnId, events, rendererEvents)
     }),
-    'gameMaster:listHistory': route(idSchema, (worldId) => gameMasterService.listHistory(worldId))
+    'gameMaster:listHistory': route(idSchema, (worldId) => gameMasterService.listHistory(worldId)),
+    'gameMaster:deleteCampaign': route(idSchema, (worldId) =>
+      gameMasterService.deleteCampaign(worldId)
+    )
   }
 }
 

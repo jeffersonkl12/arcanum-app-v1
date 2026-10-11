@@ -1,4 +1,4 @@
-import { toMastraModelId } from '@constant'
+import { AI_HELPER_MODELS, toMastraModelId } from '@constant'
 import { ConflictError } from '@error'
 import type {
   CampaignMessage,
@@ -31,6 +31,12 @@ export interface IGameMasterService {
   streamTurn(worldId: string, playerMessage: string): Promise<AsyncIterable<NarratorStreamEvent>>
   /** The stored conversation of the world's campaign. Throws `NotFoundError` for a missing world. */
   listHistory(worldId: string): Promise<CampaignMessage[]>
+  /**
+   * Deletes a campaign: the world, everything that belongs to it and its stored conversation.
+   * Throws `NotFoundError` for a missing world and `ConflictError` for a template (templates are
+   * deleted as worlds) or while a turn is running.
+   */
+  deleteCampaign(worldId: string): Promise<void>
 }
 
 /**
@@ -81,6 +87,18 @@ export class GameMasterService implements IGameMasterService {
     return this.narrator.listMessages(worldId)
   }
 
+  async deleteCampaign(worldId: string): Promise<void> {
+    const world = await this.worldService.get(worldId)
+    if (world.isTemplate) throw new ConflictError('A template is not a campaign')
+    if (this.streaming.has(worldId)) {
+      throw new ConflictError('The narrator is answering in this campaign')
+    }
+
+    // Conversation first: if it fails the campaign is still whole and can be deleted again.
+    await this.narrator.deleteCampaign(worldId)
+    await this.worldService.delete(worldId)
+  }
+
   /** What the narrator needs for a turn, read now so the prompt shows the world as it is. */
   private async prepareTurn(worldId: string, message: string): Promise<NarratorTurn> {
     const world = await this.worldService.get(worldId)
@@ -89,6 +107,7 @@ export class GameMasterService implements IGameMasterService {
     return {
       worldId,
       model: toMastraModelId(provider, model),
+      helperModel: toMastraModelId(provider, AI_HELPER_MODELS[provider]),
       apiKey,
       temperature,
       world: { name: world.name, genre: world.genre, description: world.description },

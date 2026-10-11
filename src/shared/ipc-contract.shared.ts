@@ -118,7 +118,9 @@ export const ipcContract = {
    * already has a turn running.
    */
   'gameMaster:streamTurn': channel<{ turnId: string; worldId: string; message: string }, void>(),
-  'gameMaster:listHistory': channel<string, CampaignMessage[]>()
+  'gameMaster:listHistory': channel<string, CampaignMessage[]>(),
+  /** Deletes a campaign (a world that is not a template) with all its data and conversation. */
+  'gameMaster:deleteCampaign': channel<string, void>()
 } as const
 
 /**

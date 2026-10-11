@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { toImageUrl } from '@shared'
 import type { GameChatMessage } from '@renderer/composable/game.type'
+import NarratorMarkdown from '@renderer/components/custom/NarratorMarkdown.vue'
 import NarratorUi from '@renderer/components/custom/NarratorUi.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@renderer/components/ui/avatar'
 import { Bubble, BubbleContent } from '@renderer/components/ui/bubble'
@@ -84,6 +85,7 @@ function initials(value: string): string {
               :interactive="props.interactive"
               @choose="emit('choose', $event)"
             />
+            <NarratorMarkdown v-else-if="segment.kind === 'markdown'" :source="segment.text" />
             <p v-else :class="cn(segment.kind === 'dialogue' && 'font-bold italic')">
               {{ segment.text }}
             </p>

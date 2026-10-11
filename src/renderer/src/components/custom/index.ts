@@ -8,6 +8,7 @@ export { default as CreateWorldDialog } from '@renderer/components/custom/Create
 export { default as EntityRow } from '@renderer/components/custom/EntityRow.vue'
 export { default as GameChatComposer } from '@renderer/components/custom/GameChatComposer.vue'
 export { default as GameChatMessage } from '@renderer/components/custom/GameChatMessage.vue'
+export { default as NarratorMarkdown } from '@renderer/components/custom/NarratorMarkdown.vue'
 export { default as NarratorStack } from '@renderer/components/custom/NarratorStack.vue'
 export { default as NarratorUi } from '@renderer/components/custom/NarratorUi.vue'
 export { default as HealthBar } from '@renderer/components/custom/HealthBar.vue'

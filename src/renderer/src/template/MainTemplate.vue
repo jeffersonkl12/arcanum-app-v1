@@ -1,12 +1,21 @@
 <script setup lang="ts">
 import { Hexagon } from '@lucide/vue'
+import { computed, useTemplateRef } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { Button } from '@renderer/components/ui/button'
+import { useSmoothScroll } from '@renderer/composable/smooth-scroll.composable'
 import { footerNavigation, mainNavigation, type AppNavItem } from '@renderer/constant'
 import { cn } from '@renderer/lib/utils'
 
 const route = useRoute()
 const router = useRouter()
+
+const mainRef = useTemplateRef<HTMLElement>('mainRef')
+// The game screen does not scroll here: its chat is the scroll container, with its own smoothing.
+useSmoothScroll(
+  mainRef,
+  computed(() => route.name !== 'game')
+)
 
 function isActive(item: AppNavItem): boolean {
   return item.routeName !== undefined && route.name === item.routeName
@@ -65,6 +74,7 @@ function open(item: AppNavItem): void {
       </nav>
     </aside>
     <main
+      ref="mainRef"
       :class="
         cn(
           'min-h-0 min-w-0 flex-1',

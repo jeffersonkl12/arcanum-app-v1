@@ -2,9 +2,14 @@ import type { NarrationIssue } from '@shared'
 
 export type ChatSegmentKind = 'narration' | 'dialogue'
 
-/** One block of a chat message: a paragraph of prose, or a UI block the narrator wrote. */
+/**
+ * One block of a chat message: a plain paragraph (the player's), the narrator's prose as Markdown,
+ * or a UI block the narrator wrote.
+ */
 export type ChatSegment =
-  { kind: ChatSegmentKind; text: string } | { kind: 'ui'; source: string; issues: NarrationIssue[] }
+  | { kind: ChatSegmentKind; text: string }
+  | { kind: 'markdown'; text: string }
+  | { kind: 'ui'; source: string; issues: NarrationIssue[] }
 
 export interface GameChatMessage {
   id: string

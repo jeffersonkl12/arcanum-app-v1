@@ -19,6 +19,8 @@ export interface NarratorTurn {
   worldId: string
   /** Mastra model id (`provider/model`) the narrator runs on in this turn. */
   model: `${string}/${string}`
+  /** Cheap model of the same provider for the NPC creator and the memory summarizer. */
+  helperModel: `${string}/${string}`
   /** Key saved in the app for the model's provider; `undefined` leaves Mastra to read the environment. */
   apiKey?: string
   temperature: number
@@ -63,6 +65,8 @@ export interface INarratorGateway {
   narrateStream(turn: NarratorTurn): Promise<AsyncIterable<NarratorStreamEvent>>
   /** Everything the player and the narrator said in the campaign of a world, oldest first. */
   listMessages(worldId: string): Promise<CampaignMessage[]>
+  /** Forgets the campaign of a world: its messages and what Observational Memory distilled from them. */
+  deleteCampaign(worldId: string): Promise<void>
 }
 
 /**
@@ -91,6 +95,7 @@ export class NarratorGateway implements INarratorGateway {
   private async prepareRun({
     worldId,
     model,
+    helperModel,
     apiKey,
     temperature,
     world,
@@ -103,6 +108,7 @@ export class NarratorGateway implements INarratorGateway {
     const requestContext = new RequestContext<GameContext>()
     requestContext.set('worldId', worldId)
     requestContext.set('narratorModel', { id: model, apiKey })
+    requestContext.set('helperModel', { id: helperModel, apiKey })
     requestContext.set('world', world)
     requestContext.set('party', party)
     requestContext.set('npcRegistry', npcRegistry)
@@ -152,6 +158,16 @@ export class NarratorGateway implements INarratorGateway {
 
       return [{ id: stored.id, role: stored.role, text, segments, createdAt: stored.createdAt }]
     })
+  }
+
+  async deleteCampaign(worldId: string): Promise<void> {
+    const memory = await (await this.loadMastra()).getAgent('narrator').getMemory()
+    if (!memory) return
+
+    // The thread is created by the first turn, so a campaign never played has nothing to delete.
+    if (!(await memory.getThreadById({ threadId: campaignThreadId(worldId) }))) return
+
+    await memory.deleteThread(campaignThreadId(worldId))
   }
 }
 

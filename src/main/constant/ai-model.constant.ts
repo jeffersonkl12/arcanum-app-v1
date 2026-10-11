@@ -70,6 +70,19 @@ export const AI_MODEL_CATALOG: Readonly<Record<AiProvider, AiProviderOption>> = 
   }
 }
 
+/**
+ * Model of each provider for the work the player does not pick: the NPC creator and the
+ * summarization of old messages (Observational Memory). Both fill structured text from clear
+ * instructions, so the cheapest tier that still follows a schema well is enough: the "mini" or
+ * "lite" of each family, never the smallest ("nano") one. Each id must be in the provider's catalog.
+ */
+export const AI_HELPER_MODELS: Readonly<Record<AiProvider, string>> = {
+  google: 'gemini-3.5-flash-lite',
+  openai: 'gpt-5.4-mini',
+  anthropic: 'claude-haiku-4-5',
+  deepseek: 'deepseek-v4-flash'
+}
+
 /** What a world uses until the player picks something else. */
 export const DEFAULT_AI_SETTING = {
   provider: 'google',

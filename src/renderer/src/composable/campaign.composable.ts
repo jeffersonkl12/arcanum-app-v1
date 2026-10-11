@@ -25,9 +25,13 @@ export function useCampaign(): {
   loadCampaigns: () => Promise<void>
   loadTemplateOptions: () => Promise<TemplateOption[]>
   rememberCampaign: (campaignId: string) => void
+  isDeleting: Ref<boolean>
+  /** Deletes the campaign with all its data and conversation; `false` if the engine refused. */
+  deleteCampaign: (campaignId: string) => Promise<boolean>
 } {
   const { campaigns, templateOptions, search, templateFilter } = storeToRefs(useCampaignStore())
   const { isLoading, request } = useRequest()
+  const { isLoading: isDeleting, execute: deleteExecute } = useRequest()
 
   const visibleCampaigns = computed(() => {
     const term = search.value.trim().toLocaleLowerCase()
@@ -77,7 +81,23 @@ export function useCampaign(): {
     lastCampaignId.value = campaignId
   }
 
+  async function deleteCampaign(campaignId: string): Promise<boolean> {
+    if (!(await deleteExecute('gameMaster:deleteCampaign', campaignId))) return false
+
+    campaigns.value = campaigns.value.filter((campaign) => campaign.id !== campaignId)
+    if (lastCampaignId.value === campaignId) lastCampaignId.value = null
+    if (
+      templateFilter.value !== 'all' &&
+      !campaigns.value.some((campaign) => campaign.sourceWorldId === templateFilter.value)
+    ) {
+      templateFilter.value = 'all'
+    }
+    return true
+  }
+
   return {
+    isDeleting,
+    deleteCampaign,
     campaigns,
     templateOptions,
     search,
