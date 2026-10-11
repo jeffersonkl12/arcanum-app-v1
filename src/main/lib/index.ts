@@ -1,3 +1,4 @@
+export * from '@lib/dice-assets-protocol.lib'
 export * from '@lib/dice.lib'
 export * from '@lib/image-protocol.lib'
 export * from '@lib/image-storage.lib'

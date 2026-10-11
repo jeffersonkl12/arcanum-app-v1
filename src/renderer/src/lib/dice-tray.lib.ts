@@ -1,7 +1,14 @@
 import DiceBox from '@3d-dice/dice-box'
+import { DICE_ASSETS_ORIGIN } from '@shared'
 
-/** Where `public/assets/dice-box` (the package's `dist/assets`) is served from. */
-const ASSET_PATH = '/assets/dice-box/'
+/**
+ * Where `public/assets/dice-box` (the package's `dist/assets`) is served from. The dev server and
+ * the packaged app differ: the page is `file://` when packaged, where `fetch` of local files does
+ * not work, so main serves the same folder under its own scheme (`DiceAssetsProtocol`).
+ */
+const IS_PACKAGED_PAGE = window.location.protocol === 'file:'
+const ASSET_ORIGIN = IS_PACKAGED_PAGE ? DICE_ASSETS_ORIGIN : window.location.origin
+const ASSET_PATH = IS_PACKAGED_PAGE ? '/' : '/assets/dice-box/'
 /** How long the dice stay on screen after they stop, so the player can read them. */
 const LINGER_MS = 1600
 const D6_SIDES = 6
@@ -56,7 +63,7 @@ export class DiceTray implements IDiceTray {
       const box = new DiceBox({
         container: `#${container.id}`,
         assetPath: ASSET_PATH,
-        origin: window.location.origin
+        origin: ASSET_ORIGIN
       })
       await box.init()
 

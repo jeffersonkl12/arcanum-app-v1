@@ -1,7 +1,8 @@
-import { ref, type Ref } from 'vue'
+import { inject, ref, type Ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { DICE_PER_ROLL_MODE, type IpcOutput, type RollMode } from '@shared'
-import { diceTray } from '@renderer/lib/dice-tray.lib'
+import { diceTrayKey } from '@renderer/constant/dice.constant'
+import { diceTray as defaultDiceTray } from '@renderer/lib/dice-tray.lib'
 import { useRequest } from './request.composable'
 
 /**
@@ -13,6 +14,7 @@ export function useDiceRoll(): {
   rollCheck: (mode: RollMode) => Promise<IpcOutput<'dice:resolveCheck'> | undefined>
 } {
   const { request } = useRequest()
+  const diceTray = inject(diceTrayKey, defaultDiceTray)
   const isRolling = ref(false)
 
   /** Resolves with the engine's result, or `undefined` if the roll did not happen (the user was told). */

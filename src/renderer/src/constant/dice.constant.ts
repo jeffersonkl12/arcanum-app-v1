@@ -1,4 +1,12 @@
+import type { InjectionKey } from 'vue'
 import type { IpcOutput, RollMode } from '@shared'
+import type { IDiceTray } from '@renderer/lib/dice-tray.lib'
+
+/**
+ * The 3D dice implementation the app rolls with. Provide another `IDiceTray` (at `App.vue` or in
+ * a test) to swap the library; without one, `useDiceRoll` uses the default `diceTray`.
+ */
+export const diceTrayKey: InjectionKey<IDiceTray> = Symbol('dice-tray')
 
 export const checkOutcomeLabel: Readonly<
   Record<IpcOutput<'dice:resolveCheck'>['outcome'], string>

@@ -34,3 +34,8 @@ export function resolveAgentsFolder(): string {
     ? join(process.resourcesPath, 'agents')
     : join(app.getAppPath(), 'src', 'mastra', 'agents')
 }
+
+/** Folder with the `@3d-dice/dice-box` assets, copied from `src/renderer/public` into the renderer build. */
+export function resolveDiceAssetsFolder(): string {
+  return join(app.getAppPath(), 'out', 'renderer', 'assets', 'dice-box')
+}
