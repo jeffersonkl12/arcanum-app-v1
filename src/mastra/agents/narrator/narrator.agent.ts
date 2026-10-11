@@ -7,6 +7,7 @@ import { narratorUiPrompt } from '../../prompt/narrator-ui.prompt'
 import { createItemsTool } from '../../tools/create-items.tool'
 import { deleteItemsTool } from '../../tools/delete-items.tool'
 import { equipItemsTool } from '../../tools/equip-items.tool'
+import { findItemsTool } from '../../tools/find-items.tool'
 import { getInventoryTool } from '../../tools/get-inventory.tool'
 import { rollCheckTool } from '../../tools/roll-check.tool'
 import { transferItemsTool } from '../../tools/transfer-items.tool'
@@ -48,7 +49,8 @@ export const narratorAgent = new Agent({
     deleteItemsTool,
     transferItemsTool,
     equipItemsTool,
-    getInventoryTool
+    getInventoryTool,
+    findItemsTool
   },
   requestContextSchema: gameContextSchema,
   memory: narratorMemory

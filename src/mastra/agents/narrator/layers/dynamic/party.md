@@ -21,6 +21,10 @@ These are the characters that make up the player's party right now.
 {{#if background}}
 - Background: {{background}}
 {{/if}}
+- Equipped: {{#if equipped.length}}{{#each equipped}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}nothing{{/if}}
+{{#if carried.length}}
+- Carrying: {{#each carried}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+{{/if}}
 
 {{/each}}
 {{else}}

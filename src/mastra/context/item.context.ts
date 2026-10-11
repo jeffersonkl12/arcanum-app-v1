@@ -146,4 +146,17 @@ export interface IItemRegistry {
   equipItems(worldId: string, changes: ItemEquip[]): Promise<ItemOutcome[]>
   /** The inventory of `actorId`, or the items nobody carries in the world when omitted. */
   getInventory(worldId: string, actorId?: string): Promise<InventoryView>
+  /** Full details of the items matching the query: by id, or by (part of) the name. */
+  findItems(worldId: string, query: ItemQuery): Promise<InventoryView>
 }
+
+/** Either `itemId`, or `name` optionally narrowed to what one actor carries. */
+export const itemQuerySchema = z
+  .object({
+    itemId: z.uuid().optional().describe('Exact item, when you already know its id.'),
+    name: z.string().trim().min(1).optional().describe('Part of the name; ignores case and accents.'),
+    actorId: z.uuid().optional().describe('With `name`: only look in what this actor carries.')
+  })
+  .refine((query) => query.itemId || query.name, 'Give an itemId or a name')
+
+export type ItemQuery = z.infer<typeof itemQuerySchema>

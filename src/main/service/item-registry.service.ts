@@ -7,6 +7,7 @@ import type {
   IItemRegistry,
   ItemDraft,
   ItemEquip,
+  ItemQuery,
   ItemOutcome,
   ItemTransfer,
   ItemUpdate,
@@ -137,6 +138,30 @@ export class ItemRegistryService implements IItemRegistry {
     }
   }
 
+  async findItems(worldId: string, { itemId, name, actorId }: ItemQuery): Promise<InventoryView> {
+    try {
+      if (itemId) {
+        return { ok: true, items: [toView(await this.requireItem(worldId, itemId))] }
+      }
+
+      if (actorId) {
+        await this.requireActor(worldId, actorId)
+      }
+
+      const pool = actorId
+        ? (await this.inventoryService.get(actorId)).items
+        : await this.inventoryService.listByWorld(worldId)
+      const wanted = normalize(name ?? '')
+      const items = pool.filter((item) => normalize(item.name).includes(wanted))
+
+      return items.length > 0
+        ? { ok: true, items: items.map(toView) }
+        : { ok: false, reason: `No item matches "${name}"`, items: [] }
+    } catch (error) {
+      return { ok: false, reason: reasonOf(error), items: [] }
+    }
+  }
+
   /** Equips or unequips a carried item and returns it as it is now. */
   private async equipped(itemId: string, equipped: boolean): Promise<ItemOutcome> {
     const inventory = equipped
@@ -195,6 +220,14 @@ function reasonOf(error: unknown): string {
   }
 
   throw error
+}
+
+/** Lower case without accents, so "pocao" finds "Poção". */
+function normalize(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
 }
 
 function itemIdOf(entry: unknown): string | undefined {

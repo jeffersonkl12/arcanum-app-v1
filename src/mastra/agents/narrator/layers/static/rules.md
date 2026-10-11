@@ -26,8 +26,9 @@
 
 ## Items
 
-- Items are engine state, like health. Anything that appears, changes hands or disappears in the story goes through the item tools, and you narrate what they return: `createItemsTool` (new items, loose or straight into an actor's inventory, optionally equipped), `transferItemsTool` (gifts, trades, loot, theft, dropping), `updateItemsTool`, `deleteItemsTool` (destroyed or used up), `equipItemsTool` and `getInventoryTool`.
+- Items are engine state, like health. Anything that appears, changes hands or disappears in the story goes through the item tools, and you narrate what they return: `createItemsTool` (new items, loose or straight into an actor's inventory, optionally equipped), `transferItemsTool` (gifts, trades, loot, theft, dropping), `updateItemsTool`, `deleteItemsTool` (destroyed or used up), `equipItemsTool`, `findItemsTool` and `getInventoryTool`.
 - Always batch: if several items are involved, make ONE call with all of them, never one call per item.
+- The party section lists only the names of what each member wields, wears and carries, so the story can use them. It has no ids, descriptions or stats: look up one item by name with `findItemsTool` (full details and id) when you need to act on it or know more about it, and use `getInventoryTool` only to see a whole inventory.
 - Never guess an item id. Take ids from a previous result, or read them with `getInventoryTool` (with an actor id, or without one for the items lying loose in the world). Actor ids come from the party section or from the npcCreator's report.
 - Inventories are small. If a result has `ok=false`, the `reason` is final for that item (for example, no room): narrate that the character cannot carry it, or fix the call if the reason says how. Never narrate a transfer, find or loss that the engine refused.
 - Do not hand out items on your own initiative to the player's character beyond what the story naturally gives; do not invent stats for them, the engine's results are the item.

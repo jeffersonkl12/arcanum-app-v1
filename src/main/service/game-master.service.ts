@@ -138,7 +138,30 @@ export class GameMasterService implements IGameMasterService {
     const party = await this.partyService.findByWorld(worldId)
     if (!party) return { members: [] }
 
-    return { members: (await this.partyService.listMembers(party.id)).map(toPartyMember) }
+    const actors = await this.partyService.listMembers(party.id)
+
+    return { members: await Promise.all(actors.map((actor) => this.toPartyMember(actor))) }
+  }
+
+  /** The member plus the names of its items; ids, slots and descriptions stay out of the prompt. */
+  private async toPartyMember(actor: Actor): Promise<PartyMember> {
+    const { items } = await this.itemRegistry.getInventory(actor.worldId, actor.id)
+
+    return {
+      id: actor.id,
+      name: actor.name,
+      isPlayer: !actor.isNpc,
+      age: actor.age,
+      gender: actor.gender,
+      hpCurrent: actor.hpCurrent,
+      hpMax: actor.hpMax,
+      profession: actor.profession,
+      appearance: actor.appearance,
+      personality: actor.personality,
+      background: actor.background,
+      equipped: items.filter((item) => item.equippedSlot).map((item) => item.name),
+      carried: items.filter((item) => !item.equippedSlot).map((item) => item.name)
+    }
   }
 
   private createNpcRegistry(): INpcRegistry {
@@ -165,21 +188,5 @@ export class GameMasterService implements IGameMasterService {
         }
       }
     }
-  }
-}
-
-function toPartyMember(actor: Actor): PartyMember {
-  return {
-    id: actor.id,
-    name: actor.name,
-    isPlayer: !actor.isNpc,
-    age: actor.age,
-    gender: actor.gender,
-    hpCurrent: actor.hpCurrent,
-    hpMax: actor.hpMax,
-    profession: actor.profession,
-    appearance: actor.appearance,
-    personality: actor.personality,
-    background: actor.background
   }
 }

@@ -70,7 +70,10 @@ export const partyMemberSchema = z.object({
   profession: z.string().nullable(),
   appearance: z.string().nullable(),
   personality: z.string().nullable(),
-  background: z.string().nullable()
+  background: z.string().nullable(),
+  /** Names only, what shapes the story: worn or wielded items, and the rest of what is carried. */
+  equipped: z.array(z.string()),
+  carried: z.array(z.string())
 })
 
 export type PartyMember = z.infer<typeof partyMemberSchema>

@@ -17,6 +17,7 @@ import { createNpcTool } from './tools/create-npc.tool'
 import { createItemsTool } from './tools/create-items.tool'
 import { deleteItemsTool } from './tools/delete-items.tool'
 import { equipItemsTool } from './tools/equip-items.tool'
+import { findItemsTool } from './tools/find-items.tool'
 import { getInventoryTool } from './tools/get-inventory.tool'
 import { rollCheckTool } from './tools/roll-check.tool'
 import { transferItemsTool } from './tools/transfer-items.tool'
@@ -38,7 +39,8 @@ export const mastra = new Mastra({
     deleteItemsTool,
     transferItemsTool,
     equipItemsTool,
-    getInventoryTool
+    getInventoryTool,
+    findItemsTool
   },
   storage: new MastraCompositeStore({
     id: 'composite-storage',
