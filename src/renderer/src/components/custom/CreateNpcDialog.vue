@@ -47,7 +47,10 @@ import {
   SelectTrigger,
   SelectValue
 } from '@renderer/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
 import { Textarea } from '@renderer/components/ui/textarea'
+import ActorInventoryPicker from '@renderer/components/custom/ActorInventoryPicker.vue'
+import { cn } from '@renderer/lib/utils'
 
 const open = defineModel<boolean>('open', { default: false })
 const entity = defineModel<ActorSummary | null>('entity', { default: null })
@@ -116,8 +119,21 @@ const imagePreviewUrl = ref<string>()
 const imageData = ref<Uint8Array>()
 const existingImagePath = ref<string | null>()
 
-const { createActor, updateActor, isCreatingActor, createActorError, languages, cultures } =
-  useWorld()
+const activeTab = ref('profile')
+// The items the actor will carry, and the ones it carried when the dialog opened (editing).
+const inventoryIds = ref<string[]>([])
+const carriedIds = ref<string[]>([])
+
+const {
+  createActor,
+  updateActor,
+  isCreatingActor,
+  createActorError,
+  languages,
+  cultures,
+  loadInventoryItemIds,
+  syncInventory
+} = useWorld()
 const { handleSubmit, resetForm, setErrors } = useForm({
   validationSchema: createNpcFormSchema,
   initialValues: emptyForm
@@ -155,6 +171,9 @@ const onSubmit = handleSubmit(async (values) => {
     applyCreateErrors(createActorError.value)
     return
   }
+  if (inventoryChanged() && !(await syncInventory(saved.id, inventoryIds.value))) {
+    toast.warning('Personagem salvo, mas o inventário não foi totalmente atualizado')
+  }
   toast.success(editing ? 'Personagem atualizado' : 'Personagem criado')
   emit('saved', saved)
   open.value = false
@@ -174,17 +193,31 @@ onBeforeUnmount(() => {
   clearImage()
 })
 
+function inventoryChanged(): boolean {
+  const wanted = inventoryIds.value
+  return (
+    wanted.length !== carriedIds.value.length || wanted.some((id) => !carriedIds.value.includes(id))
+  )
+}
+
 function startCreate(): void {
   entity.value = null
 }
 
 function fillForm(actor: ActorSummary | null): void {
   clearImage()
+  activeTab.value = 'profile'
+  inventoryIds.value = []
+  carriedIds.value = []
   if (!actor) {
     resetForm({ values: emptyForm })
     return
   }
 
+  void loadInventoryItemIds(actor.id).then((ids) => {
+    carriedIds.value = ids
+    inventoryIds.value = [...ids]
+  })
   existingImagePath.value = actor.imagePath ?? null
   resetForm({
     values: {
@@ -238,6 +271,13 @@ async function onImageSelected(event: Event): Promise<void> {
   imagePreviewUrl.value = URL.createObjectURL(file)
   imageData.value = new Uint8Array(await file.arrayBuffer())
 }
+
+const tabTriggerClass = cn(
+  'h-auto flex-none rounded-none border-0 bg-transparent px-0 pb-3 text-sm font-medium text-tertiary shadow-none',
+  'hover:text-foreground data-active:bg-transparent data-active:font-semibold data-active:text-primary',
+  'dark:data-active:border-transparent dark:data-active:bg-transparent',
+  'after:bg-primary group-data-horizontal/tabs:after:bottom-0 group-data-[variant=line]/tabs-list:data-active:after:opacity-100'
+)
 
 const fieldLabelClass = 'text-meta font-medium text-muted-foreground'
 const fieldControlClass =
@@ -438,50 +478,77 @@ const textareaClass =
               :disabled="isCreatingActor"
             />
 
-            <FormField v-slot="{ componentField }" name="appearance" keep-value>
-              <FormItem class="gap-1.5">
-                <FormLabel :class="fieldLabelClass">Aparência</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Descreva as características físicas, roupas, marcas..."
-                    :disabled="isCreatingActor"
-                    :class="textareaClass"
-                    v-bind="componentField"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
+            <Tabs v-model="activeTab" class="flex w-full flex-col gap-5">
+              <TabsList
+                variant="line"
+                class="h-auto w-full justify-start gap-8 rounded-none border-b border-border bg-transparent p-0"
+              >
+                <TabsTrigger value="profile" :class="tabTriggerClass">
+                  Aparência e História
+                </TabsTrigger>
+                <TabsTrigger value="inventory" :class="tabTriggerClass">Inventário</TabsTrigger>
+              </TabsList>
 
-            <FormField v-slot="{ componentField }" name="personality" keep-value>
-              <FormItem class="gap-1.5">
-                <FormLabel :class="fieldLabelClass">Personalidade</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Traços marcantes, medos, motivações..."
-                    :disabled="isCreatingActor"
-                    :class="textareaClass"
-                    v-bind="componentField"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
+              <!-- force-mount: the fields stay registered in the form while the other tab is open. -->
+              <TabsContent
+                value="profile"
+                force-mount
+                class="flex flex-col gap-5 outline-none data-[state=inactive]:hidden"
+              >
+                <FormField v-slot="{ componentField }" name="appearance" keep-value>
+                  <FormItem class="gap-1.5">
+                    <FormLabel :class="fieldLabelClass">Aparência</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Descreva as características físicas, roupas, marcas..."
+                        :disabled="isCreatingActor"
+                        :class="textareaClass"
+                        v-bind="componentField"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
 
-            <FormField v-slot="{ componentField }" name="background" keep-value>
-              <FormItem class="gap-1.5">
-                <FormLabel :class="fieldLabelClass">Background / História</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="De onde veio e o que busca neste mundo..."
-                    :disabled="isCreatingActor"
-                    :class="textareaClass"
-                    v-bind="componentField"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
+                <FormField v-slot="{ componentField }" name="personality" keep-value>
+                  <FormItem class="gap-1.5">
+                    <FormLabel :class="fieldLabelClass">Personalidade</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Traços marcantes, medos, motivações..."
+                        :disabled="isCreatingActor"
+                        :class="textareaClass"
+                        v-bind="componentField"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
+
+                <FormField v-slot="{ componentField }" name="background" keep-value>
+                  <FormItem class="gap-1.5">
+                    <FormLabel :class="fieldLabelClass">Background / História</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="De onde veio e o que busca neste mundo..."
+                        :disabled="isCreatingActor"
+                        :class="textareaClass"
+                        v-bind="componentField"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
+              </TabsContent>
+
+              <TabsContent value="inventory" class="outline-none">
+                <ActorInventoryPicker
+                  v-model="inventoryIds"
+                  :carried-ids="carriedIds"
+                  :disabled="isCreatingActor"
+                />
+              </TabsContent>
+            </Tabs>
           </div>
 
           <div class="flex justify-end gap-4">

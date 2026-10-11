@@ -1,3 +1,5 @@
+export { default as ActorInventoryList } from '@renderer/components/custom/ActorInventoryList.vue'
+export { default as ActorInventoryPicker } from '@renderer/components/custom/ActorInventoryPicker.vue'
 export { default as ActorRow } from '@renderer/components/custom/ActorRow.vue'
 export { default as CampaignCard } from '@renderer/components/custom/CampaignCard.vue'
 export { default as CharacterSheetDialog } from '@renderer/components/custom/CharacterSheetDialog.vue'

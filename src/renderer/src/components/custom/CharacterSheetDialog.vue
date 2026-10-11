@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Pencil, Trash2, X } from '@lucide/vue'
 import { DialogContent, DialogPortal } from 'reka-ui'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { toImageUrl } from '@shared'
+import ActorInventoryList from '@renderer/components/custom/ActorInventoryList.vue'
 import HealthBar from '@renderer/components/custom/HealthBar.vue'
 import type { CharacterSheet } from '@renderer/composable/game.type'
 import { Badge } from '@renderer/components/ui/badge'
@@ -16,6 +17,8 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Separator } from '@renderer/components/ui/separator'
 import { Spinner } from '@renderer/components/ui/spinner'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
+import { cn } from '@renderer/lib/utils'
 
 const open = defineModel<boolean>('open', { required: true })
 
@@ -29,6 +32,20 @@ const emit = defineEmits<{
   edit: []
   delete: []
 }>()
+
+const activeTab = ref('sheet')
+
+// A sheet always opens on the "Ficha" tab.
+watch(open, (isOpen) => {
+  if (isOpen) activeTab.value = 'sheet'
+})
+
+const tabTriggerClass = cn(
+  'h-auto flex-none rounded-none border-0 bg-transparent px-0 pb-3 text-sm font-medium text-tertiary shadow-none',
+  'hover:text-foreground data-active:bg-transparent data-active:font-semibold data-active:text-primary',
+  'dark:data-active:border-transparent dark:data-active:bg-transparent',
+  'after:bg-primary group-data-horizontal/tabs:after:bottom-0 group-data-[variant=line]/tabs-list:data-active:after:opacity-100'
+)
 
 const infoCells = computed(() => {
   if (!props.sheet) return []
@@ -112,26 +129,44 @@ const narrativeFields = computed(() => {
 
           <Separator />
 
-          <div class="grid grid-cols-2 gap-4">
-            <div v-for="cell in infoCells" :key="cell.label" class="flex flex-col gap-1">
-              <span class="text-badge font-semibold tracking-wide text-tertiary uppercase">
-                {{ cell.label }}
-              </span>
-              <span class="text-sm font-medium text-foreground">{{ cell.value }}</span>
-            </div>
-          </div>
+          <Tabs v-model="activeTab" class="flex w-full flex-col gap-4">
+            <TabsList
+              variant="line"
+              class="h-auto w-full justify-start gap-8 rounded-none border-b border-border bg-transparent p-0"
+            >
+              <TabsTrigger value="sheet" :class="tabTriggerClass">Ficha</TabsTrigger>
+              <TabsTrigger value="inventory" :class="tabTriggerClass">Inventário</TabsTrigger>
+            </TabsList>
 
-          <Separator />
-
-          <div class="flex flex-col gap-3.5">
-            <template v-for="(field, index) in narrativeFields" :key="field.label">
-              <Separator v-if="index > 0" />
-              <div class="flex flex-col gap-1.5">
-                <span class="text-sm font-semibold text-muted-foreground">{{ field.label }}</span>
-                <p class="text-sm leading-normal text-foreground">{{ field.value }}</p>
+            <TabsContent value="sheet" class="flex flex-col gap-3.5 outline-none">
+              <div class="grid grid-cols-2 gap-4">
+                <div v-for="cell in infoCells" :key="cell.label" class="flex flex-col gap-1">
+                  <span class="text-badge font-semibold tracking-wide text-tertiary uppercase">
+                    {{ cell.label }}
+                  </span>
+                  <span class="text-sm font-medium text-foreground">{{ cell.value }}</span>
+                </div>
               </div>
-            </template>
-          </div>
+
+              <Separator />
+
+              <div class="flex flex-col gap-3.5">
+                <template v-for="(field, index) in narrativeFields" :key="field.label">
+                  <Separator v-if="index > 0" />
+                  <div class="flex flex-col gap-1.5">
+                    <span class="text-sm font-semibold text-muted-foreground">
+                      {{ field.label }}
+                    </span>
+                    <p class="text-sm leading-normal text-foreground">{{ field.value }}</p>
+                  </div>
+                </template>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="inventory" class="outline-none">
+              <ActorInventoryList :key="sheet.id" :actor-id="sheet.id" />
+            </TabsContent>
+          </Tabs>
 
           <Separator />
 

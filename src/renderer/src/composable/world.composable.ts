@@ -86,6 +86,8 @@ export function useWorld(): {
   createItem: (input: ItemInput) => Promise<ItemSummary | undefined>
   updateItem: (itemId: string, input: ItemInput) => Promise<ItemSummary | undefined>
   deleteItem: (itemId: string) => Promise<boolean>
+  loadInventoryItemIds: (actorId: string) => Promise<string[]>
+  syncInventory: (actorId: string, itemIds: string[]) => Promise<boolean>
   isLoadingDetail: Ref<boolean>
   isNotFound: Ref<boolean>
   isCreatingActor: Ref<boolean>
@@ -428,6 +430,41 @@ export function useWorld(): {
     return true
   }
 
+  /** The ids of the items an actor carries now. */
+  async function loadInventoryItemIds(actorId: string): Promise<string[]> {
+    const inventory = await itemRequest('inventory:get', actorId)
+    return (inventory?.items ?? []).map((item) => item.id)
+  }
+
+  async function reloadItems(worldId: string): Promise<void> {
+    const itemList = await itemRequest('item:listByWorld', worldId)
+    if (itemList) items.value = itemList.map(toItemSummary)
+  }
+
+  /**
+   * Makes the actor's inventory exactly `itemIds`: drops what is no longer wanted, then gives the
+   * rest (drops first, so the freed slots count). The engine enforces the 12 slots and the world.
+   * Returns false if any step failed (its message was toasted); the list is reloaded either way.
+   */
+  async function syncInventory(actorId: string, itemIds: string[]): Promise<boolean> {
+    const worldId = currentWorld.value?.id
+    if (!worldId) return false
+
+    const current = await loadInventoryItemIds(actorId)
+    const wanted = new Set(itemIds)
+    let succeeded = true
+
+    for (const itemId of current.filter((id) => !wanted.has(id))) {
+      succeeded = (await itemRequest('item:drop', itemId)) !== undefined && succeeded
+    }
+    for (const itemId of itemIds.filter((id) => !current.includes(id))) {
+      succeeded = (await itemRequest('item:give', { itemId, actorId })) !== undefined && succeeded
+    }
+
+    await reloadItems(worldId)
+    return succeeded
+  }
+
   return {
     worlds,
     search,
@@ -454,6 +491,8 @@ export function useWorld(): {
     createItem,
     updateItem,
     deleteItem,
+    loadInventoryItemIds,
+    syncInventory,
     isLoadingDetail,
     isNotFound,
     isCreatingActor,
