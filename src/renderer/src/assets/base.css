@@ -231,6 +231,14 @@
   body {
     @apply bg-background font-body text-foreground;
   }
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    @apply cursor-pointer transition-[filter,background-color,color,border-color,opacity,transform] duration-150;
+  }
+  button:not(:disabled):hover,
+  [role='button']:not([aria-disabled='true']):hover {
+    @apply brightness-110;
+  }
 }
 
 *,
