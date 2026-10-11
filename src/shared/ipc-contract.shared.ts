@@ -4,15 +4,19 @@ import type {
   CloneWorld,
   CreateActor,
   CreateCulture,
+  CreateItem,
   CreateLanguage,
   CreateParty,
   CreateWorld,
   Culture,
+  Inventory,
+  Item,
   Language,
   Party,
   SetImage,
   UpdateActor,
   UpdateCulture,
+  UpdateItem,
   UpdateLanguage,
   UpdateWorld,
   UpdateAiSetting,
@@ -85,6 +89,32 @@ export const ipcContract = {
   /** Sets or replaces the actor's image with the bytes of the file; returns the new `imagePath`. */
   'actor:setImage': channel<SetImage, string>(),
   'actor:removeImage': channel<string, void>(),
+
+  /** The inventory of an actor: its items, free slots, armor bonus and what is equipped where. */
+  'inventory:get': channel<string, Inventory>(),
+  /** Creates an item straight into the actor's inventory; `conflict` if it does not fit in the 12 slots. */
+  'inventory:addItem': channel<{ actorId: string; item: CreateItem }, Item>(),
+  /** Equips a carried item where it belongs; `conflict` if that place is taken, so unequip first. */
+  'inventory:equip': channel<string, Inventory>(),
+  'inventory:unequip': channel<string, Inventory>(),
+
+  /** Every item of the world, carried or not. */
+  'item:listByWorld': channel<string, Item[]>(),
+  /** Creates an item in the world that nobody carries. */
+  'item:createInWorld': channel<{ worldId: string; item: CreateItem }, Item>(),
+  'item:get': channel<string, Item>(),
+  'item:update': channel<Update<UpdateItem>, Item>(),
+  /** Deletes the item from the world for good. */
+  'item:remove': channel<string, void>(),
+  /** Puts a free item of the world into the actor's inventory; `conflict` if it does not fit or is carried. */
+  'item:give': channel<{ itemId: string; actorId: string }, Inventory>(),
+  /** Takes the item out of the inventory; it stays in the world. */
+  'item:drop': channel<string, Item>(),
+  /** Uses up a carried consumable (it is deleted); `conflict` if the item is not consumable. */
+  'item:consume': channel<string, Item>(),
+  /** Sets or replaces the item's image with the bytes of the file; returns the new `imagePath`. */
+  'item:setImage': channel<SetImage, string>(),
+  'item:removeImage': channel<string, void>(),
 
   'party:findByWorld': channel<string, Party | undefined>(),
   'party:create': channel<CreateParty, Party>(),

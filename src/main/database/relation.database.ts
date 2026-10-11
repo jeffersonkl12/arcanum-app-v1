@@ -1,4 +1,11 @@
-import { actorTable, cultureTable, languageTable, partyTable, worldTable } from '@database/entity'
+import {
+  actorTable,
+  cultureTable,
+  itemTable,
+  languageTable,
+  partyTable,
+  worldTable
+} from '@database/entity'
 import { defineRelations } from 'drizzle-orm'
 
 /**
@@ -11,6 +18,7 @@ export const relations = defineRelations(
     world: worldTable,
     actor: actorTable,
     culture: cultureTable,
+    item: itemTable,
     language: languageTable,
     party: partyTable
   },
@@ -18,6 +26,7 @@ export const relations = defineRelations(
     world: {
       actors: r.many.actor({ from: r.world.id, to: r.actor.worldId }),
       cultures: r.many.culture({ from: r.world.id, to: r.culture.worldId }),
+      items: r.many.item({ from: r.world.id, to: r.item.worldId }),
       languages: r.many.language({ from: r.world.id, to: r.language.worldId }),
       party: r.one.party({ from: r.world.id, to: r.party.worldId })
     },
@@ -25,7 +34,12 @@ export const relations = defineRelations(
       world: r.one.world({ from: r.actor.worldId, to: r.world.id, optional: false }),
       culture: r.one.culture({ from: r.actor.cultureId, to: r.culture.id }),
       language: r.one.language({ from: r.actor.languageId, to: r.language.id }),
-      party: r.one.party({ from: r.actor.partyId, to: r.party.id })
+      party: r.one.party({ from: r.actor.partyId, to: r.party.id }),
+      items: r.many.item({ from: r.actor.id, to: r.item.actorId })
+    },
+    item: {
+      world: r.one.world({ from: r.item.worldId, to: r.world.id, optional: false }),
+      actor: r.one.actor({ from: r.item.actorId, to: r.actor.id })
     },
     culture: {
       world: r.one.world({ from: r.culture.worldId, to: r.world.id, optional: false }),

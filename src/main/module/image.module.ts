@@ -1,4 +1,5 @@
 import { actorTable } from '@database/entity/actor.entity'
+import { itemTable } from '@database/entity/item.entity'
 import { worldTable } from '@database/entity/world.entity'
 import { ImageProtocol, ImageStorage, resolveImagesFolder, type IImageStorage } from '@lib'
 import { database } from '@module/database.module'
@@ -9,6 +10,7 @@ import { ImageSweepService, type IImageSweepService } from '@service/image-sweep
 export const imageStorage: IImageStorage = new ImageStorage(resolveImagesFolder())
 
 const actorImageRepository = new ImageRepository(database, actorTable)
+const itemImageRepository = new ImageRepository(database, itemTable)
 const worldImageRepository = new ImageRepository(database, worldTable)
 
 /**
@@ -23,6 +25,13 @@ export const actorImageService: IImageService = new ImageService(
   'Actor'
 )
 
+export const itemImageService: IImageService = new ImageService(
+  itemImageRepository,
+  imageStorage,
+  'item',
+  'Item'
+)
+
 export const worldImageService: IImageService = new ImageService(
   worldImageRepository,
   imageStorage,
@@ -32,6 +41,7 @@ export const worldImageService: IImageService = new ImageService(
 
 const imageSweepService: IImageSweepService = new ImageSweepService(imageStorage, [
   { scope: 'actor', repository: actorImageRepository },
+  { scope: 'item', repository: itemImageRepository },
   { scope: 'world', repository: worldImageRepository }
 ])
 

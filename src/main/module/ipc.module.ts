@@ -5,18 +5,21 @@ import {
   createCultureRoutes,
   createDiceRoutes,
   createGameMasterRoutes,
+  createInventoryRoutes,
+  createItemRoutes,
   createLanguageRoutes,
   createPartyRoutes,
   createWorldRoutes,
   isTrustedSender,
   registerIpcRoutes
 } from '@ipc'
-import { actorImageService, worldImageService } from '@module/image.module'
+import { actorImageService, itemImageService, worldImageService } from '@module/image.module'
 import {
   actorService,
   aiSettingService,
   cultureService,
   gameMasterService,
+  inventoryService,
   languageService,
   partyService,
   worldCloneService,
@@ -36,6 +39,8 @@ export function registerIpc(): void {
       ...createDiceRoutes(diceCheckService),
       ...createLanguageRoutes(languageService),
       ...createActorRoutes(actorService, actorImageService),
+      ...createInventoryRoutes(inventoryService),
+      ...createItemRoutes(inventoryService, itemImageService),
       ...createPartyRoutes(partyService),
       ...createAiSettingRoutes(aiSettingService),
       ...createGameMasterRoutes(gameMasterService, new RendererEvents())

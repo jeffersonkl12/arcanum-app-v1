@@ -2,7 +2,7 @@
  * Kinds of entity that can own an image. Each one has its own subfolder of the images folder, and
  * is the first segment of a stored image path (`actor/<uuid>.png`).
  */
-export const IMAGE_SCOPES = ['actor', 'world'] as const
+export const IMAGE_SCOPES = ['actor', 'item', 'world'] as const
 
 export type ImageScope = (typeof IMAGE_SCOPES)[number]
 

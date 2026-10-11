@@ -1,4 +1,5 @@
-import type { CreateActor } from '@schema'
+import type { CreateActor, CreateItem } from '@schema'
+import type { ItemKind } from '@renderer/constant/item.constant'
 
 export interface WorldSummary {
   id: string
@@ -41,4 +42,23 @@ export interface NamedEntitySummary {
   description: string
 }
 
-export type WorldEntityTab = 'npcs' | 'languages' | 'cultures'
+export interface ItemSummary {
+  id: string
+  name: string
+  description: string
+  imagePath?: string | null
+  kind: ItemKind
+  isTiny: boolean
+  slots: number
+  isConsumable: boolean
+  weaponClass: CreateItem['weaponClass']
+  damageDie: CreateItem['damageDie']
+  wearSlot: CreateItem['wearSlot']
+  armorBonus: number | null
+  /** Short labels for the row and the detail ("Arma leve • d6", "Consumível"...). */
+  tags: string[]
+  isCarried: boolean
+  isEquipped: boolean
+}
+
+export type WorldEntityTab = 'npcs' | 'languages' | 'cultures' | 'items'

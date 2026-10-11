@@ -12,6 +12,7 @@ import {
   pgEnum,
   pgTable,
   text,
+  unique,
   uniqueIndex,
   uuid
 } from 'drizzle-orm/pg-core'
@@ -64,6 +65,8 @@ export const actorTable = pgTable(
       columns: [table.partyId, table.worldId],
       foreignColumns: [partyTable.id, partyTable.worldId]
     }),
+    // Target of the composite foreign key of `item`, which keeps an item and its carrier in the same world.
+    unique('actor_id_world_id_unique').on(table.id, table.worldId),
     // A world has at most one player (the only actor that is not an NPC).
     uniqueIndex('actor_world_id_player_unique')
       .on(table.worldId)

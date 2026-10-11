@@ -12,7 +12,16 @@ const CONSTRAINT_MESSAGES: Readonly<Record<string, string>> = {
   actor_language_world_fk: 'The language does not exist in the actor world, or is still in use',
   actor_party_world_fk: 'The party does not exist in the actor world, or is still in use',
   actor_hp_max_range: 'The maximum health must be at least 1',
-  actor_hp_current_range: 'The current health must be between 0 and the maximum'
+  actor_hp_current_range: 'The current health must be between 0 and the maximum',
+  item_actor_world_fk: 'The actor does not exist in the item world, or still carries items',
+  item_equipped_needs_actor: 'Only an item that is carried can be equipped',
+  item_actor_id_equipped_slot_unique: 'That place is already taken by another equipped item',
+  item_tiny_slots: 'A tiny item takes no inventory slots and any other takes at least one',
+  item_weapon_fields: 'A weapon needs both its class and its damage die',
+  item_wear_fields: 'A piece of clothing needs both its wear slot and its armor bonus',
+  item_armor_bonus_range: 'The armor bonus must be between 0 and 3',
+  item_not_weapon_and_wearable: 'An item cannot be both a weapon and a piece of clothing',
+  item_equipped_slot_matches: 'The item cannot be equipped in that place'
 }
 
 interface DatabaseErrorShape {

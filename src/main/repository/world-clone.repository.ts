@@ -3,6 +3,7 @@ import type { ImageScope } from '@constant'
 import type { Database } from '@database/client.database'
 import { actorTable } from '@database/entity/actor.entity'
 import { cultureTable } from '@database/entity/culture.entity'
+import { itemTable } from '@database/entity/item.entity'
 import { languageTable } from '@database/entity/language.entity'
 import { partyTable } from '@database/entity/party.entity'
 import { worldTable } from '@database/entity/world.entity'
@@ -80,6 +81,18 @@ export class WorldCloneRepository implements IWorldCloneRepository {
               languageId: remapId(languages.newIds, actor.languageId),
               partyId: remapId(parties.newIds, actor.partyId),
               imagePath: copyImagePath('actor', actor.imagePath, imageCopies)
+            }))
+          )
+        }
+
+        // Items go in after the actors that carry them (composite foreign key).
+        const items = copyInto(world.id, await tx.query.item.findMany({ where }))
+        if (items.rows.length > 0) {
+          await tx.insert(itemTable).values(
+            items.rows.map((item) => ({
+              ...item,
+              actorId: remapId(actors.newIds, item.actorId),
+              imagePath: copyImagePath('item', item.imagePath, imageCopies)
             }))
           )
         }

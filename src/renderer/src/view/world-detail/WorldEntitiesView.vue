@@ -5,14 +5,17 @@ import { toast } from 'vue-sonner'
 import {
   ActorRow,
   ConfirmDialog,
+  CreateItemDialog,
   CreateNamedEntityDialog,
   CreateNpcDialog,
-  EntityRow
+  EntityRow,
+  ItemDetailDialog,
+  ItemRow
 } from '@renderer/components/custom'
 import { Input } from '@renderer/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
 import { useWorld } from '@renderer/composable/world.composable'
-import type { ActorSummary, NamedEntitySummary } from '@renderer/composable/world.type'
+import type { ActorSummary, ItemSummary, NamedEntitySummary } from '@renderer/composable/world.type'
 import { cn } from '@renderer/lib/utils'
 
 const {
@@ -21,12 +24,14 @@ const {
   visibleActors,
   visibleLanguages,
   visibleCultures,
+  visibleItems,
   deleteActor,
   deleteLanguage,
-  deleteCulture
+  deleteCulture,
+  deleteItem
 } = useWorld()
 
-type DeletableKind = 'actor' | 'language' | 'culture'
+type DeletableKind = 'actor' | 'language' | 'culture' | 'item'
 
 interface PendingDelete {
   kind: DeletableKind
@@ -37,7 +42,8 @@ interface PendingDelete {
 const deleteCopy: Record<DeletableKind, { title: string; success: string }> = {
   actor: { title: 'Apagar personagem', success: 'NPC removido' },
   language: { title: 'Apagar idioma', success: 'Idioma removido' },
-  culture: { title: 'Apagar cultura', success: 'Cultura removida' }
+  culture: { title: 'Apagar cultura', success: 'Cultura removida' },
+  item: { title: 'Apagar item', success: 'Item removido' }
 }
 
 const npcOpen = ref(false)
@@ -46,6 +52,10 @@ const languageOpen = ref(false)
 const editingLanguage = ref<NamedEntitySummary | null>(null)
 const cultureOpen = ref(false)
 const editingCulture = ref<NamedEntitySummary | null>(null)
+const itemOpen = ref(false)
+const editingItem = ref<ItemSummary | null>(null)
+const itemDetailOpen = ref(false)
+const viewingItem = ref<ItemSummary | null>(null)
 const deleteConfirmOpen = ref(false)
 const pendingDelete = ref<PendingDelete | null>(null)
 const isDeleting = ref(false)
@@ -61,6 +71,7 @@ const deleteDescription = computed(() => {
 const searchPlaceholder = computed(() => {
   if (entityTab.value === 'languages') return 'Buscar idiomas...'
   if (entityTab.value === 'cultures') return 'Buscar culturas...'
+  if (entityTab.value === 'items') return 'Buscar itens...'
   return 'Buscar NPCs...'
 })
 
@@ -83,6 +94,29 @@ function openEditCulture(culture: NamedEntitySummary): void {
   cultureOpen.value = true
 }
 
+function openEditItem(item: ItemSummary): void {
+  editingItem.value = item
+  itemOpen.value = true
+}
+
+function openItemDetail(item: ItemSummary): void {
+  viewingItem.value = item
+  itemDetailOpen.value = true
+}
+
+// The detail hands over to the edit dialog or to the delete confirmation, so only one is open.
+function editFromDetail(): void {
+  if (!viewingItem.value) return
+  itemDetailOpen.value = false
+  openEditItem(viewingItem.value)
+}
+
+function deleteFromDetail(): void {
+  if (!viewingItem.value) return
+  itemDetailOpen.value = false
+  requestDelete('item', viewingItem.value)
+}
+
 function requestDelete(kind: DeletableKind, item: { id: string; name: string }): void {
   pendingDelete.value = { kind, id: item.id, name: item.name }
   deleteConfirmOpen.value = true
@@ -97,7 +131,8 @@ async function confirmDelete(): Promise<void> {
     const deleters: Record<DeletableKind, (id: string) => Promise<boolean>> = {
       actor: deleteActor,
       language: deleteLanguage,
-      culture: deleteCulture
+      culture: deleteCulture,
+      item: deleteItem
     }
     // On failure (a language still in use, say) the engine's message was already shown.
     if (!(await deleters[target.kind](target.id))) return
@@ -128,6 +163,7 @@ const tabTriggerClass = cn(
         <TabsTrigger value="npcs" :class="tabTriggerClass">NPCs</TabsTrigger>
         <TabsTrigger value="languages" :class="tabTriggerClass">Idiomas</TabsTrigger>
         <TabsTrigger value="cultures" :class="tabTriggerClass">Cultura</TabsTrigger>
+        <TabsTrigger value="items" :class="tabTriggerClass">Itens</TabsTrigger>
       </TabsList>
 
       <div class="flex w-full items-center justify-between gap-4">
@@ -152,6 +188,11 @@ const tabTriggerClass = cn(
           v-model:open="languageOpen"
           v-model:entity="editingLanguage"
           kind="language"
+        />
+        <CreateItemDialog
+          v-else-if="entityTab === 'items'"
+          v-model:open="itemOpen"
+          v-model:entity="editingItem"
         />
         <CreateNamedEntityDialog
           v-else
@@ -205,7 +246,29 @@ const tabTriggerClass = cn(
           Nenhuma cultura encontrada.
         </p>
       </TabsContent>
+
+      <TabsContent value="items" class="mt-0 flex flex-col gap-3 outline-none">
+        <ItemRow
+          v-for="item in visibleItems"
+          :key="item.id"
+          :item="item"
+          @view="openItemDetail(item)"
+          @edit="openEditItem(item)"
+          @remove="requestDelete('item', item)"
+        />
+        <p v-if="visibleItems.length === 0" class="text-sm text-tertiary">
+          Nenhum item encontrado.
+        </p>
+      </TabsContent>
     </Tabs>
+
+    <ItemDetailDialog
+      v-model:open="itemDetailOpen"
+      :item="viewingItem"
+      :deleting="isDeleting"
+      @edit="editFromDetail"
+      @delete="deleteFromDetail"
+    />
 
     <ConfirmDialog
       v-model:open="deleteConfirmOpen"

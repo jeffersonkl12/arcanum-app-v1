@@ -1,0 +1,1276 @@
+{
+  "version": "8",
+  "dialect": "postgres",
+  "id": "db31a64b-b693-44f7-be67-47ed93481677",
+  "prevIds": [
+    "c89fd33b-e4d0-49f4-a336-d25d09592e00"
+  ],
+  "ddl": [
+    {
+      "values": [
+        "baby",
+        "child",
+        "adolescent",
+        "young_adult",
+        "middle_aged",
+        "old",
+        "elder"
+      ],
+      "name": "actor_age",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "male",
+        "female"
+      ],
+      "name": "actor_gender",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "google",
+        "openai",
+        "anthropic",
+        "deepseek"
+      ],
+      "name": "ai_provider",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "main_hand",
+        "off_hand",
+        "torso",
+        "head"
+      ],
+      "name": "equipment_slot",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "light",
+        "heavy",
+        "ranged"
+      ],
+      "name": "weapon_class",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "d4",
+        "d6",
+        "d8",
+        "d12"
+      ],
+      "name": "weapon_die",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "torso",
+        "head"
+      ],
+      "name": "wear_slot",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "fantasy",
+        "high_fantasy",
+        "dark_fantasy",
+        "grimdark",
+        "medieval",
+        "mythological",
+        "steampunk",
+        "cyberpunk",
+        "sci_fi",
+        "post_apocalyptic",
+        "horror",
+        "western"
+      ],
+      "name": "world_genre",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "actor",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "ai_setting",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "culture",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "item",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "language",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "party",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "world",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "world_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "actor_age",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "age",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "actor_gender",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "gender",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "culture_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "language_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "profession",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "appearance",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "personality",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "background",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "image_path",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "20",
+      "generated": null,
+      "identity": null,
+      "name": "hp_max",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "20",
+      "generated": null,
+      "identity": null,
+      "name": "hp_current",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "is_npc",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "party_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "true",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_setting"
+    },
+    {
+      "type": "ai_provider",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "provider",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_setting"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "model",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_setting"
+    },
+    {
+      "type": "real",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "temperature",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_setting"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "encrypted_key",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_setting"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "key_hint",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "ai_setting"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "culture"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "world_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "culture"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "culture"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "''",
+      "generated": null,
+      "identity": null,
+      "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "culture"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "world_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "actor_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "image_path",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "is_tiny",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "slots",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "is_consumable",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "weapon_class",
+      "typeSchema": "public",
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "weapon_class",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "weapon_die",
+      "typeSchema": "public",
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "damage_die",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "wear_slot",
+      "typeSchema": "public",
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "wear_slot",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "armor_bonus",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "equipment_slot",
+      "typeSchema": "public",
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "equipped_slot",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "language"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "world_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "language"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "language"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "''",
+      "generated": null,
+      "identity": null,
+      "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "language"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "world_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "gen_random_uuid()",
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "world"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "world"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "false",
+      "generated": null,
+      "identity": null,
+      "name": "is_template",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "world"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "''",
+      "generated": null,
+      "identity": null,
+      "name": "description",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "world"
+    },
+    {
+      "type": "world_genre",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "genre",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "world"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "source_world_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "world"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "image_path",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "world"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "world_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"is_npc\" = false",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "actor_world_id_player_unique",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "actor_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "equipped_slot",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"equipped_slot\" is not null",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "item_actor_id_equipped_slot_unique",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "world_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "world",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "actor_world_id_world_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "culture_id",
+        "world_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "culture",
+      "columnsTo": [
+        "id",
+        "world_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "actor_culture_world_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "language_id",
+        "world_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "language",
+      "columnsTo": [
+        "id",
+        "world_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "actor_language_world_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "party_id",
+        "world_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "party",
+      "columnsTo": [
+        "id",
+        "world_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "actor_party_world_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "world_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "world",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "culture_world_id_world_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "culture"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "world_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "world",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "item_world_id_world_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "actor_id",
+        "world_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "actor",
+      "columnsTo": [
+        "id",
+        "world_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "item_actor_world_fk",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "world_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "world",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "language_world_id_world_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "language"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "world_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "world",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "party_world_id_world_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "source_world_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "world",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "name": "world_source_world_id_world_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "world"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "actor_pkey",
+      "schema": "public",
+      "table": "actor",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "ai_setting_pkey",
+      "schema": "public",
+      "table": "ai_setting",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "culture_pkey",
+      "schema": "public",
+      "table": "culture",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "item_pkey",
+      "schema": "public",
+      "table": "item",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "language_pkey",
+      "schema": "public",
+      "table": "language",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "party_pkey",
+      "schema": "public",
+      "table": "party",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "world_pkey",
+      "schema": "public",
+      "table": "world",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "id",
+        "world_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "actor_id_world_id_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "id",
+        "world_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "culture_id_world_id_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "culture"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "id",
+        "world_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "language_id_world_id_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "language"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "id",
+        "world_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "party_id_world_id_unique",
+      "entityType": "uniques",
+      "schema": "public",
+      "table": "party"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "world_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "party_world_id_unique",
+      "schema": "public",
+      "table": "party",
+      "entityType": "uniques"
+    },
+    {
+      "value": "\"hp_max\" between 1 and 9999",
+      "name": "actor_hp_max_range",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "value": "\"hp_current\" between 0 and \"hp_max\"",
+      "name": "actor_hp_current_range",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "actor"
+    },
+    {
+      "value": "\"id\"",
+      "name": "ai_setting_single_row",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "ai_setting"
+    },
+    {
+      "value": "(\"encrypted_key\" is null) = (\"key_hint\" is null)",
+      "name": "ai_setting_key_hint",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "ai_setting"
+    },
+    {
+      "value": "\"equipped_slot\" is null or \"actor_id\" is not null",
+      "name": "item_equipped_needs_actor",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "value": "\"slots\" between 0 and 99",
+      "name": "item_slots_range",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "value": "(\"is_tiny\" and \"slots\" = 0) or (not \"is_tiny\" and \"slots\" >= 1)",
+      "name": "item_tiny_slots",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "value": "(\"weapon_class\" is null) = (\"damage_die\" is null)",
+      "name": "item_weapon_fields",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "value": "(\"wear_slot\" is null) = (\"armor_bonus\" is null)",
+      "name": "item_wear_fields",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "value": "\"armor_bonus\" is null or \"armor_bonus\" between 0 and 3",
+      "name": "item_armor_bonus_range",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "value": "\"weapon_class\" is null or \"wear_slot\" is null",
+      "name": "item_not_weapon_and_wearable",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    },
+    {
+      "value": "\"equipped_slot\" is null\n        or (\"equipped_slot\" in ('main_hand', 'off_hand') and \"weapon_class\" is not null)\n        or (\"wear_slot\" is not null and \"equipped_slot\"::text = \"wear_slot\"::text)",
+      "name": "item_equipped_slot_matches",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "item"
+    }
+  ],
+  "renames": []
+}

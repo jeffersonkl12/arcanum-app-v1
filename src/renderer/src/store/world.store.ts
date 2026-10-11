@@ -4,6 +4,7 @@ import type { World } from '@schema'
 import type { WorldGenreFilter } from '@renderer/constant/world-genre.constant'
 import type {
   ActorSummary,
+  ItemSummary,
   NamedEntitySummary,
   WorldDetail,
   WorldEntityTab
@@ -19,6 +20,7 @@ export const useWorldStore = defineStore('world', () => {
   const actors = ref<ActorSummary[]>([])
   const languages = ref<NamedEntitySummary[]>([])
   const cultures = ref<NamedEntitySummary[]>([])
+  const items = ref<ItemSummary[]>([])
   const entityTab = ref<WorldEntityTab>('npcs')
   const entitySearch = ref('')
   const isNotFound = ref(false)
@@ -31,6 +33,7 @@ export const useWorldStore = defineStore('world', () => {
     actors,
     languages,
     cultures,
+    items,
     entityTab,
     entitySearch,
     isNotFound

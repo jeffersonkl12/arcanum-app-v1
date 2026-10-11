@@ -1,6 +1,6 @@
 import { computed, type ComputedRef, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import type { CreateActor, CreateWorld, WorldFilter } from '@schema'
+import type { CreateActor, CreateItem, CreateWorld, WorldFilter } from '@schema'
 import type { IpcError } from '@shared'
 import {
   worldGenreFilters,
@@ -8,9 +8,16 @@ import {
   type WorldGenreFilter
 } from '@renderer/constant/world-genre.constant'
 import { useRequest } from './request.composable'
-import { toActorSummary, toNamedEntitySummary, toWorldDetail, toWorldSummary } from './world.mapper'
+import {
+  toActorSummary,
+  toItemSummary,
+  toNamedEntitySummary,
+  toWorldDetail,
+  toWorldSummary
+} from './world.mapper'
 import type {
   ActorSummary,
+  ItemSummary,
   NamedEntitySummary,
   WorldDetail,
   WorldEntityTab,
@@ -29,6 +36,17 @@ type CreateActorInput = Omit<CreateActor, 'worldId' | 'isNpc' | 'partyId'> & {
 type NamedEntityInput = {
   name: string
   description: string
+}
+
+/** What the item form sends; the fields of the kinds the item is not are `null`. */
+type ItemInput = Pick<CreateItem, 'name' | 'isTiny' | 'isConsumable'> & {
+  description: string
+  slots: number
+  weaponClass: CreateItem['weaponClass']
+  damageDie: CreateItem['damageDie']
+  wearSlot: CreateItem['wearSlot']
+  armorBonus: number | null
+  imageData?: Uint8Array
 }
 
 // The engine caps the filter at 120 characters (TEXT_LIMITS.name).
@@ -61,6 +79,13 @@ export function useWorld(): {
   visibleActors: ComputedRef<ActorSummary[]>
   visibleLanguages: ComputedRef<NamedEntitySummary[]>
   visibleCultures: ComputedRef<NamedEntitySummary[]>
+  items: Ref<ItemSummary[]>
+  visibleItems: ComputedRef<ItemSummary[]>
+  isSavingItem: Ref<boolean>
+  saveItemError: Ref<IpcError | undefined>
+  createItem: (input: ItemInput) => Promise<ItemSummary | undefined>
+  updateItem: (itemId: string, input: ItemInput) => Promise<ItemSummary | undefined>
+  deleteItem: (itemId: string) => Promise<boolean>
   isLoadingDetail: Ref<boolean>
   isNotFound: Ref<boolean>
   isCreatingActor: Ref<boolean>
@@ -93,6 +118,7 @@ export function useWorld(): {
     actors,
     languages,
     cultures,
+    items,
     entityTab,
     entitySearch,
     isNotFound
@@ -118,6 +144,13 @@ export function useWorld(): {
     execute: namedEntityExecute
   } = useRequest()
 
+  const {
+    isLoading: isSavingItem,
+    error: saveItemError,
+    request: itemRequest,
+    execute: itemExecute
+  } = useRequest()
+
   const worlds = computed(() => {
     const countByTemplate = new Map<string, number>()
     for (const campaign of campaigns.value) {
@@ -133,6 +166,7 @@ export function useWorld(): {
   const visibleActors = computed(() => filterByName(actors.value, entitySearch.value))
   const visibleLanguages = computed(() => filterByName(languages.value, entitySearch.value))
   const visibleCultures = computed(() => filterByName(cultures.value, entitySearch.value))
+  const visibleItems = computed(() => filterByName(items.value, entitySearch.value))
 
   /** The templates that match the dashboard filters; the engine does the filtering. */
   async function loadWorlds(): Promise<void> {
@@ -172,6 +206,7 @@ export function useWorld(): {
     actors.value = []
     languages.value = []
     cultures.value = []
+    items.value = []
   }
 
   async function loadWorld(worldId: string): Promise<void> {
@@ -187,11 +222,13 @@ export function useWorld(): {
     }
 
     currentWorld.value = toWorldDetail(world)
-    const [actorList, languageList, cultureList] = await Promise.all([
+    const [actorList, languageList, cultureList, itemList] = await Promise.all([
       detailRequest('actor:listByWorld', worldId),
       detailRequest('language:listByWorld', worldId),
-      detailRequest('culture:listByWorld', worldId)
+      detailRequest('culture:listByWorld', worldId),
+      detailRequest('item:listByWorld', worldId)
     ])
+    items.value = (itemList ?? []).map(toItemSummary)
     languages.value = (languageList ?? []).map(toNamedEntitySummary)
     cultures.value = (cultureList ?? []).map(toNamedEntitySummary)
     actors.value = (actorList ?? [])
@@ -343,6 +380,54 @@ export function useWorld(): {
     return true
   }
 
+  function toItemFields(input: Omit<ItemInput, 'imageData'>): CreateItem {
+    return { ...input, description: emptyToNull(input.description) }
+  }
+
+  async function saveItemImage(itemId: string, imageData?: Uint8Array): Promise<string | null> {
+    if (!imageData) return null
+    const imagePath = await itemRequest('item:setImage', {
+      id: itemId,
+      data: new Uint8Array(imageData)
+    })
+    return imagePath ?? null
+  }
+
+  async function createItem(input: ItemInput): Promise<ItemSummary | undefined> {
+    const worldId = currentWorld.value?.id
+    if (!worldId) return undefined
+
+    const { imageData, ...fields } = input
+    const created = await itemRequest('item:createInWorld', {
+      worldId,
+      item: toItemFields(fields)
+    })
+    if (!created) return undefined
+
+    const imagePath = await saveItemImage(created.id, imageData)
+    const summary = toItemSummary({ ...created, imagePath: imagePath ?? created.imagePath })
+    items.value = [summary, ...items.value]
+    return summary
+  }
+
+  /** `conflict` when the change breaks an item rule (equipped, no room in the inventory...); the engine's message is toasted. */
+  async function updateItem(itemId: string, input: ItemInput): Promise<ItemSummary | undefined> {
+    const { imageData, ...fields } = input
+    const updated = await itemRequest('item:update', { id: itemId, patch: toItemFields(fields) })
+    if (!updated) return undefined
+
+    const imagePath = await saveItemImage(itemId, imageData)
+    const summary = toItemSummary({ ...updated, imagePath: imagePath ?? updated.imagePath })
+    items.value = items.value.map((item) => (item.id === itemId ? summary : item))
+    return summary
+  }
+
+  async function deleteItem(itemId: string): Promise<boolean> {
+    if (!(await itemExecute('item:remove', itemId))) return false
+    items.value = items.value.filter((item) => item.id !== itemId)
+    return true
+  }
+
   return {
     worlds,
     search,
@@ -362,6 +447,13 @@ export function useWorld(): {
     visibleActors,
     visibleLanguages,
     visibleCultures,
+    items,
+    visibleItems,
+    isSavingItem,
+    saveItemError,
+    createItem,
+    updateItem,
+    deleteItem,
     isLoadingDetail,
     isNotFound,
     isCreatingActor,

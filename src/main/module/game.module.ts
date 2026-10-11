@@ -7,6 +7,7 @@ import { loadMastra } from '@module/mastra.module'
 import { ActorRepository } from '@repository/actor.repository'
 import { AiSettingRepository } from '@repository/ai-setting.repository'
 import { CultureRepository } from '@repository/culture.repository'
+import { ItemRepository } from '@repository/item.repository'
 import { LanguageRepository } from '@repository/language.repository'
 import { PartyRepository } from '@repository/party.repository'
 import { WorldCloneRepository } from '@repository/world-clone.repository'
@@ -15,14 +16,17 @@ import { ActorService, type IActorService } from '@service/actor.service'
 import { AiSettingService, type IAiSettingService } from '@service/ai-setting.service'
 import { CultureService, type ICultureService } from '@service/culture.service'
 import { GameMasterService, type IGameMasterService } from '@service/game-master.service'
+import { InventoryService, type IInventoryService } from '@service/inventory.service'
 import { LanguageService, type ILanguageService } from '@service/language.service'
 import { PartyService, type IPartyService } from '@service/party.service'
 import { WorldCloneService, type IWorldCloneService } from '@service/world-clone.service'
 import { WorldService, type IWorldService } from '@service/world.service'
 
 const actorRepository = new ActorRepository(database)
+const itemRepository = new ItemRepository(database)
+const worldRepository = new WorldRepository(database)
 
-export const worldService: IWorldService = new WorldService(new WorldRepository(database))
+export const worldService: IWorldService = new WorldService(worldRepository)
 export const worldCloneService: IWorldCloneService = new WorldCloneService(
   new WorldCloneRepository(database),
   imageStorage
@@ -31,7 +35,12 @@ export const cultureService: ICultureService = new CultureService(new CultureRep
 export const languageService: ILanguageService = new LanguageService(
   new LanguageRepository(database)
 )
-export const actorService: IActorService = new ActorService(actorRepository)
+export const actorService: IActorService = new ActorService(actorRepository, itemRepository)
+export const inventoryService: IInventoryService = new InventoryService(
+  itemRepository,
+  actorRepository,
+  worldRepository
+)
 export const partyService: IPartyService = new PartyService(
   new PartyRepository(database),
   actorRepository

@@ -1,6 +1,7 @@
 import { ACTOR_HP } from '@constant'
 import { ConflictError } from '@error'
 import type { IActorRepository } from '@repository/actor.repository'
+import type { IItemRepository } from '@repository/item.repository'
 import type { Actor, CreateActor, UpdateActor } from '@schema/actor.schema'
 import { BaseService, type ICrudService } from '@service/base.service'
 
@@ -18,8 +19,18 @@ export class ActorService
   extends BaseService<Actor, CreateActor, UpdateActor>
   implements IActorService
 {
-  constructor(private readonly actorRepository: IActorRepository) {
+  constructor(
+    private readonly actorRepository: IActorRepository,
+    private readonly itemRepository: IItemRepository
+  ) {
     super(actorRepository, 'Actor')
+  }
+
+  /** The items the actor carried stay in the world, carried by nobody. */
+  override async delete(id: string): Promise<void> {
+    await this.itemRepository.releaseByActor(id)
+
+    return super.delete(id)
   }
 
   override create(input: CreateActor): Promise<Actor> {
