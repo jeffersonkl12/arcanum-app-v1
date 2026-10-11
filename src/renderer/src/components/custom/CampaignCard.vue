@@ -46,9 +46,9 @@ function continueCampaign(): void {
 
 <template>
   <Card
-    class="w-full gap-0 overflow-hidden rounded-xl border border-border bg-card py-0 shadow-none ring-0"
+    class="w-full gap-0 overflow-hidden rounded-lg border border-border bg-card py-0 shadow-none ring-0"
   >
-    <div class="relative h-35 bg-muted">
+    <div class="relative h-44 bg-muted">
       <img
         v-if="imagePath"
         :src="toImageUrl(imagePath)"
@@ -85,9 +85,9 @@ function continueCampaign(): void {
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-    <CardContent class="flex flex-col gap-4 p-6">
+    <CardContent class="flex flex-col gap-3 p-5">
       <div class="flex flex-col gap-1">
-        <CardTitle class="font-heading text-2xl font-bold">{{ name }}</CardTitle>
+        <CardTitle class="font-heading text-xl font-bold">{{ name }}</CardTitle>
         <p class="text-sm text-muted-foreground">{{ genre }}</p>
       </div>
       <CardDescription class="text-meta leading-normal">{{ description }}</CardDescription>

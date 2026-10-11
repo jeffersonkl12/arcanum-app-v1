@@ -36,7 +36,7 @@ function openCampaigns(): void {
     class="w-full cursor-pointer gap-0 overflow-hidden rounded-lg border border-border bg-card py-0 shadow-none ring-0"
     @click="openWorld"
   >
-    <div class="relative h-35 bg-muted">
+    <div class="relative h-44 bg-muted">
       <img
         v-if="imagePath"
         :src="toImageUrl(imagePath)"

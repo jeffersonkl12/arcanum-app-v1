@@ -43,7 +43,7 @@ const { visibleCampaigns, filterTemplates, templateFilter } = useCampaign()
         {{ template.name }}
       </Button>
     </div>
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(22rem,24rem))] gap-6">
       <CampaignCard
         v-for="campaign in visibleCampaigns"
         :id="campaign.id"
