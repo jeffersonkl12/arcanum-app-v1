@@ -6,6 +6,7 @@ import { ACTOR_GENDERS } from '../../main/constant/actor-gender.constant'
 import { CHECK_OUTCOMES } from '../../main/constant/check-outcome.constant'
 import { ROLL_MODES, type RollMode } from '../../main/constant/roll-mode.constant'
 import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
+import type { IItemRegistry } from './item.context'
 
 /** What the AI proposes for an NPC. The engine validates and persists it. */
 export const npcDraftSchema = z.object({
@@ -108,6 +109,13 @@ export const gameContextSchema = z.object({
       value !== null &&
       typeof (value as INpcRegistry).createNpc === 'function',
     'npcRegistry must implement INpcRegistry'
+  ),
+  itemRegistry: z.custom<IItemRegistry>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as IItemRegistry).createItems === 'function',
+    'itemRegistry must implement IItemRegistry'
   ),
   diceChecker: z.custom<IDiceChecker>(
     (value) =>

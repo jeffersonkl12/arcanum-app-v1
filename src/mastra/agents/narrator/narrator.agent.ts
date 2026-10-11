@@ -4,7 +4,13 @@ import { narratorMemory } from '../../memory/narrator.memory'
 import { layeredInstructions } from '../../prompt/compose.prompt'
 import { dynamicLayer, generatedLayer, staticLayer } from '../../prompt/layer.prompt'
 import { narratorUiPrompt } from '../../prompt/narrator-ui.prompt'
+import { createItemsTool } from '../../tools/create-items.tool'
+import { deleteItemsTool } from '../../tools/delete-items.tool'
+import { equipItemsTool } from '../../tools/equip-items.tool'
+import { getInventoryTool } from '../../tools/get-inventory.tool'
 import { rollCheckTool } from '../../tools/roll-check.tool'
+import { transferItemsTool } from '../../tools/transfer-items.tool'
+import { updateItemsTool } from '../../tools/update-items.tool'
 import { npcCreatorAgent } from '../npc-creator/npc-creator.agent'
 
 const AGENT = 'narrator'
@@ -35,7 +41,15 @@ export const narratorAgent = new Agent({
   // Chosen by the player for each world and read from the database by the main process.
   model: ({ requestContext }) => requestContext.get('narratorModel'),
   agents: { npcCreator: npcCreatorAgent },
-  tools: { rollCheckTool },
+  tools: {
+    rollCheckTool,
+    createItemsTool,
+    updateItemsTool,
+    deleteItemsTool,
+    transferItemsTool,
+    equipItemsTool,
+    getInventoryTool
+  },
   requestContextSchema: gameContextSchema,
   memory: narratorMemory
 })

@@ -19,6 +19,7 @@ import type {
   PartyMember,
   PartySnapshot
 } from '../../mastra/context/game.context'
+import type { IItemRegistry } from '../../mastra/context/item.context'
 
 export interface IGameMasterService {
   /** Plays one turn of the world's campaign. Throws `NotFoundError` if the world does not exist. */
@@ -54,7 +55,8 @@ export class GameMasterService implements IGameMasterService {
     private readonly aiSettingService: IAiSettingService,
     private readonly actorService: IActorService,
     private readonly partyService: IPartyService,
-    private readonly diceCheckService: IDiceCheckService
+    private readonly diceCheckService: IDiceCheckService,
+    private readonly itemRegistry: IItemRegistry
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
@@ -113,6 +115,7 @@ export class GameMasterService implements IGameMasterService {
       world: { name: world.name, genre: world.genre, description: world.description },
       party: await this.loadParty(worldId),
       npcRegistry: this.createNpcRegistry(),
+      itemRegistry: this.itemRegistry,
       diceChecker: this.diceCheckService,
       message
     }

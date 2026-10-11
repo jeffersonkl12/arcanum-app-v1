@@ -17,6 +17,7 @@ import { AiSettingService, type IAiSettingService } from '@service/ai-setting.se
 import { CultureService, type ICultureService } from '@service/culture.service'
 import { GameMasterService, type IGameMasterService } from '@service/game-master.service'
 import { InventoryService, type IInventoryService } from '@service/inventory.service'
+import { ItemRegistryService } from '@service/item-registry.service'
 import { LanguageService, type ILanguageService } from '@service/language.service'
 import { PartyService, type IPartyService } from '@service/party.service'
 import { WorldCloneService, type IWorldCloneService } from '@service/world-clone.service'
@@ -55,5 +56,6 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   aiSettingService,
   actorService,
   partyService,
-  diceCheckService
+  diceCheckService,
+  new ItemRegistryService(inventoryService, actorService)
 )

@@ -27,6 +27,11 @@ export interface IInventoryService {
   removeItem(itemId: string): Promise<void>
   /** Puts an item of the world that nobody carries into an actor's inventory (same world, if it fits). */
   give(itemId: string, actorId: string): Promise<Inventory>
+  /**
+   * Moves an item to another actor's inventory (unequipped), or to the world when `toActorId` is
+   * null. Nothing changes if the target cannot take it (`ConflictError`).
+   */
+  transfer(itemId: string, toActorId: string | null): Promise<Item>
   /** Takes the item out of the inventory (unequipping it); it stays in the world. */
   drop(itemId: string): Promise<Item>
   /** Equips a carried item where it belongs, unequipping whatever it replaces. */
@@ -159,6 +164,29 @@ export class InventoryService implements IInventoryService {
     await this.requireUpdated(itemId, { actorId })
 
     return this.get(actorId)
+  }
+
+  async transfer(itemId: string, toActorId: string | null): Promise<Item> {
+    if (toActorId === null) {
+      return this.drop(itemId)
+    }
+
+    const item = await this.getItem(itemId)
+    const actor = await this.requireActor(toActorId)
+
+    if (item.actorId === toActorId) {
+      throw new ConflictError('The actor already carries the item')
+    }
+
+    if (item.worldId !== actor.worldId) {
+      throw new ConflictError('The item and the actor belong to different worlds')
+    }
+
+    // Checked before anything moves, so a target without room leaves the item where it was.
+    const carried = await this.itemRepository.listByActor(toActorId)
+    assertFitsCapacity(sumSlots(carried) + item.slots)
+
+    return this.requireUpdated(itemId, { actorId: toActorId, equippedSlot: null })
   }
 
   async drop(itemId: string): Promise<Item> {

@@ -11,6 +11,7 @@ import type {
   PartySnapshot,
   WorldBrief
 } from '../../mastra/context/game.context'
+import type { IItemRegistry } from '../../mastra/context/item.context'
 
 /** Upper bound of model/tool steps in one turn: narrator, tool or specialist, narrator. */
 const MAX_STEPS_PER_TURN = 10
@@ -27,6 +28,7 @@ export interface NarratorTurn {
   world: WorldBrief
   party: PartySnapshot
   npcRegistry: INpcRegistry
+  itemRegistry: IItemRegistry
   diceChecker: IDiceChecker
   message: string
 }
@@ -101,6 +103,7 @@ export class NarratorGateway implements INarratorGateway {
     world,
     party,
     npcRegistry,
+    itemRegistry,
     diceChecker
   }: NarratorTurn): Promise<PreparedRun> {
     const narrator = (await this.loadMastra()).getAgent('narrator')
@@ -112,6 +115,7 @@ export class NarratorGateway implements INarratorGateway {
     requestContext.set('world', world)
     requestContext.set('party', party)
     requestContext.set('npcRegistry', npcRegistry)
+    requestContext.set('itemRegistry', itemRegistry)
     requestContext.set('diceChecker', diceChecker)
 
     const options = {
