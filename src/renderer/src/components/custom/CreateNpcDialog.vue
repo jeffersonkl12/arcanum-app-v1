@@ -17,6 +17,7 @@ import {
 import { useWorld } from '@renderer/composable/world.composable'
 import { actorHpLimits } from '@renderer/constant/actor.constant'
 import { attributeFormShape } from '@renderer/util/attribute.util'
+import { coinFormShape } from '@renderer/util/coin.util'
 import {
   healthConsistencyIssue,
   healthFormShape,
@@ -24,6 +25,7 @@ import {
 } from '@renderer/util/health.util'
 import type { ActorSummary } from '@renderer/composable/world.type'
 import AttributeFields from '@renderer/components/custom/AttributeFields.vue'
+import CoinFields from '@renderer/components/custom/CoinFields.vue'
 import HealthFields from '@renderer/components/custom/HealthFields.vue'
 import { Button } from '@renderer/components/ui/button'
 import {
@@ -85,7 +87,10 @@ const formFields = [
   'hpCurrent',
   'strength',
   'dexterity',
-  'intelligence'
+  'intelligence',
+  'goldPieces',
+  'silverPieces',
+  'bronzePieces'
 ] as const
 
 type FormFieldName = (typeof formFields)[number]
@@ -108,7 +113,8 @@ const createNpcFormSchema = toTypedSchema(
       personality: z.string().max(5000, 'A personalidade pode ter no máximo 5000 caracteres'),
       background: z.string().max(5000, 'O background pode ter no máximo 5000 caracteres'),
       ...healthFormShape,
-      ...attributeFormShape
+      ...attributeFormShape,
+      ...coinFormShape
     })
     .refine(isHealthConsistent, healthConsistencyIssue)
 )
@@ -118,7 +124,10 @@ const emptyForm = {
   profession: '',
   appearance: '',
   personality: '',
-  background: ''
+  background: '',
+  goldPieces: 0,
+  silverPieces: 0,
+  bronzePieces: 0
 }
 
 const isEditing = computed(() => entity.value != null)
@@ -171,6 +180,9 @@ const onSubmit = handleSubmit(async (values) => {
     strength: props.lockStats ? undefined : values.strength,
     dexterity: props.lockStats ? undefined : values.dexterity,
     intelligence: props.lockStats ? undefined : values.intelligence,
+    goldPieces: values.goldPieces,
+    silverPieces: values.silverPieces,
+    bronzePieces: values.bronzePieces,
     imageData: imageData.value
   }
 
@@ -246,7 +258,10 @@ function fillForm(actor: ActorSummary | null): void {
       hpCurrent: actor.hpCurrent,
       strength: actor.strength,
       dexterity: actor.dexterity,
-      intelligence: actor.intelligence
+      intelligence: actor.intelligence,
+      goldPieces: actor.goldPieces,
+      silverPieces: actor.silverPieces,
+      bronzePieces: actor.bronzePieces
     }
   })
 }
@@ -559,7 +574,13 @@ const textareaClass =
                 </FormField>
               </TabsContent>
 
-              <TabsContent value="inventory" class="outline-none">
+              <!-- force-mount: the coin fields stay registered in the form while the other tab is open. -->
+              <TabsContent
+                value="inventory"
+                force-mount
+                class="flex flex-col gap-5 outline-none data-[state=inactive]:hidden"
+              >
+                <CoinFields :disabled="isCreatingActor" />
                 <ActorInventoryPicker
                   v-model="inventoryIds"
                   :carried-ids="carriedIds"

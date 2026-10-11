@@ -118,6 +118,11 @@ export function toCharacterSheet(
       dexterity: actor.dexterity,
       intelligence: actor.intelligence
     },
+    coins: {
+      goldPieces: actor.goldPieces,
+      silverPieces: actor.silverPieces,
+      bronzePieces: actor.bronzePieces
+    },
     ageLabel: actorAgeLabel(actor.age),
     genderLabel: actorGenderLabel(actor.gender),
     languageLabel: languageName?.trim() || '—',

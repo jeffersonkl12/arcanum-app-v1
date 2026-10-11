@@ -1,6 +1,7 @@
 export * from '@renderer/util/attribute.util'
 export * from '@renderer/util/character-roll.util'
 export * from '@renderer/util/clone-mapping.util'
+export * from '@renderer/util/coin.util'
 export * from '@renderer/util/dice-check.util'
 export * from '@renderer/util/health.util'
 export * from '@renderer/util/ipc-error.util'

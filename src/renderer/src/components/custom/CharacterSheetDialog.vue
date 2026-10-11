@@ -167,7 +167,7 @@ const narrativeFields = computed(() => {
             </TabsContent>
 
             <TabsContent value="inventory" class="outline-none">
-              <ActorInventoryList :key="sheet.id" :actor-id="sheet.id" />
+              <ActorInventoryList :key="sheet.id" :actor-id="sheet.id" :coins="sheet.coins" />
             </TabsContent>
           </Tabs>
 

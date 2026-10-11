@@ -10,6 +10,7 @@ These are the characters that make up the player's party right now.
 - Gender: {{gender}}
 - Health: {{hpCurrent}} of {{hpMax}} hit points
 - Attributes: strength {{strength}}, dexterity {{dexterity}}, intelligence {{intelligence}}
+- Money: {{goldPieces}} gold pieces, {{silverPieces}} silver pieces, {{bronzePieces}} bronze pieces
 {{#if profession}}
 - Profession: {{profession}}
 {{/if}}

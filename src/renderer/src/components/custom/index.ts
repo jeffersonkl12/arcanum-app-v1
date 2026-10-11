@@ -18,6 +18,8 @@ export { default as NarratorStack } from '@renderer/components/custom/NarratorSt
 export { default as NarratorUi } from '@renderer/components/custom/NarratorUi.vue'
 export { default as AttributeFields } from '@renderer/components/custom/AttributeFields.vue'
 export { default as AttributeStats } from '@renderer/components/custom/AttributeStats.vue'
+export { default as CoinFields } from '@renderer/components/custom/CoinFields.vue'
+export { default as CoinPurse } from '@renderer/components/custom/CoinPurse.vue'
 export { default as DiceRollButton } from '@renderer/components/custom/DiceRollButton.vue'
 export { default as HealthBar } from '@renderer/components/custom/HealthBar.vue'
 export { default as HealthFields } from '@renderer/components/custom/HealthFields.vue'

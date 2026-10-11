@@ -37,6 +37,9 @@ export interface ActorSummary {
   strength: number
   dexterity: number
   intelligence: number
+  goldPieces: number
+  silverPieces: number
+  bronzePieces: number
 }
 
 export interface NamedEntitySummary {

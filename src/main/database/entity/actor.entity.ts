@@ -1,4 +1,10 @@
-import { ACTOR_AGES, ACTOR_ATTRIBUTE_LIMITS, ACTOR_GENDERS, ACTOR_HP } from '@constant'
+import {
+  ACTOR_AGES,
+  ACTOR_ATTRIBUTE_LIMITS,
+  ACTOR_COIN_LIMITS,
+  ACTOR_GENDERS,
+  ACTOR_HP
+} from '@constant'
 import { cultureTable } from '@database/entity/culture.entity'
 import { languageTable } from '@database/entity/language.entity'
 import { partyTable } from '@database/entity/party.entity'
@@ -48,6 +54,10 @@ export const actorTable = pgTable(
     strength: integer('strength').notNull().default(ACTOR_ATTRIBUTE_LIMITS.default),
     dexterity: integer('dexterity').notNull().default(ACTOR_ATTRIBUTE_LIMITS.default),
     intelligence: integer('intelligence').notNull().default(ACTOR_ATTRIBUTE_LIMITS.default),
+    // Money: gold, silver and bronze pieces (peças), all starting at zero.
+    goldPieces: integer('gold_pieces').notNull().default(ACTOR_COIN_LIMITS.default),
+    silverPieces: integer('silver_pieces').notNull().default(ACTOR_COIN_LIMITS.default),
+    bronzePieces: integer('bronze_pieces').notNull().default(ACTOR_COIN_LIMITS.default),
     isNpc: boolean('is_npc').notNull().default(true),
     partyId: uuid('party_id')
   },
@@ -86,6 +96,12 @@ export const actorTable = pgTable(
       sql`${table.strength} between ${sql.raw(String(ACTOR_ATTRIBUTE_LIMITS.min))} and ${sql.raw(String(ACTOR_ATTRIBUTE_LIMITS.max))}
         and ${table.dexterity} between ${sql.raw(String(ACTOR_ATTRIBUTE_LIMITS.min))} and ${sql.raw(String(ACTOR_ATTRIBUTE_LIMITS.max))}
         and ${table.intelligence} between ${sql.raw(String(ACTOR_ATTRIBUTE_LIMITS.min))} and ${sql.raw(String(ACTOR_ATTRIBUTE_LIMITS.max))}`
+    ),
+    check(
+      'actor_coins_range',
+      sql`${table.goldPieces} between ${sql.raw(String(ACTOR_COIN_LIMITS.min))} and ${sql.raw(String(ACTOR_COIN_LIMITS.max))}
+        and ${table.silverPieces} between ${sql.raw(String(ACTOR_COIN_LIMITS.min))} and ${sql.raw(String(ACTOR_COIN_LIMITS.max))}
+        and ${table.bronzePieces} between ${sql.raw(String(ACTOR_COIN_LIMITS.min))} and ${sql.raw(String(ACTOR_COIN_LIMITS.max))}`
     )
   ]
 )

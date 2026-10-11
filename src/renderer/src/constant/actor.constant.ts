@@ -84,3 +84,31 @@ export const actorHpLimits = {
   defaultPlayer: 40,
   defaultNpc: 20
 } as const
+
+/** Mirrors ACTOR_COIN_LIMITS in the engine: the range of an amount of coins and what an actor gets. */
+export const actorCoinLimits = {
+  min: 0,
+  max: 999_999_999,
+  default: 0
+} as const
+
+export const actorCoinKeys = [
+  'goldPieces',
+  'silverPieces',
+  'bronzePieces'
+] as const satisfies readonly (keyof CreateActor)[]
+
+export type ActorCoinKey = (typeof actorCoinKeys)[number]
+
+export interface ActorCoinOption {
+  key: ActorCoinKey
+  label: string
+}
+
+export const actorCoinOptions: readonly ActorCoinOption[] = [
+  { key: 'goldPieces', label: 'Peça de ouro' },
+  { key: 'silverPieces', label: 'Peça de prata' },
+  { key: 'bronzePieces', label: 'Peça de bronze' }
+]
+
+export type ActorCoins = Record<ActorCoinKey, number>

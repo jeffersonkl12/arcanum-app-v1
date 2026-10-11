@@ -1,5 +1,5 @@
 import type { NarrationIssue } from '@shared'
-import type { ActorAttributes } from '@renderer/constant/actor.constant'
+import type { ActorAttributes, ActorCoins } from '@renderer/constant/actor.constant'
 
 export type ChatSegmentKind = 'narration' | 'dialogue'
 
@@ -49,6 +49,7 @@ export interface CharacterSheet {
   hpCurrent: number
   hpMax: number
   attributes: ActorAttributes
+  coins: ActorCoins
   ageLabel: string
   genderLabel: string
   languageLabel: string

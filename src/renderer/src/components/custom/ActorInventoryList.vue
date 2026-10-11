@@ -4,14 +4,18 @@ import { toast } from 'vue-sonner'
 import { toImageUrl } from '@shared'
 import type { Inventory, Item } from '@schema'
 import { Avatar, AvatarFallback, AvatarImage } from '@renderer/components/ui/avatar'
+import CoinPurse from '@renderer/components/custom/CoinPurse.vue'
 import { Button } from '@renderer/components/ui/button'
 import { Spinner } from '@renderer/components/ui/spinner'
+import type { ActorCoins } from '@renderer/constant/actor.constant'
 import { toItemSummary } from '@renderer/composable/world.mapper'
 import { useRequest } from '@renderer/composable/request.composable'
 
 /** What an actor has equipped and what it only carries, with the buttons to equip and unequip. */
 const props = defineProps<{
   actorId: string
+  /** The coins the actor carries, shown above the items when given. */
+  coins?: ActorCoins
 }>()
 
 const { isLoading, request } = useRequest()
@@ -73,6 +77,8 @@ onMounted(async () => {
   </div>
 
   <div v-else class="flex flex-col gap-5">
+    <CoinPurse v-if="coins" :coins="coins" />
+
     <div class="flex items-center justify-between text-sm">
       <span class="font-medium text-muted-foreground">
         Espaços: {{ inventory.usedSlots }} / {{ inventory.capacity }}
