@@ -57,12 +57,14 @@ import { cn } from '@renderer/lib/utils'
 const open = defineModel<boolean>('open', { default: false })
 const entity = defineModel<ActorSummary | null>('entity', { default: null })
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     /** When false, the dialog is controlled only via `open` (no trigger button). */
     showTrigger?: boolean
+    /** Health and attributes cannot change anymore, not even by rolling (a running campaign). */
+    lockStats?: boolean
   }>(),
-  { showTrigger: true }
+  { showTrigger: true, lockStats: false }
 )
 
 const emit = defineEmits<{
@@ -162,12 +164,13 @@ const onSubmit = handleSubmit(async (values) => {
     appearance: values.appearance,
     personality: values.personality,
     background: values.background,
-    hpMax: values.hpMax,
+    // A locked actor sends none of these, so what it has stays untouched.
+    hpMax: props.lockStats ? undefined : values.hpMax,
     // The current health is only asked when editing; a new actor starts at full health.
-    hpCurrent: isEditing.value ? values.hpCurrent : undefined,
-    strength: values.strength,
-    dexterity: values.dexterity,
-    intelligence: values.intelligence,
+    hpCurrent: isEditing.value && !props.lockStats ? values.hpCurrent : undefined,
+    strength: props.lockStats ? undefined : values.strength,
+    dexterity: props.lockStats ? undefined : values.dexterity,
+    intelligence: props.lockStats ? undefined : values.intelligence,
     imageData: imageData.value
   }
 
@@ -487,10 +490,11 @@ const textareaClass =
             <HealthFields
               :show-current="isEditing"
               :default-max="actorHpLimits.defaultNpc"
+              :locked="lockStats"
               :disabled="isCreatingActor"
             />
 
-            <AttributeFields :disabled="isCreatingActor" />
+            <AttributeFields :locked="lockStats" :disabled="isCreatingActor" />
 
             <Tabs v-model="activeTab" class="flex w-full flex-col gap-5">
               <TabsList

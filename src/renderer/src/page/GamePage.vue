@@ -76,6 +76,7 @@ async function confirmDeleteCharacter(): Promise<void> {
       v-model:open="editOpen"
       v-model:entity="editingActor"
       :show-trigger="false"
+      lock-stats
       @saved="void applyCharacterSaved()"
     />
     <ConfirmDialog

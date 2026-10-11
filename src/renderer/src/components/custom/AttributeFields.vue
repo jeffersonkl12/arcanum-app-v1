@@ -10,13 +10,7 @@ import {
   FormLabel,
   FormMessage
 } from '@renderer/components/ui/form'
-import {
-  NumberField,
-  NumberFieldContent,
-  NumberFieldDecrement,
-  NumberFieldIncrement,
-  NumberFieldInput
-} from '@renderer/components/ui/number-field'
+import { Input } from '@renderer/components/ui/input'
 import { useCharacterRoll } from '@renderer/composable/character-roll.composable'
 import {
   actorAttributeLimits,
@@ -25,8 +19,13 @@ import {
   type ActorAttributeKey
 } from '@renderer/constant/actor.constant'
 
-/** The attribute fields of a form that has `attributeFormShape`, with the dice to roll them. */
+/**
+ * The attribute fields of a form that has `attributeFormShape`. They are never typed: each score
+ * comes from the dice, and `locked` takes the dice away too.
+ */
 defineProps<{
+  /** The scores can no longer be changed at all (the campaign has started). */
+  locked?: boolean
   disabled?: boolean
 }>()
 
@@ -34,7 +33,8 @@ const { setFieldValue } = useFormContext()
 const { isRolling, rollAttribute, rollAttributes } = useCharacterRoll()
 
 const fieldLabelClass = 'text-meta font-medium text-muted-foreground'
-const inputClass = 'h-auto rounded-lg border-border bg-background px-3.5 py-2.5 text-sm shadow-none'
+const inputClass =
+  'h-auto rounded-lg border-border bg-background px-3.5 py-2.5 text-center text-sm shadow-none read-only:cursor-default read-only:focus-visible:ring-0'
 
 async function onRollOne(key: ActorAttributeKey): Promise<void> {
   const score = await rollAttribute()
@@ -50,11 +50,9 @@ async function onRollAll(): Promise<void> {
 
 <template>
   <div class="flex flex-col gap-2">
-    <div class="flex items-center justify-between">
+    <div v-if="!locked" class="flex items-center justify-between">
       <span class="text-meta text-muted-foreground">
-        {{ actorRollRules.attributeDice }}d6 por atributo, somados. Vazio usa o padrão ({{
-          actorAttributeLimits.default
-        }}).
+        {{ actorRollRules.attributeDice }}d6 por atributo, somados.
       </span>
       <Button
         type="button"
@@ -69,7 +67,7 @@ async function onRollAll(): Promise<void> {
       </Button>
     </div>
 
-    <div class="grid grid-cols-3 gap-4">
+    <div class="flex flex-wrap gap-4">
       <FormField
         v-for="attribute in actorAttributeOptions"
         :key="attribute.key"
@@ -77,34 +75,25 @@ async function onRollAll(): Promise<void> {
         :name="attribute.key"
         keep-value
       >
-        <FormItem class="gap-1.5">
-          <div class="flex items-center justify-between">
+        <FormItem class="w-28 gap-1.5">
+          <div class="flex min-h-6 items-center justify-between">
             <FormLabel :class="fieldLabelClass">{{ attribute.label }}</FormLabel>
             <DiceRollButton
+              v-if="!locked"
               :label="`Rolar ${actorRollRules.attributeDice}d6 para ${attribute.label}`"
               :rolling="isRolling"
               :disabled="disabled"
               @roll="onRollOne(attribute.key)"
             />
           </div>
-          <NumberField
-            :model-value="componentField.modelValue"
-            :min="actorAttributeLimits.min"
-            :max="actorAttributeLimits.max"
-            :disabled="disabled"
-            @update:model-value="componentField['onUpdate:modelValue']"
-          >
-            <NumberFieldContent>
-              <NumberFieldDecrement />
-              <FormControl>
-                <NumberFieldInput
-                  :class="inputClass"
-                  :placeholder="String(actorAttributeLimits.default)"
-                />
-              </FormControl>
-              <NumberFieldIncrement />
-            </NumberFieldContent>
-          </NumberField>
+          <FormControl>
+            <Input
+              :model-value="componentField.modelValue"
+              readonly
+              :class="inputClass"
+              :placeholder="String(actorAttributeLimits.default)"
+            />
+          </FormControl>
           <FormMessage />
         </FormItem>
       </FormField>
