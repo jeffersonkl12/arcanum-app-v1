@@ -2,7 +2,7 @@
 import { computed, inject, ref } from 'vue'
 import { useIsStreaming, useTriggerAction, type RenderNodeResult } from '@openuidev/vue-lang'
 import { Button } from '@renderer/components/ui/button'
-import { narratorChoicesEnabledKey } from '@renderer/openui/narrator.context'
+import { narratorActionsEnabledKey } from '@renderer/openui/narrator.context'
 
 // <Renderer> also passes `renderNode`; it is declared so it does not end up as a DOM attribute.
 const props = defineProps<{
@@ -12,7 +12,7 @@ const props = defineProps<{
 
 const triggerAction = useTriggerAction()
 const isStreaming = useIsStreaming()
-const isEnabled = inject(narratorChoicesEnabledKey, ref(false))
+const isEnabled = inject(narratorActionsEnabledKey, ref(false))
 
 // While the block is still being written an option can be cut off or not a string yet.
 const options = computed(() =>

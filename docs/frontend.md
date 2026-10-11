@@ -229,7 +229,8 @@ Como o renderer consome isso:
 
 Princípios que valem:
 
-- Quando o narrador pedir uma rolagem ou teste, o botão da UI chama a **engine** (via um canal IPC a ser criado, hoje não existe) e devolve o resultado ao narrador. O cliente nunca rola nem calcula.
+- `RollRequest`: quando o narrador pede um teste, o bloco vira um botão centralizado com a notação (`2d6`, `3d6` com vantagem, `1d6` com desvantagem) e um ícone de dados. A IA escolhe só o `label` e o modo; a notação vem do modo (`rollNotation`, `@shared`), nunca do modelo. O clique (`useDiceRoll`) joga os dados 3D na tela (`DiceTray`, fachada do `@3d-dice/dice-box` em `lib/dice-tray.lib.ts`), manda as faces à **engine** (`dice:resolveCheck`) e envia o resultado ao narrador como a próxima mensagem do jogador (`🎲 ...`, `formatCheckMessage`). O cliente nunca decide o resultado: só as faces vêm da física, o `outcome` é da engine. Vale as mesmas regras do `Choices`: só na última fala do narrador, e nunca durante um turno. O botão rola uma única vez.
+- Os assets do `dice-box` (`dist/assets` do pacote) ficam em `src/renderer/public/assets/dice-box` e a CSP do `index.html` libera `wasm-unsafe-eval`, `worker-src blob:` e `blob:`/`data:` em `connect-src`/`img-src` por causa dele. Se atualizar o pacote, copie os assets de novo. ⚠️ O build empacotado carrega por `file://`, onde o `fetch` do `dice-box` não funciona: antes de empacotar, sirva esses assets por um protocolo próprio (como o `arcanum-image`).
 - A mensagem do narrador é texto; qualquer estrutura além disso passa por um contrato explícito, não por parsing solto no componente.
 - Componentes de chat reaproveitam o que o shadcn já traz (`bubble`, `attachment`, `empty`).
 

@@ -1,4 +1,5 @@
 import { DICE_PER_ROLL_MODE, type CheckOutcome, type RollMode } from '@constant'
+import { ConflictError } from '@error'
 import type { IDiceRoller } from '@lib/dice.lib'
 
 /** Lowest face that counts as a success. */
@@ -20,6 +21,12 @@ export interface CheckResult {
 export interface IDiceCheckService {
   /** Rolls a check: 2d6 normally, 3d6 with advantage, 1d6 with disadvantage. */
   check(mode?: RollMode): CheckResult
+  /**
+   * Resolves a check whose dice were rolled elsewhere (the 3D dice of the player's screen): the
+   * faces are only the entropy, the rules stay here. Throws `ConflictError` if the faces are not
+   * those of a roll in this mode.
+   */
+  resolve(mode: RollMode, dice: number[]): CheckResult
 }
 
 /**
@@ -30,7 +37,16 @@ export class DiceCheckService implements IDiceCheckService {
   constructor(private readonly diceRoller: IDiceRoller) {}
 
   check(mode: RollMode = 'normal'): CheckResult {
-    const dice = this.diceRoller.rollD6(DICE_PER_ROLL_MODE[mode])
+    return this.resolve(mode, this.diceRoller.rollD6(DICE_PER_ROLL_MODE[mode]))
+  }
+
+  resolve(mode: RollMode, dice: number[]): CheckResult {
+    if (dice.length !== DICE_PER_ROLL_MODE[mode] || !dice.every(isD6Face)) {
+      throw new ConflictError(
+        `A ${mode} check is ${DICE_PER_ROLL_MODE[mode]} d6, but got [${dice.join(', ')}]`
+      )
+    }
+
     const highest = Math.max(...dice)
     const outcome = this.resolveOutcome(highest)
 
@@ -49,4 +65,8 @@ export class DiceCheckService implements IDiceCheckService {
     if (highest === CRITICAL_FAILURE_FACE) return 'critical_failure'
     return 'failure'
   }
+}
+
+function isD6Face(face: number): boolean {
+  return Number.isInteger(face) && face >= 1 && face <= 6
 }

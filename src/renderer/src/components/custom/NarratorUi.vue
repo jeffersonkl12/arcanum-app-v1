@@ -6,14 +6,14 @@ import {
   type ActionEvent,
   type OpenUIError
 } from '@openuidev/vue-lang'
-import { narratorChoicesEnabledKey } from '@renderer/openui/narrator.context'
+import { narratorActionsEnabledKey } from '@renderer/openui/narrator.context'
 import { narratorLibrary } from '@renderer/openui/narrator.library'
 
 const props = defineProps<{
   /** OpenUI Lang, without the markdown fence: what the narrator wrote for this block. */
   source: string
   streaming?: boolean
-  /** The player may pick one of the `Choices` of this block. */
+  /** The player may pick a `Choice` or roll a `RollRequest` of this block. */
   interactive?: boolean
 }>()
 
@@ -23,7 +23,7 @@ const emit = defineEmits<{
 }>()
 
 provide(
-  narratorChoicesEnabledKey,
+  narratorActionsEnabledKey,
   computed(() => props.interactive === true && props.streaming !== true)
 )
 

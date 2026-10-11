@@ -21,7 +21,9 @@ import type {
   WorldFilter
 } from '@schema'
 import type { AiProviderCatalogEntry } from '@service/ai-setting.service'
+import type { CheckResult } from '@service/dice-check.service'
 import type { IpcError } from '@shared/ipc-response.shared'
+import type { RollMode } from '@shared/roll-mode.shared'
 import type { NarrationDeltaEvent, NarrationDoneEvent } from '@shared/narrator-ui.shared'
 
 /** Types only exist at compile time, so a channel carries them as a phantom. */
@@ -99,6 +101,13 @@ export const ipcContract = {
   'aiSetting:update': channel<UpdateAiSetting, AiSettingView>(),
   /** Forgets the saved API key. */
   'aiSetting:clearApiKey': channel<undefined, AiSettingView>(),
+
+  /**
+   * Resolves a check whose dice the player rolled on screen: the faces are only the entropy, the
+   * engine validates them (`conflict` if they are not those of a roll in this mode) and decides
+   * the outcome by its rules.
+   */
+  'dice:resolveCheck': channel<{ mode: RollMode; dice: number[] }, CheckResult>(),
 
   /** Plays one turn of the campaign; slow, because the narrator is an LLM. */
   'gameMaster:takeTurn': channel<{ worldId: string; message: string }, string>(),

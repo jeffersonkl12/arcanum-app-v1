@@ -19,7 +19,7 @@
 3. [Envelope de resposta e erros](#3-envelope-de-resposta-e-erros)
 4. [Enums e limites compartilhados](#4-enums-e-limites-compartilhados)
 5. [Referência por domínio](#5-referência-por-domínio)
-   - [5.1 World](#51-world) · [5.2 Culture](#52-culture) · [5.3 Language](#53-language) · [5.4 Actor](#54-actor) · [5.5 Party](#55-party) · [5.6 Imagens](#56-imagens) · [5.7 AI Setting](#57-ai-setting) · [5.8 Game Master](#58-game-master)
+   - [5.1 World](#51-world) · [5.2 Culture](#52-culture) · [5.3 Language](#53-language) · [5.4 Actor](#54-actor) · [5.5 Party](#55-party) · [5.6 Imagens](#56-imagens) · [5.7 AI Setting](#57-ai-setting) · [5.8 Game Master](#58-game-master) · [5.9 Dice](#59-dice)
 6. [IA: fluxo do Game Master](#6-ia-fluxo-do-game-master)
 7. [Chat com OpenUI](#7-chat-com-openui)
 8. [Modelo de dados](#8-modelo-de-dados)
@@ -631,6 +631,19 @@ if (!res.ok) stop() // não começou: `conflict` se o mundo já tem um turno em 
 
 Fluxo completo na [§6](#6-ia-fluxo-do-game-master).
 
+### 5.9 Dice
+
+| Canal               | Entrada                              | Saída         | Erros                       |
+| ------------------- | ------------------------------------ | ------------- | --------------------------- |
+| `dice:resolveCheck` | `{ mode: RollMode; dice: number[] }` | `CheckResult` | `invalid_input`, `conflict` |
+
+Resolve uma checagem cujos dados o jogador rolou na tela (`@3d-dice/dice-box`, física 3D): as faces são só a **entropia**, as regras continuam na engine. É o que o botão do `RollRequest` chama (§7).
+
+- `mode`: `normal` (2d6), `advantage` (3d6) ou `disadvantage` (1d6). Vem de `DICE_PER_ROLL_MODE` (`@shared`, `roll-mode.shared.ts`).
+- `dice`: cada face do d6, de 1 a 6, **na quantidade exata do modo**. Outra quantidade ou valor fora de 1–6 volta como `invalid_input` (formato) ou `conflict` (quantidade que não bate com o modo).
+- A saída é o mesmo `CheckResult` do `rollCheckTool`: `outcome` pelo dado mais alto (6 crítico, 5 sucesso, 2–4 falha, todos em 1 falha crítica).
+- Local e de um jogador só: o renderer é confiável para sortear as faces, então não há anti-trapaça.
+
 ---
 
 ## 6. IA: fluxo do Game Master
@@ -776,7 +789,7 @@ Se a engine rejeitar (`ConflictError`), a tool devolve `{ created: false, reason
 
 ## 7. Chat com OpenUI
 
-> **Estado atual:** back e renderer estão prontos: o vocabulário (`NARRATOR_UI_COMPONENTS`, em `@shared`), o layer de prompt, o streaming de turnos (§5.8), a library Vue (`src/renderer/src/openui/`), o `<Renderer>` no chat e o consumo dos eventos (`useTurnStream`). Falta a **rolagem de dado por botão** (não há IPC; ver risco 2).
+> **Estado atual:** back e renderer estão prontos: o vocabulário (`NARRATOR_UI_COMPONENTS`, em `@shared`), o layer de prompt, o streaming de turnos (§5.8), a library Vue (`src/renderer/src/openui/`), o `<Renderer>` no chat e o consumo dos eventos (`useTurnStream`). A **rolagem de dado por botão** também está pronta: `RollRequest` + `dice:resolveCheck` (§5.9).
 > Os trechos de API da lib foram conferidos no README instalado e nos `.d.ts` da 0.4.0. O que é proposta de arquitetura está marcado como tal.
 
 ### 7.1 O que o OpenUI faz (e o que não faz)

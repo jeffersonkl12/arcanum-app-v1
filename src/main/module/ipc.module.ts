@@ -3,6 +3,7 @@ import {
   createActorRoutes,
   createAiSettingRoutes,
   createCultureRoutes,
+  createDiceRoutes,
   createGameMasterRoutes,
   createLanguageRoutes,
   createPartyRoutes,
@@ -21,6 +22,7 @@ import {
   worldCloneService,
   worldService
 } from '@module/game.module'
+import { diceCheckService } from '@module/dice.module'
 import { RendererEvents } from '@lib/renderer-events.lib'
 import { ipcMain } from 'electron'
 
@@ -31,6 +33,7 @@ export function registerIpc(): void {
     {
       ...createWorldRoutes(worldService, worldCloneService, worldImageService),
       ...createCultureRoutes(cultureService),
+      ...createDiceRoutes(diceCheckService),
       ...createLanguageRoutes(languageService),
       ...createActorRoutes(actorService, actorImageService),
       ...createPartyRoutes(partyService),

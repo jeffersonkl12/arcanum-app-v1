@@ -16,11 +16,14 @@ export function narratorUiPrompt(): string {
       'Narration, dialogue and descriptions are always plain prose outside the block. Never put them inside it.',
       'Write a block only when it adds something, for example `Choices` to suggest what the player could do next. Most replies need no block.',
       'At most one block per reply, after the prose, as a fenced `openui-lang` block. Never write one before narrating.',
+      "When the player's character attempts something uncertain that matters to the story, end the reply with a `RollRequest` instead of narrating the result: narrate up to the moment of the attempt, then stop. Never combine it with `Choices` and never ask for a roll for something trivial.",
       'Never show dice, outcomes or any number of the engine inside a block. Narrate the result of a check as prose.',
       'Ignore the dashboard wording of this section: there is no dashboard to update, each reply stands alone.'
     ],
     examples: [
-      'root = Stack([choices])\nchoices = Choices(["Open the door", "Search the room", "Call out to the stranger"])'
+      'root = Stack([choices])\nchoices = Choices(["Open the door", "Search the room", "Call out to the stranger"])',
+      'root = Stack([roll])\nroll = RollRequest("Persuade the guard to let you pass")',
+      'root = Stack([roll])\nroll = RollRequest("Climb the wet wall", "disadvantage")'
     ]
   })
 }

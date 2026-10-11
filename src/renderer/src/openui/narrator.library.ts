@@ -1,12 +1,14 @@
 import { createLibrary, defineComponent, type ComponentRenderer } from '@openuidev/vue-lang'
 import { NARRATOR_UI_COMPONENTS, NARRATOR_UI_ROOT } from '@shared'
 import NarratorChoices from '@renderer/components/custom/NarratorChoices.vue'
+import NarratorRollRequest from '@renderer/components/custom/NarratorRollRequest.vue'
 import NarratorStack from '@renderer/components/custom/NarratorStack.vue'
 
 /** The Vue component that draws each name of the shared vocabulary. */
 const renderers: Record<string, ComponentRenderer> = {
   Stack: NarratorStack,
-  Choices: NarratorChoices
+  Choices: NarratorChoices,
+  RollRequest: NarratorRollRequest
 }
 
 /**

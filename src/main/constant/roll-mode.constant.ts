@@ -1,10 +1,4 @@
-export const ROLL_MODES = ['normal', 'advantage', 'disadvantage'] as const
-
-export type RollMode = (typeof ROLL_MODES)[number]
-
-/** How many d6 are rolled in a check, by mode. */
-export const DICE_PER_ROLL_MODE: Readonly<Record<RollMode, number>> = {
-  normal: 2,
-  advantage: 3,
-  disadvantage: 1
-}
+// The renderer needs the modes too (to draw `2d6` on the roll button), so the definition lives in
+// `@shared`. Relative on purpose: `src/mastra` loads this file and the Mastra CLI does not resolve
+// the aliases.
+export * from '../../shared/roll-mode.shared'

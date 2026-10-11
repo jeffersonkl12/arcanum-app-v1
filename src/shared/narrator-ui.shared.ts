@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ROLL_MODES } from './roll-mode.shared'
 
 /** Component every narrator UI block starts from (`root = Stack(...)`). */
 export const NARRATOR_UI_ROOT = 'Stack'
@@ -17,7 +18,8 @@ export interface NarratorUiComponentSpec {
  * `unknown-component`, so add the component to both sides in the same change.
  *
  * Nothing here shows a dice result or a number from the engine on purpose: a block is text the
- * model wrote, and the model must never be the source of a roll.
+ * model wrote, and the model must never be the source of a roll. `RollRequest` only asks for one:
+ * the roll itself and its outcome belong to the engine.
  */
 export const NARRATOR_UI_COMPONENTS: readonly NarratorUiComponentSpec[] = [
   {
@@ -35,6 +37,24 @@ export const NARRATOR_UI_COMPONENTS: readonly NarratorUiComponentSpec[] = [
       options: z
         .array(z.string())
         .describe('2 to 4 actions, a few words each, in the player language')
+    })
+  },
+  {
+    name: 'RollRequest',
+    description:
+      'Asks the player to roll the dice for a check. The player clicks a button, the dice roll on their screen, the game engine resolves the check, and the outcome comes back as the next player message. You choose only what is at stake and the mode; the dice shown on the button come from the mode',
+    props: z.object({
+      label: z
+        .string()
+        .describe(
+          'What is at stake, a few words, in the player language (e.g. "Persuade the guard")'
+        ),
+      mode: z
+        .enum(ROLL_MODES)
+        .optional()
+        .describe(
+          '`advantage` when the circumstances clearly help the character, `disadvantage` when they clearly hinder it; omit it otherwise'
+        )
     })
   }
 ]
