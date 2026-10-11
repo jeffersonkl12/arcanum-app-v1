@@ -30,16 +30,6 @@ export const NARRATOR_UI_COMPONENTS: readonly NarratorUiComponentSpec[] = [
     })
   },
   {
-    name: 'Choices',
-    description:
-      'Short actions the player may take next. They are suggestions: the player can always do something else',
-    props: z.object({
-      options: z
-        .array(z.string())
-        .describe('2 to 4 actions, a few words each, in the player language')
-    })
-  },
-  {
     name: 'RollRequest',
     description:
       'Asks the player to roll the dice for a check. The player clicks a button, the dice roll on their screen, the game engine resolves the check, and the outcome comes back as the next player message. You choose only what is at stake and the mode; the dice shown on the button come from the mode',
