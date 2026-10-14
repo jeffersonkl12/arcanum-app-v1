@@ -147,6 +147,10 @@ export const partyMemberSchema = z.object({
   strength: z.number().int(),
   dexterity: z.number().int(),
   intelligence: z.number().int(),
+  /** The score in words (`strong`, `sharp`, ...), so the narrator can read it as a trait. */
+  strengthLevel: z.string(),
+  dexterityLevel: z.string(),
+  intelligenceLevel: z.string(),
   goldPieces: z.number().int(),
   silverPieces: z.number().int(),
   bronzePieces: z.number().int(),

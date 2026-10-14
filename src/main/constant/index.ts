@@ -1,4 +1,5 @@
 export * from '@constant/actor-age.constant'
+export * from '@constant/actor-attribute-level.constant'
 export * from '@constant/actor-attribute.constant'
 export * from '@constant/actor-coin.constant'
 export * from '@constant/actor-gender.constant'

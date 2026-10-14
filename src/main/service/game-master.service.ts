@@ -14,6 +14,7 @@ import type { ILiveContextService } from '@service/live-context.service'
 import type { IMemoryService } from '@service/memory.service'
 import type { IPartyService } from '@service/party.service'
 import type { IWorldService } from '@service/world.service'
+import { describeAttributeLevel } from '@util/attribute-level.util'
 import type { ICoinRegistry } from '../../mastra/context/coin.context'
 import type {
   CheckRequest,
@@ -175,6 +176,9 @@ export class GameMasterService implements IGameMasterService {
       strength: actor.strength,
       dexterity: actor.dexterity,
       intelligence: actor.intelligence,
+      strengthLevel: describeAttributeLevel('strength', actor.strength),
+      dexterityLevel: describeAttributeLevel('dexterity', actor.dexterity),
+      intelligenceLevel: describeAttributeLevel('intelligence', actor.intelligence),
       goldPieces: actor.goldPieces,
       silverPieces: actor.silverPieces,
       bronzePieces: actor.bronzePieces,
