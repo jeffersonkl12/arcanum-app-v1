@@ -6,6 +6,7 @@ import { cultureTable } from '@database/entity/culture.entity'
 import { itemTable } from '@database/entity/item.entity'
 import { languageTable } from '@database/entity/language.entity'
 import { partyTable } from '@database/entity/party.entity'
+import { relationshipTable } from '@database/entity/relationship.entity'
 import { worldTable } from '@database/entity/world.entity'
 import { translateDatabaseError } from '@database/error.database'
 import type { World } from '@schema/world.schema'
@@ -24,8 +25,8 @@ export interface WorldClone {
 
 export interface IWorldCloneRepository {
   /**
-   * Copies a world and everything that belongs to it (cultures, languages, party and actors, with
-   * their links) into a new, non-template world, all or nothing. Returns `undefined` when the
+   * Copies a world and everything that belongs to it (cultures, languages, party, actors and the relationships
+   * between them, with their links) into a new, non-template world, all or nothing. Returns `undefined` when the
    * source world does not exist. The database cannot copy files, so the images come back as
    * `imageCopies` for the caller to copy once the transaction has committed.
    */
@@ -93,6 +94,18 @@ export class WorldCloneRepository implements IWorldCloneRepository {
               ...item,
               actorId: remapId(actors.newIds, item.actorId),
               imagePath: copyImagePath('item', item.imagePath, imageCopies)
+            }))
+          )
+        }
+
+        // Relationships go in after the two actors they link (composite foreign keys).
+        const relationships = copyInto(world.id, await tx.query.relationship.findMany({ where }))
+        if (relationships.rows.length > 0) {
+          await tx.insert(relationshipTable).values(
+            relationships.rows.map((relationship) => ({
+              ...relationship,
+              fromActorId: actors.newIds.get(relationship.fromActorId)!,
+              toActorId: actors.newIds.get(relationship.toActorId)!
             }))
           )
         }

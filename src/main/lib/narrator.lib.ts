@@ -15,6 +15,7 @@ import type { ICoinRegistry } from '../../mastra/context/coin.context'
 import type { IItemRegistry } from '../../mastra/context/item.context'
 import type { LiveContextSection } from '../../mastra/context/live-context.context'
 import type { IMemoryRegistry } from '../../mastra/context/memory.context'
+import type { IRelationshipRegistry } from '../../mastra/context/relationship.context'
 
 /** Upper bound of model/tool steps in one turn: narrator, tool or specialist, narrator. */
 const MAX_STEPS_PER_TURN = 10
@@ -34,6 +35,7 @@ export interface NarratorTurn {
   itemRegistry: IItemRegistry
   coinRegistry: ICoinRegistry
   memoryRegistry: IMemoryRegistry
+  relationshipRegistry: IRelationshipRegistry
   /** Dynamic context that lingers in the prompt (memories, ...), already aged for this turn. */
   liveContext: LiveContextSection[]
   diceChecker: IDiceChecker
@@ -113,6 +115,7 @@ export class NarratorGateway implements INarratorGateway {
     itemRegistry,
     coinRegistry,
     memoryRegistry,
+    relationshipRegistry,
     liveContext,
     diceChecker
   }: NarratorTurn): Promise<PreparedRun> {
@@ -128,6 +131,7 @@ export class NarratorGateway implements INarratorGateway {
     requestContext.set('itemRegistry', itemRegistry)
     requestContext.set('coinRegistry', coinRegistry)
     requestContext.set('memoryRegistry', memoryRegistry)
+    requestContext.set('relationshipRegistry', relationshipRegistry)
     requestContext.set('liveContext', liveContext)
     requestContext.set('diceChecker', diceChecker)
 

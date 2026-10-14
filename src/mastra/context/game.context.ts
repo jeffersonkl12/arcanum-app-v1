@@ -17,6 +17,7 @@ import type { ICoinRegistry } from './coin.context'
 import type { IItemRegistry } from './item.context'
 import { liveContextSchema } from './live-context.context'
 import type { IMemoryRegistry } from './memory.context'
+import type { IRelationshipRegistry } from './relationship.context'
 
 const attributeScoreSchema = z
   .number()
@@ -135,6 +136,17 @@ export const worldBriefSchema = z.object({
 
 export type WorldBrief = z.infer<typeof worldBriefSchema>
 
+/** What a party member feels about another one, as the prompt shows it. */
+export const partyRelationshipSchema = z.object({
+  targetId: z.string(),
+  targetName: z.string(),
+  /** From -100 to 100. */
+  value: z.number().int(),
+  /** The band of the value (`friendly`, `enemy`, ...) and what it means for the narrator. */
+  level: z.string(),
+  meaning: z.string()
+})
+
 /** One actor of the party, as the prompt shows it. Optional fields are `null` when unset. */
 export const partyMemberSchema = z.object({
   id: z.string(),
@@ -160,8 +172,12 @@ export const partyMemberSchema = z.object({
   background: z.string().nullable(),
   /** Names only, what shapes the story: worn or wielded items, and the rest of what is carried. */
   equipped: z.array(z.string()),
-  carried: z.array(z.string())
+  carried: z.array(z.string()),
+  /** What this member feels about each of the others; empty when the party has only one member. */
+  relationships: z.array(partyRelationshipSchema)
 })
+
+export type PartyRelationship = z.infer<typeof partyRelationshipSchema>
 
 export type PartyMember = z.infer<typeof partyMemberSchema>
 
@@ -220,6 +236,13 @@ export const gameContextSchema = z.object({
       value !== null &&
       typeof (value as IMemoryRegistry).remember === 'function',
     'memoryRegistry must implement IMemoryRegistry'
+  ),
+  relationshipRegistry: z.custom<IRelationshipRegistry>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as IRelationshipRegistry).adjust === 'function',
+    'relationshipRegistry must implement IRelationshipRegistry'
   ),
   /** Dynamic context that lingers in the prompt for a while (memories, ...), decided by the engine each turn. */
   liveContext: liveContextSchema,

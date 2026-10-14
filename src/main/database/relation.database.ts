@@ -4,6 +4,7 @@ import {
   itemTable,
   languageTable,
   partyTable,
+  relationshipTable,
   worldTable
 } from '@database/entity'
 import { defineRelations } from 'drizzle-orm'
@@ -20,7 +21,8 @@ export const relations = defineRelations(
     culture: cultureTable,
     item: itemTable,
     language: languageTable,
-    party: partyTable
+    party: partyTable,
+    relationship: relationshipTable
   },
   (r) => ({
     world: {
@@ -28,7 +30,8 @@ export const relations = defineRelations(
       cultures: r.many.culture({ from: r.world.id, to: r.culture.worldId }),
       items: r.many.item({ from: r.world.id, to: r.item.worldId }),
       languages: r.many.language({ from: r.world.id, to: r.language.worldId }),
-      party: r.one.party({ from: r.world.id, to: r.party.worldId })
+      party: r.one.party({ from: r.world.id, to: r.party.worldId }),
+      relationships: r.many.relationship({ from: r.world.id, to: r.relationship.worldId })
     },
     actor: {
       world: r.one.world({ from: r.actor.worldId, to: r.world.id, optional: false }),

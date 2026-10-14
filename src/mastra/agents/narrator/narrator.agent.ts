@@ -4,6 +4,7 @@ import { narratorMemory } from '../../memory/narrator.memory'
 import { layeredInstructions } from '../../prompt/compose.prompt'
 import { dynamicLayer, generatedLayer, staticLayer } from '../../prompt/layer.prompt'
 import { narratorUiPrompt } from '../../prompt/narrator-ui.prompt'
+import { adjustRelationshipsTool } from '../../tools/adjust-relationships.tool'
 import { createItemsTool } from '../../tools/create-items.tool'
 import { deleteItemsTool } from '../../tools/delete-items.tool'
 import { equipItemsTool } from '../../tools/equip-items.tool'
@@ -49,6 +50,7 @@ export const narratorAgent = new Agent({
   agents: { npcCreator: npcCreatorAgent },
   tools: {
     rollCheckTool,
+    adjustRelationshipsTool,
     createItemsTool,
     updateItemsTool,
     deleteItemsTool,

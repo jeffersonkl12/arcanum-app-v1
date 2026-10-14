@@ -13,9 +13,13 @@ import type { IDiceCheckService } from '@service/dice-check.service'
 import type { ILiveContextService } from '@service/live-context.service'
 import type { IMemoryService } from '@service/memory.service'
 import type { IPartyService } from '@service/party.service'
+import type { IRelationshipService } from '@service/relationship.service'
 import type { IWorldService } from '@service/world.service'
+import { RELATIONSHIP_LIMITS } from '@constant'
 import { describeAttributeLevel } from '@util/attribute-level.util'
+import { describeRelationship, getRelationshipLevel } from '@util/relationship.util'
 import type { ICoinRegistry } from '../../mastra/context/coin.context'
+import type { IRelationshipRegistry } from '../../mastra/context/relationship.context'
 import type {
   CheckRequest,
   CreatedNpc,
@@ -24,6 +28,7 @@ import type {
   INpcRegistry,
   NpcDraft,
   PartyMember,
+  PartyRelationship,
   PartySnapshot,
   RollCheckResult
 } from '../../mastra/context/game.context'
@@ -69,7 +74,9 @@ export class GameMasterService implements IGameMasterService {
     private readonly coinRegistry: ICoinRegistry,
     private readonly memoryRegistry: IMemoryRegistry,
     private readonly memoryService: IMemoryService,
-    private readonly liveContext: ILiveContextService
+    private readonly liveContext: ILiveContextService,
+    private readonly relationshipService: IRelationshipService,
+    private readonly relationshipRegistry: IRelationshipRegistry
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
@@ -133,6 +140,7 @@ export class GameMasterService implements IGameMasterService {
       itemRegistry: this.itemRegistry,
       coinRegistry: this.coinRegistry,
       memoryRegistry: this.memoryRegistry,
+      relationshipRegistry: this.relationshipRegistry,
       liveContext: await this.liveContext.prepareTurn(worldId, message),
       diceChecker: this.createDiceChecker(),
       message
@@ -158,11 +166,24 @@ export class GameMasterService implements IGameMasterService {
 
     const actors = await this.partyService.listMembers(party.id)
 
-    return { members: await Promise.all(actors.map((actor) => this.toPartyMember(actor))) }
+    // One read for every pair of the party; a pair with no row is neutral.
+    const stored = await this.relationshipService.listAmong(actors.map((actor) => actor.id))
+    const values = new Map(
+      stored.map((row) => [`${row.fromActorId}:${row.toActorId}`, row.value] as const)
+    )
+
+    return {
+      members: await Promise.all(
+        actors.map((actor) => this.toPartyMember(actor, toRelationships(actor, actors, values)))
+      )
+    }
   }
 
   /** The member plus the names of its items; ids, slots and descriptions stay out of the prompt. */
-  private async toPartyMember(actor: Actor): Promise<PartyMember> {
+  private async toPartyMember(
+    actor: Actor,
+    relationships: PartyRelationship[]
+  ): Promise<PartyMember> {
     const { items } = await this.itemRegistry.getInventory(actor.worldId, actor.id)
 
     return {
@@ -187,7 +208,8 @@ export class GameMasterService implements IGameMasterService {
       personality: actor.personality,
       background: actor.background,
       equipped: items.filter((item) => item.equippedSlot).map((item) => item.name),
-      carried: items.filter((item) => !item.equippedSlot).map((item) => item.name)
+      carried: items.filter((item) => !item.equippedSlot).map((item) => item.name),
+      relationships
     }
   }
 
@@ -242,6 +264,27 @@ export class GameMasterService implements IGameMasterService {
       }
     }
   }
+}
+
+/** What `actor` feels about each of the other members; `values` maps `fromId:toId` to the stored value. */
+function toRelationships(
+  actor: Actor,
+  members: Actor[],
+  values: ReadonlyMap<string, number>
+): PartyRelationship[] {
+  return members
+    .filter((other) => other.id !== actor.id)
+    .map((other) => {
+      const value = values.get(`${actor.id}:${other.id}`) ?? RELATIONSHIP_LIMITS.default
+
+      return {
+        targetId: other.id,
+        targetName: other.name,
+        value,
+        level: getRelationshipLevel(value),
+        meaning: describeRelationship(value)
+      }
+    })
 }
 
 /** The NPC as the engine stored it, defaults included; empty text fields are left out. */

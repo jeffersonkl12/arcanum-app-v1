@@ -13,6 +13,7 @@ import { CultureRepository } from '@repository/culture.repository'
 import { ItemRepository } from '@repository/item.repository'
 import { LanguageRepository } from '@repository/language.repository'
 import { PartyRepository } from '@repository/party.repository'
+import { RelationshipRepository } from '@repository/relationship.repository'
 import { WorldCloneRepository } from '@repository/world-clone.repository'
 import { WorldRepository } from '@repository/world.repository'
 import { ActorService, type IActorService } from '@service/actor.service'
@@ -31,6 +32,8 @@ import { MemoryContextService } from '@service/memory-context.service'
 import { MemoryRegistryService } from '@service/memory-registry.service'
 import { MemoryService, type IMemoryService } from '@service/memory.service'
 import { PartyService, type IPartyService } from '@service/party.service'
+import { RelationshipRegistryService } from '@service/relationship-registry.service'
+import { RelationshipService, type IRelationshipService } from '@service/relationship.service'
 import { WorldCloneService, type IWorldCloneService } from '@service/world-clone.service'
 import { WorldService, type IWorldService } from '@service/world.service'
 
@@ -56,6 +59,10 @@ export const inventoryService: IInventoryService = new InventoryService(
 )
 export const partyService: IPartyService = new PartyService(
   new PartyRepository(database),
+  actorRepository
+)
+export const relationshipService: IRelationshipService = new RelationshipService(
+  new RelationshipRepository(database),
   actorRepository
 )
 export const aiSettingService: IAiSettingService = new AiSettingService(
@@ -86,5 +93,7 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   new CoinRegistryService(new CoinService(actorRepository), actorService),
   new MemoryRegistryService(memoryService, memoryContextService),
   memoryService,
-  liveContextService
+  liveContextService,
+  relationshipService,
+  new RelationshipRegistryService(relationshipService, actorService)
 )

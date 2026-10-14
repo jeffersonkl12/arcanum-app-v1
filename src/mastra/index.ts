@@ -13,6 +13,7 @@ import {
 } from '@mastra/observability'
 import { narratorAgent } from './agents/narrator/narrator.agent'
 import { npcCreatorAgent } from './agents/npc-creator/npc-creator.agent'
+import { adjustRelationshipsTool } from './tools/adjust-relationships.tool'
 import { createNpcTool } from './tools/create-npc.tool'
 import { createItemsTool } from './tools/create-items.tool'
 import { deleteItemsTool } from './tools/delete-items.tool'
@@ -37,6 +38,7 @@ export const mastra = new Mastra({
   tools: {
     createNpcTool,
     rollCheckTool,
+    adjustRelationshipsTool,
     createItemsTool,
     updateItemsTool,
     deleteItemsTool,
