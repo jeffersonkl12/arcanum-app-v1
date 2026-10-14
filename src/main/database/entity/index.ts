@@ -1,5 +1,6 @@
 export * from '@database/entity/actor.entity'
 export * from '@database/entity/ai-setting.entity'
+export * from '@database/entity/campaign.entity'
 export * from '@database/entity/culture.entity'
 export * from '@database/entity/item.entity'
 export * from '@database/entity/language.entity'

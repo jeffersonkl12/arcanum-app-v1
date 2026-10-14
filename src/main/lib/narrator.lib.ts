@@ -8,6 +8,7 @@ import type {
   GameContext,
   IDiceChecker,
   INpcRegistry,
+  Knowledge,
   PartySnapshot,
   WorldBrief
 } from '../../mastra/context/game.context'
@@ -30,6 +31,7 @@ export interface NarratorTurn {
   apiKey?: string
   temperature: number
   world: WorldBrief
+  knowledge: Knowledge
   party: PartySnapshot
   npcRegistry: INpcRegistry
   itemRegistry: IItemRegistry
@@ -110,6 +112,7 @@ export class NarratorGateway implements INarratorGateway {
     apiKey,
     temperature,
     world,
+    knowledge,
     party,
     npcRegistry,
     itemRegistry,
@@ -126,6 +129,7 @@ export class NarratorGateway implements INarratorGateway {
     requestContext.set('narratorModel', { id: model, apiKey })
     requestContext.set('helperModel', { id: helperModel, apiKey })
     requestContext.set('world', world)
+    requestContext.set('knowledge', knowledge)
     requestContext.set('party', party)
     requestContext.set('npcRegistry', npcRegistry)
     requestContext.set('itemRegistry', itemRegistry)

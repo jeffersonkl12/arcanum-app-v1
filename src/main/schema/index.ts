@@ -1,5 +1,6 @@
 export * from '@schema/actor.schema'
 export * from '@schema/ai-setting.schema'
+export * from '@schema/campaign.schema'
 export * from '@schema/culture.schema'
 export * from '@schema/image.schema'
 export * from '@schema/inventory.schema'

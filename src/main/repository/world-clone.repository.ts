@@ -25,9 +25,9 @@ export interface WorldClone {
 
 export interface IWorldCloneRepository {
   /**
-   * Copies a world and everything that belongs to it (cultures, languages, party, actors and the relationships
+   * Copies a world and everything that belongs to it, (cultures, languages, party, actors and the relationships
    * between them, with their links) into a new, non-template world, all or nothing. Returns `undefined` when the
-   * source world does not exist. The database cannot copy files, so the images come back as
+   * source world does not exist. The campaign is never copied: it only exists in a non-template world, and the copy starts without one. The database cannot copy files, so the images come back as
    * `imageCopies` for the caller to copy once the transaction has committed.
    */
   clone(sourceWorldId: string, name?: string): Promise<WorldClone | undefined>

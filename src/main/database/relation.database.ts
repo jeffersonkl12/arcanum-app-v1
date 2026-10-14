@@ -1,5 +1,6 @@
 import {
   actorTable,
+  campaignTable,
   cultureTable,
   itemTable,
   languageTable,
@@ -18,6 +19,7 @@ export const relations = defineRelations(
   {
     world: worldTable,
     actor: actorTable,
+    campaign: campaignTable,
     culture: cultureTable,
     item: itemTable,
     language: languageTable,
@@ -27,6 +29,7 @@ export const relations = defineRelations(
   (r) => ({
     world: {
       actors: r.many.actor({ from: r.world.id, to: r.actor.worldId }),
+      campaign: r.one.campaign({ from: r.world.id, to: r.campaign.worldId }),
       cultures: r.many.culture({ from: r.world.id, to: r.culture.worldId }),
       items: r.many.item({ from: r.world.id, to: r.item.worldId }),
       languages: r.many.language({ from: r.world.id, to: r.language.worldId }),
@@ -51,6 +54,9 @@ export const relations = defineRelations(
     language: {
       world: r.one.world({ from: r.language.worldId, to: r.world.id, optional: false }),
       actors: r.many.actor({ from: r.language.id, to: r.actor.languageId })
+    },
+    campaign: {
+      world: r.one.world({ from: r.campaign.worldId, to: r.world.id, optional: false })
     },
     party: {
       world: r.one.world({ from: r.party.worldId, to: r.world.id, optional: false }),

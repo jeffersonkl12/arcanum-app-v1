@@ -2,6 +2,7 @@ import { is } from '@electron-toolkit/utils'
 import {
   createActorRoutes,
   createAiSettingRoutes,
+  createCampaignRoutes,
   createCultureRoutes,
   createDiceRoutes,
   createGameMasterRoutes,
@@ -17,6 +18,7 @@ import { actorImageService, itemImageService, worldImageService } from '@module/
 import {
   actorService,
   aiSettingService,
+  campaignService,
   cultureService,
   diceCheckService,
   gameMasterService,
@@ -42,6 +44,7 @@ export function registerIpc(): void {
       ...createInventoryRoutes(inventoryService),
       ...createItemRoutes(inventoryService, itemImageService),
       ...createPartyRoutes(partyService),
+      ...createCampaignRoutes(campaignService),
       ...createAiSettingRoutes(aiSettingService),
       ...createGameMasterRoutes(gameMasterService, new RendererEvents())
     },

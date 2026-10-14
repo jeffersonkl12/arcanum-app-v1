@@ -8,6 +8,7 @@ const CHECK_VIOLATION = '23514'
 const CONSTRAINT_MESSAGES: Readonly<Record<string, string>> = {
   actor_world_id_player_unique: 'The world already has a player',
   party_world_id_unique: 'The world already has a party',
+  campaign_world_id_unique: 'The world already has a campaign',
   actor_culture_world_fk: 'The culture does not exist in the actor world, or is still in use',
   actor_language_world_fk: 'The language does not exist in the actor world, or is still in use',
   actor_party_world_fk: 'The party does not exist in the actor world, or is still in use',

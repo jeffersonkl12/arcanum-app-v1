@@ -136,6 +136,14 @@ export const worldBriefSchema = z.object({
 
 export type WorldBrief = z.infer<typeof worldBriefSchema>
 
+/**
+ * What the narrator knows beyond the scene in front of it, as the prompt shows it. Today only the
+ * macro summary of the campaign (empty until something major happens); more will come.
+ */
+export const knowledgeSchema = z.object({ campaignSummary: z.string() })
+
+export type Knowledge = z.infer<typeof knowledgeSchema>
+
 /** What a party member feels about another one, as the prompt shows it. */
 export const partyRelationshipSchema = z.object({
   targetId: z.string(),
@@ -208,6 +216,7 @@ export const gameContextSchema = z.object({
    */
   helperModel: modelRefSchema,
   world: worldBriefSchema,
+  knowledge: knowledgeSchema,
   party: partySchema,
   npcRegistry: z.custom<INpcRegistry>(
     (value) =>

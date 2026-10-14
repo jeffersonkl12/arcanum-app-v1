@@ -8,6 +8,7 @@ import type {
 } from '@lib/narrator.lib'
 import type { Actor } from '@schema/actor.schema'
 import type { IActorService } from '@service/actor.service'
+import type { ICampaignService } from '@service/campaign.service'
 import type { IAiSettingService } from '@service/ai-setting.service'
 import type { IDiceCheckService } from '@service/dice-check.service'
 import type { ILiveContextService } from '@service/live-context.service'
@@ -26,6 +27,7 @@ import type {
   CreateNpcResult,
   IDiceChecker,
   INpcRegistry,
+  Knowledge,
   NpcDraft,
   PartyMember,
   PartyRelationship,
@@ -76,7 +78,8 @@ export class GameMasterService implements IGameMasterService {
     private readonly memoryService: IMemoryService,
     private readonly liveContext: ILiveContextService,
     private readonly relationshipService: IRelationshipService,
-    private readonly relationshipRegistry: IRelationshipRegistry
+    private readonly relationshipRegistry: IRelationshipRegistry,
+    private readonly campaignService: ICampaignService
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
@@ -135,6 +138,7 @@ export class GameMasterService implements IGameMasterService {
       apiKey,
       temperature,
       world: { name: world.name, genre: world.genre, description: world.description },
+      knowledge: await this.loadKnowledge(worldId),
       party: await this.loadParty(worldId),
       npcRegistry: this.createNpcRegistry(),
       itemRegistry: this.itemRegistry,
@@ -157,6 +161,13 @@ export class GameMasterService implements IGameMasterService {
     } finally {
       this.streaming.delete(worldId)
     }
+  }
+
+  /** Read on every turn. A world with no campaign record yet simply has nothing major to remember. */
+  private async loadKnowledge(worldId: string): Promise<Knowledge> {
+    const campaign = await this.campaignService.findByWorld(worldId)
+
+    return { campaignSummary: campaign?.summary ?? '' }
   }
 
   /** Read on every turn, so the prompt always shows the party as it is now. */

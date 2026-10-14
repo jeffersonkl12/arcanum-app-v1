@@ -31,6 +31,7 @@ const layers = [
   staticLayer(AGENT, 'formatting'),
   generatedLayer('ui', narratorUiPrompt),
   dynamicLayer(AGENT, 'world', (context: GameContext) => context.world),
+  dynamicLayer(AGENT, 'knowledge', (context: GameContext) => context.knowledge),
   dynamicLayer(AGENT, 'party', (context: GameContext) => context.party),
   // Last: it changes the most, and the end of the prompt is one of the two places the model weighs most.
   dynamicLayer(AGENT, 'live-context', (context: GameContext) => ({ sections: context.liveContext }))

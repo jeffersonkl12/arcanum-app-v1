@@ -12,6 +12,7 @@ import { AiSettingRepository } from '@repository/ai-setting.repository'
 import { CultureRepository } from '@repository/culture.repository'
 import { ItemRepository } from '@repository/item.repository'
 import { LanguageRepository } from '@repository/language.repository'
+import { CampaignRepository } from '@repository/campaign.repository'
 import { PartyRepository } from '@repository/party.repository'
 import { RelationshipRepository } from '@repository/relationship.repository'
 import { WorldCloneRepository } from '@repository/world-clone.repository'
@@ -31,6 +32,7 @@ import { LiveContextService } from '@service/live-context.service'
 import { MemoryContextService } from '@service/memory-context.service'
 import { MemoryRegistryService } from '@service/memory-registry.service'
 import { MemoryService, type IMemoryService } from '@service/memory.service'
+import { CampaignService, type ICampaignService } from '@service/campaign.service'
 import { PartyService, type IPartyService } from '@service/party.service'
 import { RelationshipRegistryService } from '@service/relationship-registry.service'
 import { RelationshipService, type IRelationshipService } from '@service/relationship.service'
@@ -55,6 +57,10 @@ export const diceCheckService: IDiceCheckService = new DiceCheckService(diceRoll
 export const inventoryService: IInventoryService = new InventoryService(
   itemRepository,
   actorRepository,
+  worldRepository
+)
+export const campaignService: ICampaignService = new CampaignService(
+  new CampaignRepository(database),
   worldRepository
 )
 export const partyService: IPartyService = new PartyService(
@@ -95,5 +101,6 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   memoryService,
   liveContextService,
   relationshipService,
-  new RelationshipRegistryService(relationshipService, actorService)
+  new RelationshipRegistryService(relationshipService, actorService),
+  campaignService
 )

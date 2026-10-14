@@ -1,7 +1,9 @@
 import type { CampaignMessage } from '@lib/narrator.lib'
 import type {
   Actor,
+  Campaign,
   CloneWorld,
+  CreateCampaign,
   CreateActor,
   CreateCulture,
   CreateItem,
@@ -15,6 +17,7 @@ import type {
   Party,
   SetImage,
   UpdateActor,
+  UpdateCampaign,
   UpdateCulture,
   UpdateItem,
   UpdateLanguage,
@@ -123,6 +126,11 @@ export const ipcContract = {
   'party:listMembers': channel<string, Actor[]>(),
   'party:addMember': channel<PartyMembership, Actor>(),
   'party:removeMember': channel<PartyMembership, Actor>(),
+
+  'campaign:findByWorld': channel<string, Campaign | undefined>(),
+  'campaign:get': channel<string, Campaign>(),
+  'campaign:create': channel<CreateCampaign, Campaign>(),
+  'campaign:update': channel<Update<UpdateCampaign>, Campaign>(),
 
   /** Providers and models to pick from, most capable first, and whether the environment has each key. */
   'aiSetting:catalog': channel<undefined, AiProviderCatalogEntry[]>(),
