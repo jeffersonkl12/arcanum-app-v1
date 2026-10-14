@@ -30,7 +30,7 @@ import {
 } from '@renderer/components/ui/select'
 import { Slider } from '@renderer/components/ui/slider'
 
-const formFields = ['provider', 'model', 'temperature', 'apiKey'] as const
+const formFields = ['provider', 'model', 'temperature', 'apiKey', 'embeddingApiKey'] as const
 
 type FormFieldName = (typeof formFields)[number]
 
@@ -39,13 +39,23 @@ const settingsFormSchema = toTypedSchema(
     provider: z.string().min(1, 'Selecione um provedor'),
     model: z.string().min(1, 'Selecione um modelo'),
     temperature: z.number().min(0, 'A temperatura deve ser no mínimo 0'),
-    apiKey: z.string().max(512, 'A chave pode ter no máximo 512 caracteres').optional()
+    apiKey: z.string().max(512, 'A chave pode ter no máximo 512 caracteres').optional(),
+    embeddingApiKey: z.string().max(512, 'A chave pode ter no máximo 512 caracteres').optional()
   })
 )
 
 const showApiKey = ref(false)
-const { setting, catalog, isLoading, saveError, loadAiSetting, saveAiSetting, clearApiKey } =
-  useAiSetting()
+const showEmbeddingApiKey = ref(false)
+const {
+  setting,
+  catalog,
+  isLoading,
+  saveError,
+  loadAiSetting,
+  saveAiSetting,
+  clearApiKey,
+  clearEmbeddingApiKey
+} = useAiSetting()
 
 const { handleSubmit, resetForm, setFieldValue, setErrors, values } = useForm({
   validationSchema: settingsFormSchema,
@@ -53,7 +63,8 @@ const { handleSubmit, resetForm, setFieldValue, setErrors, values } = useForm({
     provider: '',
     model: '',
     temperature: 0.7,
-    apiKey: ''
+    apiKey: '',
+    embeddingApiKey: ''
   }
 })
 
@@ -74,6 +85,18 @@ const apiKeyPlaceholder = computed(() => {
 })
 
 const hasStoredApiKey = computed(() => setting.value?.apiKey.source === 'stored')
+
+const embeddingApiKeyPlaceholder = computed(() => {
+  const status = setting.value?.embeddingApiKey
+  if (status?.source === 'stored' && status.hint) return `Chave salva terminando em ${status.hint}`
+  if (status?.source === 'chat') return 'Usando a chave da OpenAI do Mestre IA'
+  if (status?.source === 'environment') return 'Usando chave do ambiente'
+  return 'Cole a chave de API da OpenAI'
+})
+
+const hasStoredEmbeddingApiKey = computed(() => setting.value?.embeddingApiKey.source === 'stored')
+
+const memoryUnavailable = computed(() => setting.value?.embeddingApiKey.configured === false)
 
 const temperatureLabel = computed(() => Number(values.temperature ?? 0).toFixed(1))
 
@@ -105,18 +128,21 @@ function syncFormFromSetting(): void {
       provider: setting.value.provider,
       model: setting.value.model,
       temperature: setting.value.temperature,
-      apiKey: ''
+      apiKey: '',
+      embeddingApiKey: ''
     }
   })
 }
 
 const onSubmit = handleSubmit(async (formValues) => {
   const apiKey = formValues.apiKey?.trim()
+  const embeddingApiKey = formValues.embeddingApiKey?.trim()
   const payload: UpdateAiSetting = {
     provider: formValues.provider as UpdateAiSetting['provider'],
     model: formValues.model,
     temperature: formValues.temperature,
-    ...(apiKey ? { apiKey } : {})
+    ...(apiKey ? { apiKey } : {}),
+    ...(embeddingApiKey ? { embeddingApiKey } : {})
   }
   const saved = await saveAiSetting(payload)
   if (!saved) {
@@ -124,6 +150,7 @@ const onSubmit = handleSubmit(async (formValues) => {
     return
   }
   showApiKey.value = false
+  showEmbeddingApiKey.value = false
 })
 
 function applySaveErrors(error: IpcError | undefined): void {
@@ -270,6 +297,47 @@ function onTemperatureChange(value: number[] | undefined): void {
           </FormItem>
         </FormField>
 
+        <FormField v-slot="{ componentField }" name="embeddingApiKey">
+          <FormItem class="flex flex-col gap-2">
+            <FormLabel class="text-sm font-medium text-foreground">
+              Chave de API da OpenAI para a memória (Embeddings)
+            </FormLabel>
+            <FormControl>
+              <InputGroup class="h-auto rounded-lg border-border bg-background">
+                <InputGroupInput
+                  v-bind="componentField"
+                  :type="showEmbeddingApiKey ? 'text' : 'password'"
+                  :placeholder="embeddingApiKeyPlaceholder"
+                  :disabled="isLoading"
+                  autocomplete="off"
+                  class="h-auto px-4 py-3 text-sm"
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    class="text-tertiary"
+                    :aria-label="showEmbeddingApiKey ? 'Ocultar chave' : 'Mostrar chave'"
+                    @click="showEmbeddingApiKey = !showEmbeddingApiKey"
+                  >
+                    <EyeOff v-if="!showEmbeddingApiKey" class="size-4" />
+                    <Eye v-else class="size-4" />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+            </FormControl>
+            <p class="text-xs text-tertiary">
+              Usada só para a memória dos personagens (busca por significado). Sempre da OpenAI,
+              qualquer que seja o provedor do Mestre IA.
+            </p>
+            <p v-if="memoryUnavailable" class="text-xs text-destructive">
+              Sem esta chave a memória dos personagens fica desativada: nada é gravado nem buscado.
+            </p>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
         <div
           class="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3"
         >
@@ -291,6 +359,17 @@ function onTemperatureChange(value: number[] | undefined): void {
         >
           <KeyRound class="size-4.5" />
           Remover chave salva
+        </Button>
+        <Button
+          v-if="hasStoredEmbeddingApiKey"
+          type="button"
+          variant="outline"
+          class="h-auto gap-2 rounded-full bg-transparent px-6 py-3 text-sm font-semibold"
+          :disabled="isLoading"
+          @click="void clearEmbeddingApiKey()"
+        >
+          <KeyRound class="size-4.5" />
+          Remover chave de embeddings
         </Button>
         <Button
           type="submit"

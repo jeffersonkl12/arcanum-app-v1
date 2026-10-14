@@ -16,6 +16,7 @@ export function useAiSetting(): {
   loadAiSetting: () => Promise<void>
   saveAiSetting: (input: UpdateAiSetting) => Promise<AiSettingView | undefined>
   clearApiKey: () => Promise<AiSettingView | undefined>
+  clearEmbeddingApiKey: () => Promise<AiSettingView | undefined>
 } {
   const { setting, catalog } = storeToRefs(useAiSettingStore())
   const { isLoading, error, request } = useRequest()
@@ -49,6 +50,14 @@ export function useAiSetting(): {
     return updated
   }
 
+  async function clearEmbeddingApiKey(): Promise<AiSettingView | undefined> {
+    const updated = await request('aiSetting:clearEmbeddingApiKey')
+    if (!updated) return undefined
+    setting.value = updated
+    toast.success('Chave de embeddings removida')
+    return updated
+  }
+
   return {
     setting,
     catalog,
@@ -57,6 +66,7 @@ export function useAiSetting(): {
     selectedProvider,
     loadAiSetting,
     saveAiSetting,
-    clearApiKey
+    clearApiKey,
+    clearEmbeddingApiKey
   }
 }

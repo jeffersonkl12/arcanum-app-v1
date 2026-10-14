@@ -14,6 +14,8 @@ import { CHECK_OUTCOMES } from '../../main/constant/check-outcome.constant'
 import { ROLL_MODES, type RollMode } from '../../main/constant/roll-mode.constant'
 import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
 import type { IItemRegistry } from './item.context'
+import { liveContextSchema } from './live-context.context'
+import type { IMemoryRegistry } from './memory.context'
 
 const attributeScoreSchema = z
   .number()
@@ -200,6 +202,15 @@ export const gameContextSchema = z.object({
       typeof (value as IItemRegistry).createItems === 'function',
     'itemRegistry must implement IItemRegistry'
   ),
+  memoryRegistry: z.custom<IMemoryRegistry>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as IMemoryRegistry).remember === 'function',
+    'memoryRegistry must implement IMemoryRegistry'
+  ),
+  /** Dynamic context that lingers in the prompt for a while (memories, ...), decided by the engine each turn. */
+  liveContext: liveContextSchema,
   diceChecker: z.custom<IDiceChecker>(
     (value) =>
       typeof value === 'object' &&

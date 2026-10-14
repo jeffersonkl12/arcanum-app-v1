@@ -10,6 +10,8 @@ import type { Actor } from '@schema/actor.schema'
 import type { IActorService } from '@service/actor.service'
 import type { IAiSettingService } from '@service/ai-setting.service'
 import type { IDiceCheckService } from '@service/dice-check.service'
+import type { ILiveContextService } from '@service/live-context.service'
+import type { IMemoryService } from '@service/memory.service'
 import type { IPartyService } from '@service/party.service'
 import type { IWorldService } from '@service/world.service'
 import type {
@@ -24,6 +26,7 @@ import type {
   RollCheckResult
 } from '../../mastra/context/game.context'
 import type { IItemRegistry } from '../../mastra/context/item.context'
+import type { IMemoryRegistry } from '../../mastra/context/memory.context'
 
 export interface IGameMasterService {
   /** Plays one turn of the world's campaign. Throws `NotFoundError` if the world does not exist. */
@@ -60,7 +63,10 @@ export class GameMasterService implements IGameMasterService {
     private readonly actorService: IActorService,
     private readonly partyService: IPartyService,
     private readonly diceCheckService: IDiceCheckService,
-    private readonly itemRegistry: IItemRegistry
+    private readonly itemRegistry: IItemRegistry,
+    private readonly memoryRegistry: IMemoryRegistry,
+    private readonly memoryService: IMemoryService,
+    private readonly liveContext: ILiveContextService
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
@@ -102,6 +108,8 @@ export class GameMasterService implements IGameMasterService {
 
     // Conversation first: if it fails the campaign is still whole and can be deleted again.
     await this.narrator.deleteCampaign(worldId)
+    await this.memoryService.deleteByWorld(worldId)
+    this.liveContext.forget(worldId)
     await this.worldService.delete(worldId)
   }
 
@@ -120,6 +128,8 @@ export class GameMasterService implements IGameMasterService {
       party: await this.loadParty(worldId),
       npcRegistry: this.createNpcRegistry(),
       itemRegistry: this.itemRegistry,
+      memoryRegistry: this.memoryRegistry,
+      liveContext: await this.liveContext.prepareTurn(worldId, message),
       diceChecker: this.createDiceChecker(),
       message
     }

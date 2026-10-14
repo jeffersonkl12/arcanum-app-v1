@@ -24,6 +24,11 @@ export function resolveMastraDataFolder(): string {
   return join(app.getPath('userData'), 'data', 'mastra')
 }
 
+/** Folder of the LanceDB database holding the characters' memories and their embeddings. */
+export function resolveMemoryVectorFolder(): string {
+  return join(app.getPath('userData'), 'data', 'memory')
+}
+
 /**
  * Folder with the markdown layers of every agent's system prompt (`<agent>/layers/{static,dynamic}/<layer>.md`):
  * shipped as an extra resource when packaged, in the source tree in dev. Exposed to `src/mastra`

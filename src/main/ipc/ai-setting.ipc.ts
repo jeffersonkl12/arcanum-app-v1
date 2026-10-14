@@ -9,6 +9,9 @@ export function createAiSettingRoutes(aiSettingService: IAiSettingService): Rout
     'aiSetting:catalog': route(z.undefined(), () => aiSettingService.listCatalog()),
     'aiSetting:get': route(z.undefined(), () => aiSettingService.get()),
     'aiSetting:update': route(updateAiSettingSchema, (input) => aiSettingService.update(input)),
-    'aiSetting:clearApiKey': route(z.undefined(), () => aiSettingService.clearApiKey())
+    'aiSetting:clearApiKey': route(z.undefined(), () => aiSettingService.clearApiKey()),
+    'aiSetting:clearEmbeddingApiKey': route(z.undefined(), () =>
+      aiSettingService.clearEmbeddingApiKey()
+    )
   }
 }

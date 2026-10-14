@@ -9,6 +9,8 @@ import { deleteItemsTool } from '../../tools/delete-items.tool'
 import { equipItemsTool } from '../../tools/equip-items.tool'
 import { findItemsTool } from '../../tools/find-items.tool'
 import { getInventoryTool } from '../../tools/get-inventory.tool'
+import { recallMemoriesTool } from '../../tools/recall-memories.tool'
+import { rememberEventsTool } from '../../tools/remember-events.tool'
 import { rollCheckTool } from '../../tools/roll-check.tool'
 import { transferItemsTool } from '../../tools/transfer-items.tool'
 import { updateItemsTool } from '../../tools/update-items.tool'
@@ -27,7 +29,9 @@ const layers = [
   staticLayer(AGENT, 'formatting'),
   generatedLayer('ui', narratorUiPrompt),
   dynamicLayer(AGENT, 'world', (context: GameContext) => context.world),
-  dynamicLayer(AGENT, 'party', (context: GameContext) => context.party)
+  dynamicLayer(AGENT, 'party', (context: GameContext) => context.party),
+  // Last: it changes the most, and the end of the prompt is one of the two places the model weighs most.
+  dynamicLayer(AGENT, 'live-context', (context: GameContext) => ({ sections: context.liveContext }))
 ]
 
 /**
@@ -50,7 +54,9 @@ export const narratorAgent = new Agent({
     transferItemsTool,
     equipItemsTool,
     getInventoryTool,
-    findItemsTool
+    findItemsTool,
+    rememberEventsTool,
+    recallMemoriesTool
   },
   requestContextSchema: gameContextSchema,
   memory: narratorMemory

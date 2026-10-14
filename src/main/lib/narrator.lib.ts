@@ -12,6 +12,8 @@ import type {
   WorldBrief
 } from '../../mastra/context/game.context'
 import type { IItemRegistry } from '../../mastra/context/item.context'
+import type { LiveContextSection } from '../../mastra/context/live-context.context'
+import type { IMemoryRegistry } from '../../mastra/context/memory.context'
 
 /** Upper bound of model/tool steps in one turn: narrator, tool or specialist, narrator. */
 const MAX_STEPS_PER_TURN = 10
@@ -29,6 +31,9 @@ export interface NarratorTurn {
   party: PartySnapshot
   npcRegistry: INpcRegistry
   itemRegistry: IItemRegistry
+  memoryRegistry: IMemoryRegistry
+  /** Dynamic context that lingers in the prompt (memories, ...), already aged for this turn. */
+  liveContext: LiveContextSection[]
   diceChecker: IDiceChecker
   message: string
 }
@@ -104,6 +109,8 @@ export class NarratorGateway implements INarratorGateway {
     party,
     npcRegistry,
     itemRegistry,
+    memoryRegistry,
+    liveContext,
     diceChecker
   }: NarratorTurn): Promise<PreparedRun> {
     const narrator = (await this.loadMastra()).getAgent('narrator')
@@ -116,6 +123,8 @@ export class NarratorGateway implements INarratorGateway {
     requestContext.set('party', party)
     requestContext.set('npcRegistry', npcRegistry)
     requestContext.set('itemRegistry', itemRegistry)
+    requestContext.set('memoryRegistry', memoryRegistry)
+    requestContext.set('liveContext', liveContext)
     requestContext.set('diceChecker', diceChecker)
 
     const options = {

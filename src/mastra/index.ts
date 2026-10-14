@@ -19,6 +19,8 @@ import { deleteItemsTool } from './tools/delete-items.tool'
 import { equipItemsTool } from './tools/equip-items.tool'
 import { findItemsTool } from './tools/find-items.tool'
 import { getInventoryTool } from './tools/get-inventory.tool'
+import { recallMemoriesTool } from './tools/recall-memories.tool'
+import { rememberEventsTool } from './tools/remember-events.tool'
 import { rollCheckTool } from './tools/roll-check.tool'
 import { transferItemsTool } from './tools/transfer-items.tool'
 import { updateItemsTool } from './tools/update-items.tool'
@@ -40,7 +42,9 @@ export const mastra = new Mastra({
     transferItemsTool,
     equipItemsTool,
     getInventoryTool,
-    findItemsTool
+    findItemsTool,
+    rememberEventsTool,
+    recallMemoriesTool
   },
   storage: new MastraCompositeStore({
     id: 'composite-storage',

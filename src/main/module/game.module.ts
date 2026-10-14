@@ -1,4 +1,7 @@
+import { OpenAiEmbedder } from '@lib/embedder.lib'
+import { LanceMemoryVectorStore } from '@lib/memory-vector.lib'
 import { NarratorGateway } from '@lib/narrator.lib'
+import { resolveMemoryVectorFolder } from '@lib/paths.lib'
 import { SecretCipher } from '@lib/secret-cipher.lib'
 import { database } from '@module/database.module'
 import { diceRoller } from '@module/dice.module'
@@ -14,12 +17,17 @@ import { WorldCloneRepository } from '@repository/world-clone.repository'
 import { WorldRepository } from '@repository/world.repository'
 import { ActorService, type IActorService } from '@service/actor.service'
 import { AiSettingService, type IAiSettingService } from '@service/ai-setting.service'
+import { ContextWindowService } from '@service/context-window.service'
 import { CultureService, type ICultureService } from '@service/culture.service'
 import { DiceCheckService, type IDiceCheckService } from '@service/dice-check.service'
 import { GameMasterService, type IGameMasterService } from '@service/game-master.service'
 import { InventoryService, type IInventoryService } from '@service/inventory.service'
 import { ItemRegistryService } from '@service/item-registry.service'
 import { LanguageService, type ILanguageService } from '@service/language.service'
+import { LiveContextService } from '@service/live-context.service'
+import { MemoryContextService } from '@service/memory-context.service'
+import { MemoryRegistryService } from '@service/memory-registry.service'
+import { MemoryService, type IMemoryService } from '@service/memory.service'
 import { PartyService, type IPartyService } from '@service/party.service'
 import { WorldCloneService, type IWorldCloneService } from '@service/world-clone.service'
 import { WorldService, type IWorldService } from '@service/world.service'
@@ -52,6 +60,19 @@ export const aiSettingService: IAiSettingService = new AiSettingService(
   new AiSettingRepository(database),
   new SecretCipher()
 )
+// Embeddings come from OpenAI: the key saved for them in the app (or the chat key while OpenAI is the
+// provider), else the OPENAI_API_KEY environment variable. Without any, memory is simply unavailable.
+const embedder = new OpenAiEmbedder(async () => (await aiSettingService.resolve()).embeddingApiKey)
+export const memoryService: IMemoryService = new MemoryService(
+  new LanceMemoryVectorStore(resolveMemoryVectorFolder()),
+  embedder,
+  actorService
+)
+const contextWindowService = new ContextWindowService()
+const memoryContextService = new MemoryContextService(memoryService, contextWindowService)
+// The sources of dynamic context for the narrator's prompt; list a new source here to bring it in.
+const liveContextService = new LiveContextService(contextWindowService, [memoryContextService])
+
 export const gameMasterService: IGameMasterService = new GameMasterService(
   new NarratorGateway(loadMastra),
   worldService,
@@ -59,5 +80,8 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   actorService,
   partyService,
   diceCheckService,
-  new ItemRegistryService(inventoryService, actorService)
+  new ItemRegistryService(inventoryService, actorService),
+  new MemoryRegistryService(memoryService, memoryContextService),
+  memoryService,
+  liveContextService
 )

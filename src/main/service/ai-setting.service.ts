@@ -12,6 +12,7 @@ import type {
   AiSetting,
   AiSettingView,
   ApiKeyStatus,
+  EmbeddingApiKeyStatus,
   StoredAiSetting,
   UpdateAiSetting
 } from '@schema/ai-setting.schema'
@@ -28,6 +29,11 @@ export interface AiProviderCatalogEntry extends AiProviderOption {
 export interface ResolvedAiSetting extends AiSetting {
   /** `undefined` when no key is saved, which leaves Mastra to read the provider's environment variable. */
   apiKey?: string
+  /**
+   * The OpenAI key for the memory's embeddings: the one saved for them, else the chat key while
+   * OpenAI is the provider. `undefined` leaves the embedder to read the environment.
+   */
+  embeddingApiKey?: string
 }
 
 export interface IAiSettingService {
@@ -39,7 +45,9 @@ export interface IAiSettingService {
   clearApiKey(): Promise<AiSettingView>
   /** What the player can pick, providers in a fixed order and models from the most capable down. */
   listCatalog(): AiProviderCatalogEntry[]
-  /** The setting with the key decrypted. Never return this through IPC. */
+  /** Forgets the saved embeddings key (the chat key or the environment's, if any, is used again). */
+  clearEmbeddingApiKey(): Promise<AiSettingView>
+  /** The setting with the keys decrypted. Never return this through IPC. */
   resolve(): Promise<ResolvedAiSetting>
 }
 
@@ -59,7 +67,7 @@ export class AiSettingService implements IAiSettingService {
     return this.toView(await this.load())
   }
 
-  async update({ apiKey, ...choice }: UpdateAiSetting): Promise<AiSettingView> {
+  async update({ apiKey, embeddingApiKey, ...choice }: UpdateAiSetting): Promise<AiSettingView> {
     const stored = await this.repository.find()
 
     // A saved key belongs to the provider it was saved for; handing it to another provider would
@@ -70,7 +78,18 @@ export class AiSettingService implements IAiSettingService {
         ? { encryptedKey: keyToKeep?.encryptedKey ?? null, keyHint: keyToKeep?.keyHint ?? null }
         : { encryptedKey: this.cipher.encrypt(apiKey), keyHint: apiKey.slice(-HINT_LENGTH) }
 
-    await this.repository.save({ ...choice, ...key })
+    const embeddingKey =
+      embeddingApiKey === undefined
+        ? {
+            embeddingEncryptedKey: stored?.embeddingEncryptedKey ?? null,
+            embeddingKeyHint: stored?.embeddingKeyHint ?? null
+          }
+        : {
+            embeddingEncryptedKey: this.cipher.encrypt(embeddingApiKey),
+            embeddingKeyHint: embeddingApiKey.slice(-HINT_LENGTH)
+          }
+
+    await this.repository.save({ ...choice, ...key, ...embeddingKey })
 
     return this.get()
   }
@@ -80,6 +99,16 @@ export class AiSettingService implements IAiSettingService {
 
     if (stored?.encryptedKey) {
       await this.repository.save({ ...stored, encryptedKey: null, keyHint: null })
+    }
+
+    return this.get()
+  }
+
+  async clearEmbeddingApiKey(): Promise<AiSettingView> {
+    const stored = await this.repository.find()
+
+    if (stored?.embeddingEncryptedKey) {
+      await this.repository.save({ ...stored, embeddingEncryptedKey: null, embeddingKeyHint: null })
     }
 
     return this.get()
@@ -97,11 +126,18 @@ export class AiSettingService implements IAiSettingService {
     const stored = await this.load()
     const { provider, model, temperature } = stored
 
+    const apiKey = stored.encryptedKey ? this.cipher.decrypt(stored.encryptedKey) : undefined
+
     return {
       provider,
       model,
       temperature,
-      apiKey: stored.encryptedKey ? this.cipher.decrypt(stored.encryptedKey) : undefined
+      apiKey,
+      embeddingApiKey: stored.embeddingEncryptedKey
+        ? this.cipher.decrypt(stored.embeddingEncryptedKey)
+        : provider === 'openai'
+          ? apiKey
+          : undefined
     }
   }
 
@@ -110,19 +146,45 @@ export class AiSettingService implements IAiSettingService {
 
     return stored && isAiModelOf(stored.provider, stored.model)
       ? stored
-      : { id: true, ...DEFAULT_AI_SETTING, encryptedKey: null, keyHint: null }
+      : {
+          id: true,
+          ...DEFAULT_AI_SETTING,
+          encryptedKey: null,
+          keyHint: null,
+          embeddingEncryptedKey: null,
+          embeddingKeyHint: null
+        }
   }
 
   private toView(stored: StoredAiSetting): AiSettingView {
     const { provider, model, temperature } = stored
 
-    return { provider, model, temperature, apiKey: this.keyStatus(stored) }
+    return {
+      provider,
+      model,
+      temperature,
+      apiKey: this.keyStatus(stored),
+      embeddingApiKey: this.embeddingKeyStatus(stored)
+    }
   }
 
   private keyStatus(stored: StoredAiSetting): ApiKeyStatus {
     if (stored.encryptedKey) return { configured: true, source: 'stored', hint: stored.keyHint }
 
     return this.hasEnvironmentKey(stored.provider)
+      ? { configured: true, source: 'environment', hint: null }
+      : { configured: false, source: 'none', hint: null }
+  }
+
+  private embeddingKeyStatus(stored: StoredAiSetting): EmbeddingApiKeyStatus {
+    if (stored.embeddingEncryptedKey) {
+      return { configured: true, source: 'stored', hint: stored.embeddingKeyHint }
+    }
+    if (stored.provider === 'openai' && stored.encryptedKey) {
+      return { configured: true, source: 'chat', hint: stored.keyHint }
+    }
+
+    return this.hasEnvironmentKey('openai')
       ? { configured: true, source: 'environment', hint: null }
       : { configured: false, source: 'none', hint: null }
   }

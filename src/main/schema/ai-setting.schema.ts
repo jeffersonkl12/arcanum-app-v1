@@ -23,9 +23,20 @@ export interface ApiKeyStatus {
   hint: string | null
 }
 
+/**
+ * Same for the key of the memory's embeddings (always OpenAI's). Without a saved one it can still
+ * work: `chat` is the OpenAI key already saved for the narrator, used while OpenAI is the provider.
+ */
+export interface EmbeddingApiKeyStatus {
+  configured: boolean
+  source: 'stored' | 'chat' | 'environment' | 'none'
+  hint: string | null
+}
+
 /** The setting as the renderer sees it. */
 export interface AiSettingView extends AiSetting {
   apiKey: ApiKeyStatus
+  embeddingApiKey: EmbeddingApiKeyStatus
 }
 
 export const apiKeySchema = z.string().trim().min(1).max(512)
@@ -55,14 +66,17 @@ function checkAiSetting(setting: AiSetting, context: z.RefinementCtx): void {
  * Replaces the whole choice: changing the provider means changing the model too. `apiKey` is the
  * key of the chosen provider; omit it to keep the saved one. A saved key only follows the provider
  * it was saved for, so changing provider without sending a key drops it (a blank key is rejected,
- * not a way to clear it; use `aiSetting:clearApiKey`).
+ * not a way to clear it; use `aiSetting:clearApiKey`). `embeddingApiKey` is the OpenAI key of the
+ * memory's embeddings: it belongs to no provider, so it is kept when the provider changes and
+ * omitting it keeps the saved one (`aiSetting:clearEmbeddingApiKey` removes it).
  */
 export const updateAiSettingSchema = z
   .object({
     provider: z.enum(AI_PROVIDERS),
     model: z.string().trim().min(1),
     temperature: z.number().min(0),
-    apiKey: apiKeySchema.optional()
+    apiKey: apiKeySchema.optional(),
+    embeddingApiKey: apiKeySchema.optional()
   })
   .superRefine(checkAiSetting)
 

@@ -13,6 +13,9 @@ export const aiProviderEnum = pgEnum('ai_provider', AI_PROVIDERS)
  *
  * The key belongs to `provider` and is stored encrypted (see `ISecretCipher`); `keyHint` is its last
  * characters, so the UI can show which key is saved without decrypting it.
+ *
+ * The embedding key is a second key, always OpenAI's (the characters' memory is searched with its
+ * embeddings), and it does not depend on the provider: it stays when the provider changes.
  */
 export const aiSettingTable = pgTable(
   'ai_setting',
@@ -22,11 +25,17 @@ export const aiSettingTable = pgTable(
     model: text('model').notNull(),
     temperature: real('temperature').notNull(),
     encryptedKey: text('encrypted_key'),
-    keyHint: text('key_hint')
+    keyHint: text('key_hint'),
+    embeddingEncryptedKey: text('embedding_encrypted_key'),
+    embeddingKeyHint: text('embedding_key_hint')
   },
   (table) => [
     check('ai_setting_single_row', sql`${table.id}`),
     // A key and its hint are saved and removed together.
-    check('ai_setting_key_hint', sql`(${table.encryptedKey} is null) = (${table.keyHint} is null)`)
+    check('ai_setting_key_hint', sql`(${table.encryptedKey} is null) = (${table.keyHint} is null)`),
+    check(
+      'ai_setting_embedding_key_hint',
+      sql`(${table.embeddingEncryptedKey} is null) = (${table.embeddingKeyHint} is null)`
+    )
   ]
 )
