@@ -1,47 +1,36 @@
 import { z } from 'zod'
 // Pure constants of the engine, imported by relative path (see `game.context.ts`).
-import { EQUIPMENT_SLOTS } from '../../main/constant/inventory.constant'
-import {
-  ARMOR_BONUS,
-  ITEM_MAX_SLOTS,
-  WEAPON_CLASSES,
-  WEAPON_DICE,
-  WEAR_SLOTS
-} from '../../main/constant/item.constant'
+import { EQUIPMENT_SLOTS, INVENTORY_CAPACITY } from '../../main/constant/inventory.constant'
+import { CLOTHING_CLASSES, ITEM_TYPES, WEAPON_CLASSES } from '../../main/constant/item.constant'
 import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
 
 /** Most entries one batch call takes, so a single call cannot flood the engine or the context. */
 export const MAX_ITEMS_PER_CALL = 20
 
-/** The fields that describe an item. The engine reconciles them (a tiny item takes no slots). */
+/** The fields that describe an item. The engine checks that the class matches the type. */
 const itemFieldsSchema = z.object({
   name: z.string().trim().min(1).max(TEXT_LIMITS.name),
   description: z.string().max(TEXT_LIMITS.longText).optional(),
-  isTiny: z.boolean().optional().describe('Tiny items (a coin, a key) take no inventory slot.'),
+  type: z
+    .enum(ITEM_TYPES)
+    .describe(
+      'weapon and clothing can be equipped; tool is a useful object; consumable is used up.'
+    ),
   slots: z
     .number()
     .int()
     .min(1)
-    .max(ITEM_MAX_SLOTS)
+    .max(INVENTORY_CAPACITY)
     .optional()
-    .describe('Inventory slots taken; 1 if omitted. Ignored for a tiny item.'),
-  isConsumable: z.boolean().optional(),
+    .describe('Inventory slots taken, at least 1; 1 if omitted.'),
   weaponClass: z
     .enum(WEAPON_CLASSES)
     .optional()
-    .describe('Makes it a weapon (needs `damageDie`). Light: one hand. Heavy and ranged: both.'),
-  damageDie: z.enum(WEAPON_DICE).optional().describe('Weapons only, together with `weaponClass`.'),
-  wearSlot: z
-    .enum(WEAR_SLOTS)
+    .describe('Required for a weapon, and only for it. Light: one hand. Heavy and ranged: both.'),
+  clothingClass: z
+    .enum(CLOTHING_CLASSES)
     .optional()
-    .describe('Makes it a piece of clothing (needs `armorBonus`).'),
-  armorBonus: z
-    .number()
-    .int()
-    .min(ARMOR_BONUS.min)
-    .max(ARMOR_BONUS.max)
-    .optional()
-    .describe('Clothing only: 0 is common clothing, 3 is the most protection allowed.')
+    .describe('Required for clothing, and only for it. How heavy the piece is.')
 })
 
 /** A new item. Without `ownerId` it just lies somewhere in the world. */
@@ -58,13 +47,14 @@ export const itemDraftSchema = itemFieldsSchema.extend({
 
 export type ItemDraft = z.infer<typeof itemDraftSchema>
 
-/** What changes in an item; `null` clears an optional field (a sword that stops being a weapon). */
+/**
+ * What changes in an item; `null` clears an optional field. Changing the `type` drops the class of
+ * the old type unless the patch gives the new one (a sword that becomes a tool).
+ */
 export const itemPatchSchema = itemFieldsSchema.partial().extend({
   description: z.string().max(TEXT_LIMITS.longText).nullable().optional(),
   weaponClass: z.enum(WEAPON_CLASSES).nullable().optional(),
-  damageDie: z.enum(WEAPON_DICE).nullable().optional(),
-  wearSlot: z.enum(WEAR_SLOTS).nullable().optional(),
-  armorBonus: z.number().int().min(ARMOR_BONUS.min).max(ARMOR_BONUS.max).nullable().optional()
+  clothingClass: z.enum(CLOTHING_CLASSES).nullable().optional()
 })
 
 export type ItemPatch = z.infer<typeof itemPatchSchema>
@@ -96,11 +86,9 @@ export const itemViewSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   slots: z.number().int(),
-  isConsumable: z.boolean().optional(),
+  type: z.enum(ITEM_TYPES),
   weaponClass: z.enum(WEAPON_CLASSES).optional(),
-  damageDie: z.enum(WEAPON_DICE).optional(),
-  wearSlot: z.enum(WEAR_SLOTS).optional(),
-  armorBonus: z.number().int().optional(),
+  clothingClass: z.enum(CLOTHING_CLASSES).optional(),
   carriedBy: z.string().optional().describe('Id of the actor that carries it; absent if loose.'),
   equippedSlot: z.enum(EQUIPMENT_SLOTS).optional()
 })
@@ -127,7 +115,6 @@ export const inventoryViewSchema = z.object({
   reason: z.string().optional(),
   capacity: z.number().int().optional(),
   usedSlots: z.number().int().optional(),
-  armorBonus: z.number().int().optional(),
   items: z.array(itemViewSchema)
 })
 
@@ -154,7 +141,12 @@ export interface IItemRegistry {
 export const itemQuerySchema = z
   .object({
     itemId: z.uuid().optional().describe('Exact item, when you already know its id.'),
-    name: z.string().trim().min(1).optional().describe('Part of the name; ignores case and accents.'),
+    name: z
+      .string()
+      .trim()
+      .min(1)
+      .optional()
+      .describe('Part of the name; ignores case and accents.'),
     actorId: z.uuid().optional().describe('With `name`: only look in what this actor carries.')
   })
   .refine((query) => query.itemId || query.name, 'Give an itemId or a name')

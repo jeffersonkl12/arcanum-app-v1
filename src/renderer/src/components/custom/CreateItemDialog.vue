@@ -9,17 +9,13 @@ import { z } from 'zod'
 import type { IpcError } from '@shared'
 import { toImageUrl } from '@shared'
 import {
-  armorBonusOptions,
-  armorBonusValues,
-  itemKindOptions,
-  itemKindValues,
+  clothingClassOptions,
+  clothingClassValues,
   itemLimits,
+  itemTypeOptions,
+  itemTypeValues,
   weaponClassOptions,
-  weaponClassValues,
-  weaponDieOptions,
-  weaponDieValues,
-  wearSlotOptions,
-  wearSlotValues
+  weaponClassValues
 } from '@renderer/constant/item.constant'
 import { useWorld } from '@renderer/composable/world.composable'
 import type { ItemSummary } from '@renderer/composable/world.type'
@@ -55,7 +51,6 @@ import {
   SelectTrigger,
   SelectValue
 } from '@renderer/components/ui/select'
-import { Switch } from '@renderer/components/ui/switch'
 import { Textarea } from '@renderer/components/ui/textarea'
 
 const open = defineModel<boolean>('open', { default: false })
@@ -73,22 +68,11 @@ const emit = defineEmits<{
   saved: [item: ItemSummary]
 }>()
 
-const formFields = [
-  'name',
-  'description',
-  'kind',
-  'isTiny',
-  'slots',
-  'isConsumable',
-  'weaponClass',
-  'damageDie',
-  'wearSlot',
-  'armorBonus'
-] as const
+const formFields = ['name', 'description', 'type', 'slots', 'weaponClass', 'clothingClass'] as const
 
 type FormFieldName = (typeof formFields)[number]
 
-// Mirrors TEXT_LIMITS and the item rules in the engine: name 120, long text 5000, slots up to 99.
+// Mirrors TEXT_LIMITS and the item rules in the engine: name 120, long text 5000, slots from 1 to the inventory capacity.
 const itemFormSchema = toTypedSchema(
   z
     .object({
@@ -98,33 +82,25 @@ const itemFormSchema = toTypedSchema(
         .min(1, 'Informe o nome')
         .max(120, 'O nome pode ter no máximo 120 caracteres'),
       description: z.string().max(5000, 'A descrição pode ter no máximo 5000 caracteres'),
-      kind: z.enum(itemKindValues, 'Selecione o tipo'),
-      isTiny: z.boolean(),
+      type: z.enum(itemTypeValues, 'Selecione o tipo'),
       slots: z
         .number('Informe os espaços')
         .int('Os espaços devem ser um número inteiro')
-        .min(1, 'Um item que não é miúdo ocupa pelo menos 1 espaço')
-        .max(itemLimits.maxSlots, `No máximo ${itemLimits.maxSlots} espaços`)
-        .optional(),
-      isConsumable: z.boolean(),
+        .min(1, 'Um item ocupa pelo menos 1 espaço')
+        .max(itemLimits.inventoryCapacity, `No máximo ${itemLimits.inventoryCapacity} espaços`),
       weaponClass: z.enum(weaponClassValues).optional(),
-      damageDie: z.enum(weaponDieValues).optional(),
-      wearSlot: z.enum(wearSlotValues).optional(),
-      armorBonus: z.enum(armorBonusValues).optional()
+      clothingClass: z.enum(clothingClassValues).optional()
     })
     .superRefine((values, context) => {
       const missing = (path: FormFieldName, message: string): void => {
         context.addIssue({ code: 'custom', path: [path], message })
       }
 
-      if (!values.isTiny && values.slots === undefined) missing('slots', 'Informe os espaços')
-      if (values.kind === 'weapon') {
-        if (!values.weaponClass) missing('weaponClass', 'Selecione o tipo de arma')
-        if (!values.damageDie) missing('damageDie', 'Selecione o dado de dano')
+      if (values.type === 'weapon' && !values.weaponClass) {
+        missing('weaponClass', 'Selecione o tipo de arma')
       }
-      if (values.kind === 'wearable') {
-        if (!values.wearSlot) missing('wearSlot', 'Selecione onde se veste')
-        if (!values.armorBonus) missing('armorBonus', 'Selecione o bônus de armadura')
+      if (values.type === 'clothing' && !values.clothingClass) {
+        missing('clothingClass', 'Selecione o tipo de vestimenta')
       }
     })
 )
@@ -132,10 +108,8 @@ const itemFormSchema = toTypedSchema(
 const emptyForm = {
   name: '',
   description: '',
-  kind: 'common' as const,
-  isTiny: false,
-  slots: 1,
-  isConsumable: false
+  type: 'tool' as const,
+  slots: 1
 }
 
 const isEditing = computed(() => entity.value != null)
@@ -157,18 +131,13 @@ const previewSrc = computed(() => {
 })
 
 const onSubmit = handleSubmit(async (formValues) => {
-  const isWeapon = formValues.kind === 'weapon'
-  const isWearable = formValues.kind === 'wearable'
   const payload = {
     name: formValues.name,
     description: formValues.description,
-    isTiny: formValues.isTiny,
-    slots: formValues.isTiny ? 0 : (formValues.slots ?? 1),
-    isConsumable: formValues.isConsumable,
-    weaponClass: isWeapon ? (formValues.weaponClass ?? null) : null,
-    damageDie: isWeapon ? (formValues.damageDie ?? null) : null,
-    wearSlot: isWearable ? (formValues.wearSlot ?? null) : null,
-    armorBonus: isWearable && formValues.armorBonus ? Number(formValues.armorBonus) : null,
+    type: formValues.type,
+    slots: formValues.slots,
+    weaponClass: formValues.type === 'weapon' ? (formValues.weaponClass ?? null) : null,
+    clothingClass: formValues.type === 'clothing' ? (formValues.clothingClass ?? null) : null,
     imageData: imageData.value
   }
 
@@ -216,14 +185,10 @@ function fillForm(item: ItemSummary | null): void {
     values: {
       name: item.name,
       description: item.description,
-      kind: item.kind,
-      isTiny: item.isTiny,
-      slots: item.isTiny ? 1 : item.slots,
-      isConsumable: item.isConsumable,
+      type: item.type,
+      slots: item.slots,
       weaponClass: item.weaponClass ?? undefined,
-      damageDie: item.damageDie ?? undefined,
-      wearSlot: item.wearSlot ?? undefined,
-      armorBonus: item.armorBonus === null ? undefined : (String(item.armorBonus) as '0')
+      clothingClass: item.clothingClass ?? undefined
     }
   })
 }
@@ -271,8 +236,6 @@ const selectTriggerClass =
   'h-auto w-full rounded-lg border-border bg-background px-3.5 py-2.5 text-sm data-placeholder:text-tertiary'
 const textareaClass =
   'field-sizing-fixed h-20 resize-none rounded-lg border-border bg-background px-3.5 py-2.5 text-sm shadow-none placeholder:text-tertiary'
-const switchRowClass =
-  'flex flex-row items-center justify-between gap-3 rounded-lg border border-border bg-background px-3.5 py-2.5'
 </script>
 
 <template>
@@ -351,7 +314,7 @@ const switchRowClass =
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-              <FormField v-slot="{ componentField }" name="kind" keep-value>
+              <FormField v-slot="{ componentField }" name="type" keep-value>
                 <FormItem class="gap-1.5">
                   <FormLabel :class="fieldLabelClass">Tipo</FormLabel>
                   <Select v-bind="componentField" :disabled="isSavingItem">
@@ -362,7 +325,7 @@ const switchRowClass =
                     </FormControl>
                     <SelectContent position="popper" class="bg-card">
                       <SelectItem
-                        v-for="option in itemKindOptions"
+                        v-for="option in itemTypeOptions"
                         :key="option.value"
                         :value="option.value"
                       >
@@ -380,8 +343,8 @@ const switchRowClass =
                   <NumberField
                     :model-value="componentField.modelValue"
                     :min="1"
-                    :max="itemLimits.maxSlots"
-                    :disabled="isSavingItem || values.isTiny"
+                    :max="itemLimits.inventoryCapacity"
+                    :disabled="isSavingItem"
                     @update:model-value="componentField['onUpdate:modelValue']"
                   >
                     <NumberFieldContent>
@@ -400,41 +363,7 @@ const switchRowClass =
               </FormField>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-              <FormField v-slot="{ value, handleChange }" name="isTiny" keep-value>
-                <FormItem :class="switchRowClass">
-                  <div class="flex flex-col gap-0.5">
-                    <FormLabel class="text-sm font-medium text-foreground">Miúdo</FormLabel>
-                    <FormDescription class="text-badge">Não ocupa espaços.</FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      :model-value="value"
-                      :disabled="isSavingItem"
-                      @update:model-value="handleChange"
-                    />
-                  </FormControl>
-                </FormItem>
-              </FormField>
-
-              <FormField v-slot="{ value, handleChange }" name="isConsumable" keep-value>
-                <FormItem :class="switchRowClass">
-                  <div class="flex flex-col gap-0.5">
-                    <FormLabel class="text-sm font-medium text-foreground">Consumível</FormLabel>
-                    <FormDescription class="text-badge">Some ao ser usado.</FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      :model-value="value"
-                      :disabled="isSavingItem"
-                      @update:model-value="handleChange"
-                    />
-                  </FormControl>
-                </FormItem>
-              </FormField>
-            </div>
-
-            <div v-if="values.kind === 'weapon'" class="grid grid-cols-2 gap-4">
+            <template v-if="values.type === 'weapon'">
               <FormField v-slot="{ componentField }" name="weaponClass" keep-value>
                 <FormItem class="gap-1.5">
                   <FormLabel :class="fieldLabelClass">Tipo de arma</FormLabel>
@@ -457,10 +386,12 @@ const switchRowClass =
                   <FormMessage />
                 </FormItem>
               </FormField>
+            </template>
 
-              <FormField v-slot="{ componentField }" name="damageDie" keep-value>
+            <template v-if="values.type === 'clothing'">
+              <FormField v-slot="{ componentField }" name="clothingClass" keep-value>
                 <FormItem class="gap-1.5">
-                  <FormLabel :class="fieldLabelClass">Dado de dano</FormLabel>
+                  <FormLabel :class="fieldLabelClass">Tipo de vestimenta</FormLabel>
                   <Select v-bind="componentField" :disabled="isSavingItem">
                     <FormControl>
                       <SelectTrigger :class="selectTriggerClass">
@@ -469,7 +400,7 @@ const switchRowClass =
                     </FormControl>
                     <SelectContent position="popper" class="bg-card">
                       <SelectItem
-                        v-for="option in weaponDieOptions"
+                        v-for="option in clothingClassOptions"
                         :key="option.value"
                         :value="option.value"
                       >
@@ -480,55 +411,7 @@ const switchRowClass =
                   <FormMessage />
                 </FormItem>
               </FormField>
-            </div>
-
-            <div v-if="values.kind === 'wearable'" class="grid grid-cols-2 gap-4">
-              <FormField v-slot="{ componentField }" name="wearSlot" keep-value>
-                <FormItem class="gap-1.5">
-                  <FormLabel :class="fieldLabelClass">Onde se veste</FormLabel>
-                  <Select v-bind="componentField" :disabled="isSavingItem">
-                    <FormControl>
-                      <SelectTrigger :class="selectTriggerClass">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent position="popper" class="bg-card">
-                      <SelectItem
-                        v-for="option in wearSlotOptions"
-                        :key="option.value"
-                        :value="option.value"
-                      >
-                        {{ option.label }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-
-              <FormField v-slot="{ componentField }" name="armorBonus" keep-value>
-                <FormItem class="gap-1.5">
-                  <FormLabel :class="fieldLabelClass">Bônus de armadura</FormLabel>
-                  <Select v-bind="componentField" :disabled="isSavingItem">
-                    <FormControl>
-                      <SelectTrigger :class="selectTriggerClass">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent position="popper" class="bg-card">
-                      <SelectItem
-                        v-for="option in armorBonusOptions"
-                        :key="option.value"
-                        :value="option.value"
-                      >
-                        {{ option.label }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-            </div>
+            </template>
 
             <FormField v-slot="{ componentField }" name="description" keep-value>
               <FormItem class="gap-1.5">

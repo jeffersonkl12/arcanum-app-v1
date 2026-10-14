@@ -15,10 +15,10 @@ import {
 import { Separator } from '@renderer/components/ui/separator'
 import { Spinner } from '@renderer/components/ui/spinner'
 import {
+  clothingClassOptions,
   itemLimits,
   labelOf,
-  weaponClassOptions,
-  wearSlotOptions
+  weaponClassOptions
 } from '@renderer/constant/item.constant'
 import type { ItemSummary } from '@renderer/composable/world.type'
 
@@ -39,20 +39,17 @@ const infoCells = computed(() => {
   if (!item) return []
 
   const cells = [
-    { label: 'ESPAÇOS', value: item.isTiny ? 'Miúdo (0)' : String(item.slots) },
+    { label: 'ESPAÇOS', value: String(item.slots) },
     { label: 'DURABILIDADE', value: String(itemLimits.durability) }
   ]
-  if (item.kind === 'weapon') {
-    cells.push(
-      { label: 'TIPO DE ARMA', value: labelOf(weaponClassOptions, item.weaponClass) },
-      { label: 'DANO', value: item.damageDie ?? '' }
-    )
+  if (item.type === 'weapon') {
+    cells.push({ label: 'TIPO DE ARMA', value: labelOf(weaponClassOptions, item.weaponClass) })
   }
-  if (item.kind === 'wearable') {
-    cells.push(
-      { label: 'ONDE SE VESTE', value: labelOf(wearSlotOptions, item.wearSlot) },
-      { label: 'BÔNUS DE ARMADURA', value: `+${item.armorBonus}` }
-    )
+  if (item.type === 'clothing') {
+    cells.push({
+      label: 'TIPO DE VESTIMENTA',
+      value: labelOf(clothingClassOptions, item.clothingClass)
+    })
   }
   return cells
 })

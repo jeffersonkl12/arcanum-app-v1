@@ -1,5 +1,10 @@
 import type { Actor, Culture, Item, Language, World } from '@schema'
-import { labelOf, weaponClassOptions, wearSlotOptions } from '@renderer/constant/item.constant'
+import {
+  clothingClassOptions,
+  itemTypeOptions,
+  labelOf,
+  weaponClassOptions
+} from '@renderer/constant/item.constant'
 import { worldGenreLabel } from '@renderer/constant/world-genre.constant'
 import type {
   ActorSummary,
@@ -60,34 +65,20 @@ export function toActorSummary(actor: Actor, cultures: NamedEntitySummary[]): Ac
 }
 
 export function toItemSummary(item: Item): ItemSummary {
-  const kind = item.weaponClass ? 'weapon' : item.wearSlot ? 'wearable' : 'common'
-  const tags: string[] = []
+  const tags = [labelOf(itemTypeOptions, item.type)]
 
-  if (kind === 'weapon') {
-    tags.push(`Arma ${labelOf(weaponClassOptions, item.weaponClass).toLocaleLowerCase()}`)
-    tags.push(`Dano ${item.damageDie}`)
-  } else if (kind === 'wearable') {
-    tags.push(`Vestimenta (${labelOf(wearSlotOptions, item.wearSlot)})`)
-    tags.push(`Armadura +${item.armorBonus}`)
-  } else {
-    tags.push('Objeto comum')
-  }
-  if (item.isConsumable) tags.push('Consumível')
-  if (item.isTiny) tags.push('Miúdo')
+  if (item.weaponClass) tags.push(labelOf(weaponClassOptions, item.weaponClass))
+  if (item.clothingClass) tags.push(labelOf(clothingClassOptions, item.clothingClass))
 
   return {
     id: item.id,
     name: item.name,
     description: item.description ?? '',
     imagePath: item.imagePath,
-    kind,
-    isTiny: item.isTiny,
+    type: item.type,
     slots: item.slots,
-    isConsumable: item.isConsumable,
     weaponClass: item.weaponClass,
-    damageDie: item.damageDie,
-    wearSlot: item.wearSlot,
-    armorBonus: item.armorBonus,
+    clothingClass: item.clothingClass,
     tags,
     isCarried: item.actorId !== null,
     isEquipped: item.equippedSlot !== null

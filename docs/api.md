@@ -987,6 +987,8 @@ Banco do jogo: **PGlite** (Postgres embutido) via Drizzle, em `userData/data/gam
 9. `…_actor_coins`: `actor.gold_pieces`, `actor.silver_pieces`, `actor.bronze_pieces` e o `CHECK` `actor_coins_range`
 10. `…_dice_pool_attributes`: atributos passam a 1–6 (padrão 4) e `hp_max` a 2–12 (padrão 7). Antes de apertar os `CHECK`s, ajusta os atores existentes às novas faixas (vida acima de 12 vira 12; atributo fora de 1–6, de outra escala, volta ao padrão 4)
 
+11. `…_item_types`: `item.type` (arma, vestimenta, ferramenta, consumível) e `item.clothing_class` (leve, média, pesada) no lugar de `is_tiny`, `is_consumable`, `damage_die`, `wear_slot` e `armor_bonus`; o slot de equipamento `torso`/`head` vira `body`; todo item ocupa de 1 a 18 espaços. Antes de apertar os `CHECK`s, converte os itens existentes (tipo pela marca antiga, bônus de armadura 0–1 leve / 2 média / 3 pesada, item miúdo passa a ocupar 1 espaço)
+
 Não existem tabelas de cena, sessão, combate, inventário ou NPC separado: um NPC é um `actor` com `is_npc = true`.
 
 ---

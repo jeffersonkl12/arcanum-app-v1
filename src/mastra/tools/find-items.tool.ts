@@ -5,7 +5,7 @@ import { inventoryViewSchema, itemQuerySchema } from '../context/item.context'
 export const findItemsTool = createTool({
   id: 'find-items',
   description:
-    'Looks up specific items and returns their full details (description, weapon or armor stats, ' +
+    'Looks up specific items and returns their full details (description, type, weapon or clothing class, ' +
     'who carries it, where it is equipped) and their ids. Search by `name` (part of it is enough), ' +
     'narrowed with `actorId` to what one actor carries, or by exact `itemId`. Use it when you need ' +
     'more about an item the party section only names, or to get the id before acting on it. To ' +

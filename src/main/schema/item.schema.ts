@@ -1,4 +1,4 @@
-import { ARMOR_BONUS, ITEM_MAX_SLOTS, TEXT_LIMITS, type EquipmentSlot } from '@constant'
+import { INVENTORY_CAPACITY, TEXT_LIMITS, type EquipmentSlot } from '@constant'
 import { itemTable } from '@database/entity/item.entity'
 import { createInsertSchema } from 'drizzle-orm/zod'
 import type { z } from 'zod'
@@ -7,14 +7,13 @@ import type { z } from 'zod'
  * What the renderer sends to create an item. The world (or the actor whose inventory it goes to)
  * is in the channel's input, who carries the item and where it is equipped are the engine's
  * (`give` / `drop` / `equip` / `unequip`), so none of them is part of it, nor is the image path.
- * `slots` and `isTiny` are reconciled by `InventoryService`: a tiny item takes 0 slots, any other
- * takes `slots` (1 if not said).
+ * `slots` is 1 if not said; the weapon and clothing classes must match `type`
+ * (`InventoryService` checks it).
  */
 export const createItemSchema = createInsertSchema(itemTable, {
   name: (schema) => schema.trim().min(1).max(TEXT_LIMITS.name),
   description: (schema) => schema.max(TEXT_LIMITS.longText),
-  slots: (schema) => schema.min(0).max(ITEM_MAX_SLOTS).optional(),
-  armorBonus: (schema) => schema.min(ARMOR_BONUS.min).max(ARMOR_BONUS.max)
+  slots: (schema) => schema.min(1).max(INVENTORY_CAPACITY).optional()
 }).omit({
   id: true,
   worldId: true,

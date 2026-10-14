@@ -38,14 +38,12 @@ type NamedEntityInput = {
   description: string
 }
 
-/** What the item form sends; the fields of the kinds the item is not are `null`. */
-type ItemInput = Pick<CreateItem, 'name' | 'isTiny' | 'isConsumable'> & {
+/** What the item form sends; the class of the types the item is not is `null`. */
+type ItemInput = Pick<CreateItem, 'name' | 'type'> & {
   description: string
   slots: number
   weaponClass: CreateItem['weaponClass']
-  damageDie: CreateItem['damageDie']
-  wearSlot: CreateItem['wearSlot']
-  armorBonus: number | null
+  clothingClass: CreateItem['clothingClass']
   imageData?: Uint8Array
 }
 

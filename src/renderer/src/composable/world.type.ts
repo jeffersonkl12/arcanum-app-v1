@@ -1,5 +1,5 @@
 import type { CreateActor, CreateItem } from '@schema'
-import type { ItemKind } from '@renderer/constant/item.constant'
+import type { ItemType } from '@renderer/constant/item.constant'
 
 export interface WorldSummary {
   id: string
@@ -53,15 +53,11 @@ export interface ItemSummary {
   name: string
   description: string
   imagePath?: string | null
-  kind: ItemKind
-  isTiny: boolean
+  type: ItemType
   slots: number
-  isConsumable: boolean
   weaponClass: CreateItem['weaponClass']
-  damageDie: CreateItem['damageDie']
-  wearSlot: CreateItem['wearSlot']
-  armorBonus: number | null
-  /** Short labels for the row and the detail ("Arma leve • d6", "Consumível"...). */
+  clothingClass: CreateItem['clothingClass']
+  /** Short labels for the row and the detail ("Arma", "Leve (uma mão)"...). */
   tags: string[]
   isCarried: boolean
   isEquipped: boolean

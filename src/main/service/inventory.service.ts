@@ -10,7 +10,8 @@ import {
   assertItemRules,
   buildInventory,
   planEquip,
-  sumSlots
+  sumSlots,
+  type ItemTraits
 } from '@util/inventory.util'
 
 export interface IInventoryService {
@@ -43,10 +44,10 @@ export interface IInventoryService {
 
 /**
  * An item belongs to a world and may be carried by one actor of that world. An actor carries at
- * most `INVENTORY_CAPACITY` slots (tiny items take none), and can wear one piece of clothing on the
- * torso and one on the head, and hold either one weapon or two light weapons; weapons that take
- * both hands take both (equipping over something unequips it). Every rule breach is a `ConflictError`. The checks are not atomic
- * with the writes, which is fine for a single local player; the database still refuses two items
+ * most `INVENTORY_CAPACITY` slots (each item takes at least one), and can wear one piece of
+ * clothing, and hold either one weapon or two light weapons; weapons that take both hands take
+ * both (equipping over something unequips it). Every rule breach is a `ConflictError`. The checks
+ * are not atomic with the writes, which is fine for a single local player; the database still refuses two items
  * in the same place, and an item carried by an actor of another world.
  */
 export class InventoryService implements IInventoryService {
@@ -113,28 +114,40 @@ export class InventoryService implements IInventoryService {
   async updateItem(itemId: string, patch: UpdateItem): Promise<Item> {
     const item = await this.getItem(itemId)
 
-    const isTiny = patch.isTiny ?? item.isTiny
-    const slots = isTiny ? 0 : (patch.slots ?? (item.isTiny ? 1 : item.slots))
+    const type = patch.type ?? item.type
+    // A change of type that says nothing of the class drops the class the old type had.
     const traits = {
-      isTiny,
-      slots,
-      weaponClass: patch.weaponClass === undefined ? item.weaponClass : patch.weaponClass,
-      damageDie: patch.damageDie === undefined ? item.damageDie : patch.damageDie,
-      wearSlot: patch.wearSlot === undefined ? item.wearSlot : patch.wearSlot,
-      armorBonus: patch.armorBonus === undefined ? item.armorBonus : patch.armorBonus
+      type,
+      slots: patch.slots ?? item.slots,
+      weaponClass:
+        patch.weaponClass === undefined
+          ? type === 'weapon'
+            ? item.weaponClass
+            : null
+          : patch.weaponClass,
+      clothingClass:
+        patch.clothingClass === undefined
+          ? type === 'clothing'
+            ? item.clothingClass
+            : null
+          : patch.clothingClass
     }
     assertItemRules(traits)
 
     if (
       item.equippedSlot !== null &&
-      (traits.weaponClass !== item.weaponClass || traits.wearSlot !== item.wearSlot)
+      (traits.type !== item.type ||
+        traits.weaponClass !== item.weaponClass ||
+        traits.clothingClass !== item.clothingClass)
     ) {
-      throw new ConflictError('Unequip the item before changing how it is held or worn')
+      throw new ConflictError(
+        'Unequip the item before changing what it is or how it is held or worn'
+      )
     }
 
     if (item.actorId !== null) {
       const carried = await this.itemRepository.listByActor(item.actorId)
-      assertFitsCapacity(sumSlots(carried) - item.slots + slots)
+      assertFitsCapacity(sumSlots(carried) - item.slots + traits.slots)
     }
 
     return this.requireUpdated(itemId, { ...patch, ...traits })
@@ -231,7 +244,7 @@ export class InventoryService implements IInventoryService {
     const item = await this.getItem(itemId)
     this.requireCarrier(item)
 
-    if (!item.isConsumable) {
+    if (item.type !== 'consumable') {
       throw new ConflictError('The item is not a consumable')
     }
 
@@ -269,16 +282,12 @@ export class InventoryService implements IInventoryService {
   }
 }
 
-/** The item as it will be stored: a tiny item takes no slots, any other takes `slots` (1 if not said). */
-function resolveTraits(input: CreateItem) {
-  const isTiny = input.isTiny ?? false
-
+/** The item as it will be stored: `slots` is 1 if not said. `assertItemRules` refuses a class that does not match the type. */
+function resolveTraits(input: CreateItem): ItemTraits {
   return {
-    isTiny,
-    slots: isTiny ? 0 : (input.slots ?? 1),
+    type: input.type,
+    slots: input.slots ?? 1,
     weaponClass: input.weaponClass ?? null,
-    damageDie: input.damageDie ?? null,
-    wearSlot: input.wearSlot ?? null,
-    armorBonus: input.armorBonus ?? null
+    clothingClass: input.clothingClass ?? null
   }
 }

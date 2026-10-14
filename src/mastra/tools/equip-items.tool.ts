@@ -7,7 +7,7 @@ export const equipItemsTool = createTool({
   id: 'equip-items',
   description:
     'Equips or unequips items an actor already carries, in a single call. The engine decides ' +
-    'where each goes (a weapon in the hands, clothing on the torso or head) and takes off what it ' +
+    'where each goes (a weapon in the hands, clothing on the body) and takes off what it ' +
     'replaces. Unequipped items stay in the inventory. Returns one result per item, in order, ' +
     'with the slot it ended up in.',
   inputSchema: z.object({ changes: z.array(itemEquipSchema).min(1).max(MAX_ITEMS_PER_CALL) }),

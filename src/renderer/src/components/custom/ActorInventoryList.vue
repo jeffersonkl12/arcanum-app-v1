@@ -25,8 +25,7 @@ const busyItemId = ref<string>()
 const equipmentSlots = [
   { slot: 'main_hand', label: 'Mão principal' },
   { slot: 'off_hand', label: 'Mão secundária' },
-  { slot: 'torso', label: 'Tronco' },
-  { slot: 'head', label: 'Cabeça' }
+  { slot: 'body', label: 'Vestimenta' }
 ] as const
 
 // Weapons that take both hands keep the main hand, which leaves the off hand taken.
@@ -42,7 +41,7 @@ function tagsOf(item: Item): string {
 }
 
 function canEquip(item: Item): boolean {
-  return item.weaponClass !== null || item.wearSlot !== null
+  return item.type === 'weapon' || item.type === 'clothing'
 }
 
 function handsHint(item: Item): string {
@@ -82,9 +81,6 @@ onMounted(async () => {
     <div class="flex items-center justify-between text-sm">
       <span class="font-medium text-muted-foreground">
         Espaços: {{ inventory.usedSlots }} / {{ inventory.capacity }}
-      </span>
-      <span class="font-medium text-muted-foreground">
-        Bônus de armadura: +{{ inventory.armorBonus }}
       </span>
     </div>
 

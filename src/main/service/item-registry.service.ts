@@ -41,8 +41,7 @@ export class ItemRegistryService implements IItemRegistry {
 
       const fields = {
         ...draft,
-        description: draft.description ?? null,
-        armorBonus: draft.armorBonus ?? null
+        description: draft.description ?? null
       }
       const created = ownerId
         ? await this.inventoryService.addItem(ownerId, fields)
@@ -130,7 +129,6 @@ export class ItemRegistryService implements IItemRegistry {
         ok: true,
         capacity: inventory.capacity,
         usedSlots: inventory.usedSlots,
-        armorBonus: inventory.armorBonus,
         items: inventory.items.map(toView)
       }
     } catch (error) {
@@ -243,11 +241,9 @@ function toView(item: Item): ItemView {
     name: item.name,
     description: item.description ?? undefined,
     slots: item.slots,
-    isConsumable: item.isConsumable || undefined,
+    type: item.type,
     weaponClass: item.weaponClass ?? undefined,
-    damageDie: item.damageDie ?? undefined,
-    wearSlot: item.wearSlot ?? undefined,
-    armorBonus: item.armorBonus ?? undefined,
+    clothingClass: item.clothingClass ?? undefined,
     carriedBy: item.actorId ?? undefined,
     equippedSlot: item.equippedSlot ?? undefined
   }
