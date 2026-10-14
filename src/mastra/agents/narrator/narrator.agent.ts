@@ -5,6 +5,7 @@ import { layeredInstructions } from '../../prompt/compose.prompt'
 import { dynamicLayer, generatedLayer, staticLayer } from '../../prompt/layer.prompt'
 import { narratorUiPrompt } from '../../prompt/narrator-ui.prompt'
 import { adjustRelationshipsTool } from '../../tools/adjust-relationships.tool'
+import { updateCampaignSummaryTool } from '../../tools/update-campaign-summary.tool'
 import { createItemsTool } from '../../tools/create-items.tool'
 import { deleteItemsTool } from '../../tools/delete-items.tool'
 import { equipItemsTool } from '../../tools/equip-items.tool'
@@ -52,6 +53,7 @@ export const narratorAgent = new Agent({
   tools: {
     rollCheckTool,
     adjustRelationshipsTool,
+    updateCampaignSummaryTool,
     createItemsTool,
     updateItemsTool,
     deleteItemsTool,

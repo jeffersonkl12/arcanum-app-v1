@@ -1,6 +1,7 @@
 export * from '@service/actor.service'
 export * from '@service/ai-setting.service'
 export * from '@service/base.service'
+export * from '@service/campaign-registry.service'
 export * from '@service/campaign.service'
 export * from '@service/coin-registry.service'
 export * from '@service/coin.service'

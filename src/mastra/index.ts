@@ -25,6 +25,7 @@ import { rememberEventsTool } from './tools/remember-events.tool'
 import { rollCheckTool } from './tools/roll-check.tool'
 import { transferCoinsTool } from './tools/transfer-coins.tool'
 import { transferItemsTool } from './tools/transfer-items.tool'
+import { updateCampaignSummaryTool } from './tools/update-campaign-summary.tool'
 import { updateItemsTool } from './tools/update-items.tool'
 
 // Electron main sets ARCANUM_MASTRA_DIR (userData/data/mastra) before this module loads. This file
@@ -39,6 +40,7 @@ export const mastra = new Mastra({
     createNpcTool,
     rollCheckTool,
     adjustRelationshipsTool,
+    updateCampaignSummaryTool,
     createItemsTool,
     updateItemsTool,
     deleteItemsTool,

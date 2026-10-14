@@ -19,6 +19,7 @@ import type { IWorldService } from '@service/world.service'
 import { RELATIONSHIP_LIMITS } from '@constant'
 import { describeAttributeLevel } from '@util/attribute-level.util'
 import { describeRelationship, getRelationshipLevel } from '@util/relationship.util'
+import type { ICampaignRegistry } from '../../mastra/context/campaign.context'
 import type { ICoinRegistry } from '../../mastra/context/coin.context'
 import type { IRelationshipRegistry } from '../../mastra/context/relationship.context'
 import type {
@@ -79,7 +80,8 @@ export class GameMasterService implements IGameMasterService {
     private readonly liveContext: ILiveContextService,
     private readonly relationshipService: IRelationshipService,
     private readonly relationshipRegistry: IRelationshipRegistry,
-    private readonly campaignService: ICampaignService
+    private readonly campaignService: ICampaignService,
+    private readonly campaignRegistry: ICampaignRegistry
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
@@ -145,6 +147,7 @@ export class GameMasterService implements IGameMasterService {
       coinRegistry: this.coinRegistry,
       memoryRegistry: this.memoryRegistry,
       relationshipRegistry: this.relationshipRegistry,
+      campaignRegistry: this.campaignRegistry,
       liveContext: await this.liveContext.prepareTurn(worldId, message),
       diceChecker: this.createDiceChecker(),
       message

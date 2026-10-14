@@ -32,6 +32,7 @@ import { LiveContextService } from '@service/live-context.service'
 import { MemoryContextService } from '@service/memory-context.service'
 import { MemoryRegistryService } from '@service/memory-registry.service'
 import { MemoryService, type IMemoryService } from '@service/memory.service'
+import { CampaignRegistryService } from '@service/campaign-registry.service'
 import { CampaignService, type ICampaignService } from '@service/campaign.service'
 import { PartyService, type IPartyService } from '@service/party.service'
 import { RelationshipRegistryService } from '@service/relationship-registry.service'
@@ -102,5 +103,6 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   liveContextService,
   relationshipService,
   new RelationshipRegistryService(relationshipService, actorService),
-  campaignService
+  campaignService,
+  new CampaignRegistryService(campaignService)
 )

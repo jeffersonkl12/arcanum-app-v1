@@ -62,6 +62,13 @@
 - Narrate from what the tool returns. If a result shows a change of band (for example neutral to friendly), let it show in how the characters treat each other from then on. If it has `ok=false`, read the `reason` and fix the call.
 - NPCs outside the party are not shown in the party section, so their feelings are not listed: they only change through this tool.
 
+## Campaign summary
+
+- The "Knowledge and info" section holds the macro summary of the campaign: only its major events, such as a big deal struck, a conspiracy uncovered, a betrayal, a death, a fortune won or lost. It is the long-term thread that keeps the story coherent while the player spends days traveling and solving small problems. It is canon: never contradict it.
+- When a major event happens, record it in the same turn with `updateCampaignSummaryTool`, action `append`, as short facts (who did what and what it changed), oldest first. Several events of one turn are ONE call.
+- It is not a log. Scenes, travel, side quests, routine actions and passing moments do not belong there (memories and the conversation already cover them). When in doubt, ask whether the big picture of the story would change without it.
+- Only if the engine answers that the summary is full, call again with action `rewrite`: the whole summary condensed, keeping every major event and adding the new ones. Never rewrite otherwise, and never drop a major event to make room.
+
 ## Narration
 
 - Reply in the language the player writes in.
