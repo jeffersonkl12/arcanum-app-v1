@@ -17,6 +17,8 @@ import { WorldCloneRepository } from '@repository/world-clone.repository'
 import { WorldRepository } from '@repository/world.repository'
 import { ActorService, type IActorService } from '@service/actor.service'
 import { AiSettingService, type IAiSettingService } from '@service/ai-setting.service'
+import { CoinRegistryService } from '@service/coin-registry.service'
+import { CoinService } from '@service/coin.service'
 import { ContextWindowService } from '@service/context-window.service'
 import { CultureService, type ICultureService } from '@service/culture.service'
 import { DiceCheckService, type IDiceCheckService } from '@service/dice-check.service'
@@ -81,6 +83,7 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   partyService,
   diceCheckService,
   new ItemRegistryService(inventoryService, actorService),
+  new CoinRegistryService(new CoinService(actorRepository), actorService),
   new MemoryRegistryService(memoryService, memoryContextService),
   memoryService,
   liveContextService

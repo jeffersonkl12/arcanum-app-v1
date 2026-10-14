@@ -13,6 +13,7 @@ import { ACTOR_HP } from '../../main/constant/actor-hp.constant'
 import { CHECK_OUTCOMES } from '../../main/constant/check-outcome.constant'
 import { ROLL_MODES, type RollMode } from '../../main/constant/roll-mode.constant'
 import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
+import type { ICoinRegistry } from './coin.context'
 import type { IItemRegistry } from './item.context'
 import { liveContextSchema } from './live-context.context'
 import type { IMemoryRegistry } from './memory.context'
@@ -201,6 +202,13 @@ export const gameContextSchema = z.object({
       value !== null &&
       typeof (value as IItemRegistry).createItems === 'function',
     'itemRegistry must implement IItemRegistry'
+  ),
+  coinRegistry: z.custom<ICoinRegistry>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as ICoinRegistry).transferCoins === 'function',
+    'coinRegistry must implement ICoinRegistry'
   ),
   memoryRegistry: z.custom<IMemoryRegistry>(
     (value) =>

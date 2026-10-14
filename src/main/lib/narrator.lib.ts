@@ -11,6 +11,7 @@ import type {
   PartySnapshot,
   WorldBrief
 } from '../../mastra/context/game.context'
+import type { ICoinRegistry } from '../../mastra/context/coin.context'
 import type { IItemRegistry } from '../../mastra/context/item.context'
 import type { LiveContextSection } from '../../mastra/context/live-context.context'
 import type { IMemoryRegistry } from '../../mastra/context/memory.context'
@@ -31,6 +32,7 @@ export interface NarratorTurn {
   party: PartySnapshot
   npcRegistry: INpcRegistry
   itemRegistry: IItemRegistry
+  coinRegistry: ICoinRegistry
   memoryRegistry: IMemoryRegistry
   /** Dynamic context that lingers in the prompt (memories, ...), already aged for this turn. */
   liveContext: LiveContextSection[]
@@ -109,6 +111,7 @@ export class NarratorGateway implements INarratorGateway {
     party,
     npcRegistry,
     itemRegistry,
+    coinRegistry,
     memoryRegistry,
     liveContext,
     diceChecker
@@ -123,6 +126,7 @@ export class NarratorGateway implements INarratorGateway {
     requestContext.set('party', party)
     requestContext.set('npcRegistry', npcRegistry)
     requestContext.set('itemRegistry', itemRegistry)
+    requestContext.set('coinRegistry', coinRegistry)
     requestContext.set('memoryRegistry', memoryRegistry)
     requestContext.set('liveContext', liveContext)
     requestContext.set('diceChecker', diceChecker)

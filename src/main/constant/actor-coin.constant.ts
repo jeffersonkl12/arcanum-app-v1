@@ -3,6 +3,9 @@ export const ACTOR_COINS = ['goldPieces', 'silverPieces', 'bronzePieces'] as con
 
 export type ActorCoin = (typeof ACTOR_COINS)[number]
 
+/** An amount of every coin. */
+export type CoinSet = Record<ActorCoin, number>
+
 /** Amount of a coin. `max` is a ceiling so a typo cannot make a character infinitely rich. */
 export const ACTOR_COIN_LIMITS = {
   min: 0,

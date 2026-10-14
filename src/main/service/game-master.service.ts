@@ -14,6 +14,7 @@ import type { ILiveContextService } from '@service/live-context.service'
 import type { IMemoryService } from '@service/memory.service'
 import type { IPartyService } from '@service/party.service'
 import type { IWorldService } from '@service/world.service'
+import type { ICoinRegistry } from '../../mastra/context/coin.context'
 import type {
   CheckRequest,
   CreatedNpc,
@@ -64,6 +65,7 @@ export class GameMasterService implements IGameMasterService {
     private readonly partyService: IPartyService,
     private readonly diceCheckService: IDiceCheckService,
     private readonly itemRegistry: IItemRegistry,
+    private readonly coinRegistry: ICoinRegistry,
     private readonly memoryRegistry: IMemoryRegistry,
     private readonly memoryService: IMemoryService,
     private readonly liveContext: ILiveContextService
@@ -128,6 +130,7 @@ export class GameMasterService implements IGameMasterService {
       party: await this.loadParty(worldId),
       npcRegistry: this.createNpcRegistry(),
       itemRegistry: this.itemRegistry,
+      coinRegistry: this.coinRegistry,
       memoryRegistry: this.memoryRegistry,
       liveContext: await this.liveContext.prepareTurn(worldId, message),
       diceChecker: this.createDiceChecker(),

@@ -12,6 +12,7 @@ import { getInventoryTool } from '../../tools/get-inventory.tool'
 import { recallMemoriesTool } from '../../tools/recall-memories.tool'
 import { rememberEventsTool } from '../../tools/remember-events.tool'
 import { rollCheckTool } from '../../tools/roll-check.tool'
+import { transferCoinsTool } from '../../tools/transfer-coins.tool'
 import { transferItemsTool } from '../../tools/transfer-items.tool'
 import { updateItemsTool } from '../../tools/update-items.tool'
 import { npcCreatorAgent } from '../npc-creator/npc-creator.agent'
@@ -52,6 +53,7 @@ export const narratorAgent = new Agent({
     updateItemsTool,
     deleteItemsTool,
     transferItemsTool,
+    transferCoinsTool,
     equipItemsTool,
     getInventoryTool,
     findItemsTool,
