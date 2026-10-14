@@ -26,6 +26,7 @@ import type {
 } from '@schema'
 import type { AiProviderCatalogEntry } from '@service/ai-setting.service'
 import type { CheckResult } from '@service/dice-check.service'
+import type { ActorAttribute } from '@shared/actor-attribute.shared'
 import type { IpcError } from '@shared/ipc-response.shared'
 import type { RollMode } from '@shared/roll-mode.shared'
 import type { NarrationDeltaEvent, NarrationDoneEvent } from '@shared/narrator-ui.shared'
@@ -134,10 +135,14 @@ export const ipcContract = {
 
   /**
    * Resolves a check whose dice the player rolled on screen: the faces are only the entropy, the
-   * engine validates them (`conflict` if they are not those of a roll in this mode) and decides
-   * the outcome by its rules.
+   * engine validates them (`conflict` if they are not as many as the actor's attribute, +1 with
+   * advantage and -1 with disadvantage) and decides the outcome by its rules: a 5 or 6 on any die
+   * is a success.
    */
-  'dice:resolveCheck': channel<{ mode: RollMode; dice: number[] }, CheckResult>(),
+  'dice:resolveCheck': channel<
+    { actorId: string; attribute: ActorAttribute; mode?: RollMode; dice: number[] },
+    CheckResult
+  >(),
 
   /** Plays one turn of the campaign; slow, because the narrator is an LLM. */
   'gameMaster:takeTurn': channel<{ worldId: string; message: string }, string>(),

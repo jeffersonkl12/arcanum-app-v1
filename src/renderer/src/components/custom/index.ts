@@ -8,6 +8,8 @@ export { default as CreateItemDialog } from '@renderer/components/custom/CreateI
 export { default as CreateNamedEntityDialog } from '@renderer/components/custom/CreateNamedEntityDialog.vue'
 export { default as CreateNpcDialog } from '@renderer/components/custom/CreateNpcDialog.vue'
 export { default as CreateWorldDialog } from '@renderer/components/custom/CreateWorldDialog.vue'
+export { default as DiceFaces } from '@renderer/components/custom/DiceFaces.vue'
+export { default as DicePips } from '@renderer/components/custom/DicePips.vue'
 export { default as EntityRow } from '@renderer/components/custom/EntityRow.vue'
 export { default as GameChatComposer } from '@renderer/components/custom/GameChatComposer.vue'
 export { default as GameChatMessage } from '@renderer/components/custom/GameChatMessage.vue'

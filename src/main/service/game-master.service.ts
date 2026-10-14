@@ -1,5 +1,5 @@
 import { AI_HELPER_MODELS, toMastraModelId } from '@constant'
-import { ConflictError } from '@error'
+import { ConflictError, NotFoundError } from '@error'
 import type {
   CampaignMessage,
   INarratorGateway,
@@ -13,11 +13,14 @@ import type { IDiceCheckService } from '@service/dice-check.service'
 import type { IPartyService } from '@service/party.service'
 import type { IWorldService } from '@service/world.service'
 import type {
+  CheckRequest,
   CreateNpcResult,
+  IDiceChecker,
   INpcRegistry,
   NpcDraft,
   PartyMember,
-  PartySnapshot
+  PartySnapshot,
+  RollCheckResult
 } from '../../mastra/context/game.context'
 import type { IItemRegistry } from '../../mastra/context/item.context'
 
@@ -116,7 +119,7 @@ export class GameMasterService implements IGameMasterService {
       party: await this.loadParty(worldId),
       npcRegistry: this.createNpcRegistry(),
       itemRegistry: this.itemRegistry,
-      diceChecker: this.diceCheckService,
+      diceChecker: this.createDiceChecker(),
       message
     }
   }
@@ -167,6 +170,25 @@ export class GameMasterService implements IGameMasterService {
       background: actor.background,
       equipped: items.filter((item) => item.equippedSlot).map((item) => item.name),
       carried: items.filter((item) => !item.equippedSlot).map((item) => item.name)
+    }
+  }
+
+  /** Rolls only for actors of the world; a refusal goes back to the AI so it can fix the call. */
+  private createDiceChecker(): IDiceChecker {
+    return {
+      check: async (worldId: string, request: CheckRequest): Promise<RollCheckResult> => {
+        try {
+          const actor = await this.actorService.get(request.actorId)
+          if (actor.worldId !== worldId) {
+            return { ok: false, reason: 'That actor does not belong to this world' }
+          }
+
+          return { ok: true, result: await this.diceCheckService.check(request) }
+        } catch (error) {
+          if (error instanceof NotFoundError) return { ok: false, reason: error.message }
+          throw error
+        }
+      }
     }
   }
 

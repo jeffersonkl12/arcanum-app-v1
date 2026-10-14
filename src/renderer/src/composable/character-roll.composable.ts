@@ -1,26 +1,28 @@
 import { inject, ref, type Ref } from 'vue'
 import { toast } from 'vue-sonner'
-import {
-  actorAttributeKeys,
-  actorRollRules,
-  type ActorAttributes
-} from '@renderer/constant/actor.constant'
+import { actorAttributeKeys, actorRollRules } from '@renderer/constant/actor.constant'
 import { diceTrayKey } from '@renderer/constant/dice.constant'
 import { diceTray as defaultDiceTray } from '@renderer/lib/dice-tray.lib'
-import { sumDice, toAttributeScores } from '@renderer/util/character-roll.util'
+import {
+  toAttributeRoll,
+  toAttributeRolls,
+  toHitPointRoll,
+  type AttributeRolls,
+  type DiceRoll
+} from '@renderer/util/character-roll.util'
 
 // One throw at a time for the whole window: the tray is a single canvas over the app.
 const isRolling = ref(false)
 
 /**
  * The dice of a new character: the dice tumble on screen and their faces are the result. Each
- * attribute is 3d6 summed, and the maximum health is 1d6 (`actorRollRules`).
+ * attribute is the highest of 2d6, and the maximum health is 2d6 summed (`actorRollRules`).
  */
 export function useCharacterRoll(): {
   isRolling: Ref<boolean>
-  rollAttribute: () => Promise<number | undefined>
-  rollAttributes: () => Promise<ActorAttributes | undefined>
-  rollHitPoints: () => Promise<number | undefined>
+  rollAttribute: () => Promise<DiceRoll | undefined>
+  rollAttributes: () => Promise<AttributeRolls | undefined>
+  rollHitPoints: () => Promise<DiceRoll | undefined>
 } {
   const diceTray = inject(diceTrayKey, defaultDiceTray)
 
@@ -40,20 +42,20 @@ export function useCharacterRoll(): {
     }
   }
 
-  async function rollAttribute(): Promise<number | undefined> {
+  async function rollAttribute(): Promise<DiceRoll | undefined> {
     const dice = await throwDice(actorRollRules.attributeDice)
-    return dice && sumDice(dice)
+    return dice && toAttributeRoll(dice)
   }
 
   /** All the attributes in a single throw. */
-  async function rollAttributes(): Promise<ActorAttributes | undefined> {
+  async function rollAttributes(): Promise<AttributeRolls | undefined> {
     const dice = await throwDice(actorRollRules.attributeDice * actorAttributeKeys.length)
-    return dice && toAttributeScores(dice)
+    return dice && toAttributeRolls(dice)
   }
 
-  async function rollHitPoints(): Promise<number | undefined> {
+  async function rollHitPoints(): Promise<DiceRoll | undefined> {
     const dice = await throwDice(actorRollRules.hitPointDice)
-    return dice && sumDice(dice)
+    return dice && toHitPointRoll(dice)
   }
 
   return { isRolling, rollAttribute, rollAttributes, rollHitPoints }

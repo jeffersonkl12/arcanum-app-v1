@@ -2,7 +2,11 @@ import { z } from 'zod'
 // Pure constants of the engine. Imported by relative path because this folder is also loaded by the
 // Mastra CLI, which does not resolve the `@constant` alias.
 import { ACTOR_AGES } from '../../main/constant/actor-age.constant'
-import { ACTOR_ATTRIBUTE_LIMITS } from '../../main/constant/actor-attribute.constant'
+import {
+  ACTOR_ATTRIBUTES,
+  ACTOR_ATTRIBUTE_LIMITS,
+  type ActorAttribute
+} from '../../main/constant/actor-attribute.constant'
 import { ACTOR_GENDERS } from '../../main/constant/actor-gender.constant'
 import { CHECK_OUTCOMES } from '../../main/constant/check-outcome.constant'
 import { ROLL_MODES, type RollMode } from '../../main/constant/roll-mode.constant'
@@ -22,7 +26,9 @@ export const npcDraftSchema = z.object({
   gender: z.enum(ACTOR_GENDERS),
   strength: attributeScoreSchema
     .optional()
-    .describe(`Omit for an average person (${ACTOR_ATTRIBUTE_LIMITS.default}).`),
+    .describe(
+      `The d6 the NPC rolls in a check with it. Omit for an average person (${ACTOR_ATTRIBUTE_LIMITS.default}).`
+    ),
   dexterity: attributeScoreSchema.optional(),
   intelligence: attributeScoreSchema.optional(),
   profession: z.string().max(TEXT_LIMITS.shortText).optional(),
@@ -47,18 +53,32 @@ export interface INpcRegistry {
 
 /** What the engine rolled for a check. The AI narrates it and never changes it. */
 export const checkResultSchema = z.object({
+  actorId: z.string(),
+  attribute: z.enum(ACTOR_ATTRIBUTES),
   mode: z.enum(ROLL_MODES),
   dice: z.array(z.number().int()),
-  highest: z.number().int(),
   outcome: z.enum(CHECK_OUTCOMES),
   succeeded: z.boolean()
 })
 
 export type CheckResult = z.infer<typeof checkResultSchema>
 
-/** Port to the engine's dice check (2d6 normally, 3d6 with advantage, 1d6 with disadvantage). */
+/** Who rolls a check, with which attribute, and in which circumstances. */
+export interface CheckRequest {
+  actorId: string
+  attribute: ActorAttribute
+  mode?: RollMode
+}
+
+export type RollCheckResult = { ok: true; result: CheckResult } | { ok: false; reason: string }
+
+/**
+ * Port to the engine's dice check: the actor rolls one d6 per point of the attribute (+1 with
+ * advantage, -1 with disadvantage) and a 5 or 6 on any die is a success. The actor must belong to
+ * the world.
+ */
 export interface IDiceChecker {
-  check(mode?: RollMode): CheckResult
+  check(worldId: string, request: CheckRequest): Promise<RollCheckResult>
 }
 
 /** The part of the world the narrator needs in its prompt. */

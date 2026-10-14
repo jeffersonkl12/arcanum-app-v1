@@ -202,11 +202,11 @@ Exemplo de `invalid_input`:
 | `WORLD_GENRES`   | `fantasy` `high_fantasy` `dark_fantasy` `grimdark` `medieval` `mythological` `steampunk` `cyberpunk` `sci_fi` `post_apocalyptic` `horror` `western` |
 | `ACTOR_AGES`     | `baby` `child` `adolescent` `young_adult` `middle_aged` `old` `elder`                                                                               |
 | `ACTOR_GENDERS`  | `male` `female`                                                                                                                                     |
-| `ACTOR_ATTRIBUTES` | `strength` `dexterity` `intelligence`; cada um de 1 a 20 · padrão **10** (`ACTOR_ATTRIBUTE_LIMITS`)                                               |
-| `ACTOR_HP`       | `hpMax` de 1 a 9999 · padrão ao criar: **40** (jogador) e **20** (NPC)                                                                              |
+| `ACTOR_ATTRIBUTES` | `strength` `dexterity` `intelligence`; cada um de 1 a 6 (o maior de 2d6) · padrão **4** · é **quantos d6** um teste com ele rola (`ACTOR_ATTRIBUTE_LIMITS`)                                               |
+| `ACTOR_HP`       | `hpMax` de 2 a 12 (a soma de 2d6) · padrão ao criar: **7** (jogador e NPC)                                                                              |
 | `AI_PROVIDERS`   | `google` `openai` `anthropic` `deepseek`                                                                                                            |
-| `ROLL_MODES`     | `normal` `advantage` `disadvantage` (só usado pela IA; não há IPC de rolagem)                                                                       |
-| `CHECK_OUTCOMES` | `critical_failure` `failure` `success` `critical_success`                                                                                           |
+| `ROLL_MODES`     | `normal` `advantage` `disadvantage`: o modo muda a quantidade de d6 do teste (0, +1, −1)                                                                       |
+| `CHECK_OUTCOMES` | `failure` `success`                                                                                           |
 
 | `TEXT_LIMITS` | Valor | Onde se aplica                                                                   |
 | ------------- | ----- | -------------------------------------------------------------------------------- |
@@ -381,11 +381,11 @@ Personagem do mundo: o **jogador** (`isNpc: false`) ou um **NPC** (`isNpc: true`
 | `appearance`  | `string \| null` | opcional, ≤ 5000               |                                                    |
 | `personality` | `string \| null` | opcional, ≤ 5000               |                                                    |
 | `background`  | `string \| null` | opcional, ≤ 5000               |                                                    |
-| `hpMax`       | `number` (int)   | opcional, 1–9999               | Omitido: 40 se `isNpc: false`, senão 20            |
+| `hpMax`       | `number` (int)   | opcional, 2–12                 | Omitido: **7**                                     |
 | `hpCurrent`   | `number` (int)   | opcional, 0–`hpMax`            | Omitido: começa com a vida cheia (`hpMax`)         |
-| `strength`    | `number` (int)   | opcional, 1–20                 | Omitido: **10**                                    |
-| `dexterity`   | `number` (int)   | opcional, 1–20                 | Omitido: **10**                                    |
-| `intelligence`| `number` (int)   | opcional, 1–20                 | Omitido: **10**                                    |
+| `strength`    | `number` (int)   | opcional, 1–6                     | Omitido: **4**                                     |
+| `dexterity`   | `number` (int)   | opcional, 1–6                     | Omitido: **4**                                     |
+| `intelligence`| `number` (int)   | opcional, 1–6                     | Omitido: **4**                                     |
 | `isNpc`       | `boolean`        | opcional, _default_ **`true`** | `false` = jogador. **No máximo 1 por mundo**       |
 | `imagePath`   | `string \| null` | **não aceito** (ignorado)      | Só muda por `actor:setImage` / `actor:removeImage` |
 
@@ -408,7 +408,8 @@ await window.api.invoke('actor:create', {
 - Já existe um jogador no mundo e você cria/atualiza outro ator com `isNpc: false` → `The world already has a player`.
 - `cultureId`/`languageId`/`partyId` apontando para algo de **outro mundo** ou inexistente. A garantia é do banco, por FK composta `(id, world_id)`.
 - `hpCurrent` maior que `hpMax` → `The current health cannot be higher than the maximum`. No `update`, mandar só `hpMax` menor que a vida atual **baixa a vida atual junto**; mandar só `hpCurrent` é conferido contra o `hpMax` salvo. O banco repete a regra por `CHECK` (`actor_hp_max_range`, `actor_hp_current_range`).
-- Atributo fora de 1–20 → `invalid_input` (o banco repete por `CHECK` `actor_attributes_range`).
+- `hpMax` fora de 2–12 → `invalid_input` (a vida máxima é a soma de 2d6).
+- Atributo fora de 1–6 → `invalid_input` (o banco repete por `CHECK` `actor_attributes_range`).
 - `worldId` inexistente → `conflict` com o `detail` cru do Postgres.
 
 > O vínculo com a party pode ser feito por `actor:update { partyId }` **ou** por `party:addMember`. Os dois escrevem a mesma coluna.
@@ -638,16 +639,21 @@ Fluxo completo na [§6](#6-ia-fluxo-do-game-master).
 
 ### 5.9 Dice
 
-| Canal               | Entrada                              | Saída         | Erros                       |
-| ------------------- | ------------------------------------ | ------------- | --------------------------- |
-| `dice:resolveCheck` | `{ mode: RollMode; dice: number[] }` | `CheckResult` | `invalid_input`, `conflict` |
+| Canal               | Entrada                                                                           | Saída         | Erros                                   |
+| ------------------- | --------------------------------------------------------------------------------- | ------------- | --------------------------------------- |
+| `dice:resolveCheck` | `{ actorId: string; attribute: ActorAttribute; mode?: RollMode; dice: number[] }` | `CheckResult` | `invalid_input`, `not_found`, `conflict` |
 
-Resolve uma checagem cujos dados o jogador rolou na tela (`@3d-dice/dice-box`, física 3D): as faces são só a **entropia**, as regras continuam na engine. É o que o botão do `RollRequest` chama (§7).
+Resolve um teste cujos dados o jogador rolou na tela (`@3d-dice/dice-box`, física 3D): as faces são só a **entropia**, as regras continuam na engine. É o que o botão do `RollRequest` chama (§7).
 
-- `mode`: `normal` (2d6), `advantage` (3d6) ou `disadvantage` (1d6). Vem de `DICE_PER_ROLL_MODE` (`@shared`, `roll-mode.shared.ts`).
-- `dice`: cada face do d6, de 1 a 6, **na quantidade exata do modo**. Outra quantidade ou valor fora de 1–6 volta como `invalid_input` (formato) ou `conflict` (quantidade que não bate com o modo).
-- A saída é o mesmo `CheckResult` do `rollCheckTool`: `outcome` pelo dado mais alto (6 crítico, 5 sucesso, 2–4 falha, todos em 1 falha crítica).
+**Regra do teste.** O ator rola **um d6 por ponto do atributo** (força 4 = 4d6). Com `advantage` rola um dado a mais; com `disadvantage`, um a menos (nunca menos de 1). Se **ao menos um** dado cair em 5 ou 6, é `success`; senão, `failure`. Não há críticos.
+
+- `attribute`: `strength`, `dexterity` ou `intelligence`. O tamanho do pool vem do valor salvo no ator, lido pela engine.
+- `mode`: omitido = `normal`. O ajuste vem de `DICE_DELTA_PER_ROLL_MODE` e o cálculo de `checkPoolSize(score, mode)` (`@shared`, `roll-mode.shared.ts`); o renderer usa a mesma função só para saber quantos dados jogar e o que escrever no botão.
+- `dice`: cada face do d6, de 1 a 6, **na quantidade exata do pool**. Valor fora de 1–6 volta como `invalid_input`; quantidade que não bate com o atributo e o modo volta como `conflict`; ator inexistente, `not_found`.
+- A saída é o mesmo `CheckResult` do `rollCheckTool`.
 - Local e de um jogador só: o renderer é confiável para sortear as faces, então não há anti-trapaça.
+
+**Criação de personagem.** Não passa pela engine: o renderer joga 2d6 para cada atributo (vale o **maior** dado, então nenhum passa de 6) e 2d6 para a vida máxima (a soma é o `hpMax`), e manda os valores prontos em `actor:create`. A engine só confere as faixas (atributo 1–6, vida 2–12).
 
 ---
 
@@ -705,7 +711,7 @@ O system prompt do narrador é a junção de _layers_ (um `.md` cada), nesta ord
 | 1   | `identity` | estático | Quem é o narrador                                                                                                                                                                                                             |
 | 2   | `rules`    | estático | Nunca inventar mecânica · rolar `rollCheckTool` só para ações incertas e relevantes · o resultado é final · delegar NPC novo ao `npcCreator` **antes** de narrá-lo · responder no idioma do jogador · nunca agir pelo jogador |
 | 3   | `world`    | dinâmico | `name`, `genre`, `description` (opcional)                                                                                                                                                                                     |
-| 4   | `party`    | dinâmico | Membros: `name`, `isPlayer`, `age`, `gender`, `hpCurrent`/`hpMax`, `strength`/`dexterity`/`intelligence` (só leitura para a IA) e, se houver, `profession`, `appearance`, `personality`, `background`                                                                |
+| 4   | `party`    | dinâmico | Membros: `name`, `isPlayer`, `age`, `gender`, `hpCurrent`/`hpMax`, `id`, `strength`/`dexterity`/`intelligence` (só leitura para a IA; cada um é quantos d6 o teste rola) e, se houver, `profession`, `appearance`, `personality`, `background`                                                                |
 
 - Camadas estáticas vêm primeiro (prefixo imutável ajuda o cache do provedor). Dinâmicas, do que menos muda para o que mais muda.
 - Dinâmicas são **Handlebars em modo `strict`**: campo ausente **lança erro**. Campo opcional precisa de `{{#if campo}}`.
@@ -716,32 +722,42 @@ O system prompt do narrador é a junção de _layers_ (um `.md` cada), nesta ord
 
 #### `rollCheckTool` (id `roll-check`)
 
-Rola uma checagem de dados na engine. O resultado é **final**; a IA o narra, não o altera.
+Rola um teste de dados na engine para um ator (o jogador faz o dele pelo `RollRequest`; esta tool é para o que o jogador não rola, como o teste de um NPC). O resultado é **final**; a IA o narra, não o altera.
 
 ```ts
 // input
-{ mode?: 'normal' | 'advantage' | 'disadvantage' } // omitido = normal
-
-// output (CheckResult)
 {
+  actorId: string // id do ator (seção party ou relatório do npcCreator)
+  attribute: 'strength' | 'dexterity' | 'intelligence'
+  mode?: 'normal' | 'advantage' | 'disadvantage' // omitido = normal
+}
+
+// output
+{ ok: boolean; result?: CheckResult; reason?: string }
+
+// CheckResult
+{
+  actorId: string
+  attribute: 'strength' | 'dexterity' | 'intelligence'
   mode: 'normal' | 'advantage' | 'disadvantage'
-  dice: number[]       // cada d6 rolado
-  highest: number      // maior dado
-  outcome: 'critical_failure' | 'failure' | 'success' | 'critical_success'
-  succeeded: boolean   // true para success e critical_success
+  dice: number[] // cada d6 rolado
+  outcome: 'failure' | 'success'
+  succeeded: boolean
 }
 ```
 
-| Modo           | Dados | Quando usar                |
-| -------------- | ----- | -------------------------- |
-| `normal`       | 2d6   | Padrão                     |
-| `advantage`    | 3d6   | Circunstância favorável    |
-| `disadvantage` | 1d6   | Circunstância desfavorável |
+Rola um d6 por ponto do atributo. Se algum dado cair em 5 ou 6, `success`; senão, `failure`.
 
-Leitura do resultado pelo **maior dado**: `6` → `critical_success` · `5` → `success` · `2–4` → `failure` · `1` → `critical_failure` (maior dado `1` significa que todos os dados foram `1`).
+| Modo           | Dados                 | Quando usar                |
+| -------------- | --------------------- | -------------------------- |
+| `normal`       | atributo              | Padrão                     |
+| `advantage`    | atributo + 1          | Circunstância favorável    |
+| `disadvantage` | atributo − 1 (mín. 1) | Circunstância desfavorável |
+
+`ok=false` quando o ator não existe ou não é do mundo; a `reason` diz o que corrigir.
 
 ```jsonc
-{ "mode": "normal", "dice": [3, 5], "highest": 5, "outcome": "success", "succeeded": true }
+{ "ok": true, "result": { "actorId": "…", "attribute": "dexterity", "mode": "normal", "dice": [3, 5, 1], "outcome": "success", "succeeded": true } }
 ```
 
 #### `createNpcTool` (id `create-npc`)
@@ -829,7 +845,7 @@ const RollResult = defineComponent({
   name: 'RollResult',
   description: 'Mostra o resultado de uma checagem já feita pela engine. Nunca invente valores.',
   props: z.object({
-    outcome: z.enum(['critical_failure', 'failure', 'success', 'critical_success']),
+    outcome: z.enum(['failure', 'success']),
     dice: z.array(z.number().int())
   }),
   component: RollResultView // componente Vue; recebe { props, renderNode }
@@ -950,7 +966,7 @@ Banco do jogo: **PGlite** (Postgres embutido) via Drizzle, em `userData/data/gam
 | Tabela       | Colunas principais                                                                                                                                                                          | Constraints relevantes                                                                                                                                                                                                                                                                                                                                     |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `world`      | `id`, `name`, `is_template`, `description`, `genre`, `source_world_id`, `image_path`                                                                                                        | `source_world_id` → `world.id` **ON DELETE SET NULL**                                                                                                                                                                                                                                                                                                      |
-| `actor`      | `id`, `world_id`, `name`, `age`, `gender`, `culture_id`, `language_id`, `party_id`, `profession`, `appearance`, `personality`, `background`, `image_path`, `hp_max`, `hp_current`, `strength`, `dexterity`, `intelligence`, `is_npc` | `world_id` **CASCADE**. Índice único parcial `actor_world_id_player_unique` em `(world_id) WHERE is_npc = false`. `CHECK` `actor_attributes_range` (os três atributos entre 1 e 20), `actor_hp_max_range` (`hp_max` entre 1 e 9999) e `actor_hp_current_range` (`hp_current` entre 0 e `hp_max`). FKs compostas `(culture_id, world_id)`, `(language_id, world_id)`, `(party_id, world_id)` sem ON DELETE (NO ACTION) |
+| `actor`      | `id`, `world_id`, `name`, `age`, `gender`, `culture_id`, `language_id`, `party_id`, `profession`, `appearance`, `personality`, `background`, `image_path`, `hp_max`, `hp_current`, `strength`, `dexterity`, `intelligence`, `is_npc` | `world_id` **CASCADE**. Índice único parcial `actor_world_id_player_unique` em `(world_id) WHERE is_npc = false`. `CHECK` `actor_attributes_range` (os três atributos entre 1 e 6), `actor_hp_max_range` (`hp_max` entre 2 e 12) e `actor_hp_current_range` (`hp_current` entre 0 e `hp_max`). FKs compostas `(culture_id, world_id)`, `(language_id, world_id)`, `(party_id, world_id)` sem ON DELETE (NO ACTION) |
 | `culture`    | `id`, `world_id`, `name`, `description`                                                                                                                                                     | `world_id` CASCADE · `UNIQUE (id, world_id)`                                                                                                                                                                                                                                                                                                               |
 | `language`   | `id`, `world_id`, `name`, `description`                                                                                                                                                     | `world_id` CASCADE · `UNIQUE (id, world_id)`                                                                                                                                                                                                                                                                                                               |
 | `party`      | `id`, `world_id`                                                                                                                                                                            | `world_id` CASCADE · `party_world_id_unique` · `UNIQUE (id, world_id)`                                                                                                                                                                                                                                                                                     |
@@ -968,6 +984,8 @@ Banco do jogo: **PGlite** (Postgres embutido) via Drizzle, em `userData/data/gam
 6. `…_dry_sentinel`: `actor.hp_max`, `actor.hp_current` e seus `CHECK`s (jogadores já existentes recebem 40)
 7. `…_inventory`: tabela `item`, enums de equipamento e `actor_id_world_id_unique`
 8. `…_gorgeous_newton_destine`: `actor.strength`, `actor.dexterity`, `actor.intelligence` (padrão 10) e o `CHECK` `actor_attributes_range`
+9. `…_actor_coins`: `actor.gold_pieces`, `actor.silver_pieces`, `actor.bronze_pieces` e o `CHECK` `actor_coins_range`
+10. `…_dice_pool_attributes`: atributos passam a 1–6 (padrão 4) e `hp_max` a 2–12 (padrão 7). Antes de apertar os `CHECK`s, ajusta os atores existentes às novas faixas (vida acima de 12 vira 12; atributo fora de 1–6, de outra escala, volta ao padrão 4)
 
 Não existem tabelas de cena, sessão, combate, inventário ou NPC separado: um NPC é um `actor` com `is_npc = true`.
 

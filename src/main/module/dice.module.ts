@@ -1,7 +1,7 @@
 import { DiceAssetsProtocol, DiceRoller, resolveDiceAssetsFolder } from '@lib'
-import { DiceCheckService, type IDiceCheckService } from '@service/dice-check.service'
+import type { IDiceRoller } from '@lib/dice.lib'
 
-export const diceCheckService: IDiceCheckService = new DiceCheckService(new DiceRoller())
+export const diceRoller: IDiceRoller = new DiceRoller()
 
 /** Declares the dice assets scheme; must run before the app is ready. */
 export function registerDiceAssetsScheme(): void {

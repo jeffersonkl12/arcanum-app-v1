@@ -6,10 +6,11 @@ These are the characters that make up the player's party right now.
 {{#each members}}
 ## {{name}}{{#if isPlayer}} (the player's character){{/if}}
 
+- Id: {{id}}
 - Age: {{age}}
 - Gender: {{gender}}
 - Health: {{hpCurrent}} of {{hpMax}} hit points
-- Attributes: strength {{strength}}, dexterity {{dexterity}}, intelligence {{intelligence}}
+- Attributes (d6 rolled in a check): strength {{strength}}, dexterity {{dexterity}}, intelligence {{intelligence}}
 - Money: {{goldPieces}} gold pieces, {{silverPieces}} silver pieces, {{bronzePieces}} bronze pieces
 {{#if profession}}
 - Profession: {{profession}}

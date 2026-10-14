@@ -1,7 +1,16 @@
 <script setup lang="ts">
-import { actorAttributeOptions, type ActorAttributes } from '@renderer/constant/actor.constant'
+import DicePips from '@renderer/components/custom/DicePips.vue'
+import {
+  actorAttributeLimits,
+  actorAttributeOptions,
+  type ActorAttributes
+} from '@renderer/constant/actor.constant'
+import { rollNotation } from '@shared'
 
-/** The attribute scores of a character, read-only. */
+/**
+ * The attribute scores of a character, read-only. A score is how many d6 a check with it rolls,
+ * so each card shows it as that pool of dice.
+ */
 defineProps<{
   attributes: ActorAttributes
 }>()
@@ -18,6 +27,10 @@ defineProps<{
         {{ attribute.label }}
       </span>
       <span class="text-2xl font-bold text-foreground">{{ attributes[attribute.key] }}</span>
+      <DicePips :value="attributes[attribute.key]" :max="actorAttributeLimits.max" />
+      <span class="text-badge text-muted-foreground">
+        {{ rollNotation(attributes[attribute.key]) }} por teste
+      </span>
     </div>
   </div>
 </template>

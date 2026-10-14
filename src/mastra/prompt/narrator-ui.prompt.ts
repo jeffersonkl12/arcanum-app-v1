@@ -23,8 +23,8 @@ export function narratorUiPrompt(): string {
       'Ignore the dashboard wording of this section: there is no dashboard to update, each reply stands alone.'
     ],
     examples: [
-      'root = Stack([roll])\nroll = RollRequest("Persuade the guard to let you pass")',
-      'root = Stack([roll])\nroll = RollRequest("Climb the wet wall", "disadvantage")'
+      'root = Stack([roll])\nroll = RollRequest("Persuade the guard to let you pass", "intelligence")',
+      'root = Stack([roll])\nroll = RollRequest("Climb the wet wall", "strength", "disadvantage")'
     ]
   })
 }

@@ -1,7 +1,7 @@
 import { NarratorGateway } from '@lib/narrator.lib'
 import { SecretCipher } from '@lib/secret-cipher.lib'
 import { database } from '@module/database.module'
-import { diceCheckService } from '@module/dice.module'
+import { diceRoller } from '@module/dice.module'
 import { imageStorage } from '@module/image.module'
 import { loadMastra } from '@module/mastra.module'
 import { ActorRepository } from '@repository/actor.repository'
@@ -15,6 +15,7 @@ import { WorldRepository } from '@repository/world.repository'
 import { ActorService, type IActorService } from '@service/actor.service'
 import { AiSettingService, type IAiSettingService } from '@service/ai-setting.service'
 import { CultureService, type ICultureService } from '@service/culture.service'
+import { DiceCheckService, type IDiceCheckService } from '@service/dice-check.service'
 import { GameMasterService, type IGameMasterService } from '@service/game-master.service'
 import { InventoryService, type IInventoryService } from '@service/inventory.service'
 import { ItemRegistryService } from '@service/item-registry.service'
@@ -37,6 +38,7 @@ export const languageService: ILanguageService = new LanguageService(
   new LanguageRepository(database)
 )
 export const actorService: IActorService = new ActorService(actorRepository, itemRepository)
+export const diceCheckService: IDiceCheckService = new DiceCheckService(diceRoller, actorService)
 export const inventoryService: IInventoryService = new InventoryService(
   itemRepository,
   actorRepository,

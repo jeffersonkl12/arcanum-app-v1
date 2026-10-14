@@ -1,27 +1,49 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-// Pure constant of the engine, imported by relative path (see `game.context.ts`).
+// Pure constants of the engine, imported by relative path (see `game.context.ts`).
+import { ACTOR_ATTRIBUTES } from '../../main/constant/actor-attribute.constant'
 import { ROLL_MODES } from '../../main/constant/roll-mode.constant'
 import { checkResultSchema, gameContextSchema } from '../context/game.context'
 
 export const rollCheckTool = createTool({
   id: 'roll-check',
   description:
-    'Rolls a check through the game engine when an action has an uncertain outcome that matters ' +
-    'to the story. The engine rolls 2d6 (`normal`), 3d6 (`advantage`) or 1d6 (`disadvantage`) and ' +
-    'reads the outcome from the highest die. Returns the dice and the `outcome` ' +
-    '(critical_failure, failure, success or critical_success). Narrate exactly that outcome; ' +
-    'never roll again to get a better one.',
+    'Rolls a check for an actor through the game engine when an action has an uncertain outcome ' +
+    'that matters to the story. The actor rolls one d6 per point of the chosen attribute (one more ' +
+    'with `advantage`, one fewer with `disadvantage`); a 5 or 6 on any die is a `success`, ' +
+    'otherwise it is a `failure`. Returns the dice and the `outcome`. Narrate exactly that ' +
+    'outcome; never roll again to get a better one. If `ok=false`, the `reason` says what to fix.',
   inputSchema: z.object({
+    actorId: z
+      .string()
+      .describe(
+        'Id of the actor who attempts the action (from the party section or the npcCreator).'
+      ),
+    attribute: z
+      .enum(ACTOR_ATTRIBUTES)
+      .describe(
+        'The attribute the action depends on: `strength` for force, `dexterity` for agility and ' +
+          'precision, `intelligence` for knowledge, reasoning and perception.'
+      ),
     mode: z
       .enum(ROLL_MODES)
       .optional()
       .describe(
-        'Use `advantage` when the circumstances clearly help the character, `disadvantage` when ' +
+        'Use `advantage` when the circumstances clearly help the actor, `disadvantage` when ' +
           'they clearly hinder it, otherwise omit it (`normal`).'
       )
   }),
-  outputSchema: checkResultSchema,
+  outputSchema: z.object({
+    ok: z.boolean(),
+    result: checkResultSchema.optional(),
+    reason: z.string().optional()
+  }),
   requestContextSchema: gameContextSchema,
-  execute: async ({ mode }, { requestContext }) => requestContext.get('diceChecker').check(mode)
+  execute: async (request, { requestContext }) => {
+    const outcome = await requestContext
+      .get('diceChecker')
+      .check(requestContext.get('worldId'), request)
+
+    return outcome.ok ? { ok: true, result: outcome.result } : { ok: false, reason: outcome.reason }
+  }
 })

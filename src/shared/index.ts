@@ -1,3 +1,4 @@
+export * from '@shared/actor-attribute.shared'
 export * from '@shared/api.shared'
 export * from '@shared/dice-assets.shared'
 export * from '@shared/image.shared'

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useFormContext } from 'vee-validate'
+import { ref } from 'vue'
+import DiceFaces from '@renderer/components/custom/DiceFaces.vue'
 import DiceRollButton from '@renderer/components/custom/DiceRollButton.vue'
 import {
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -11,11 +12,13 @@ import {
 } from '@renderer/components/ui/form'
 import { Input } from '@renderer/components/ui/input'
 import { useCharacterRoll } from '@renderer/composable/character-roll.composable'
-import { actorRollRules } from '@renderer/constant/actor.constant'
+import { actorHpLimits, actorRollRules } from '@renderer/constant/actor.constant'
+import type { DiceRoll } from '@renderer/util/character-roll.util'
 
 /**
  * The `hpMax` (and, when editing, `hpCurrent`) fields of a form that has `healthFormShape`. They
- * are never typed: the maximum comes from the die, and `locked` takes the die away too.
+ * are never typed: the maximum is the sum of a throw of dice, and `locked` takes the dice away
+ * too.
  */
 defineProps<{
   /** Ask the current health too: only for an actor that already exists. */
@@ -27,15 +30,24 @@ defineProps<{
   disabled?: boolean
 }>()
 
-const { setFieldValue } = useFormContext()
+const { setFieldValue, values } = useFormContext()
 const { isRolling, rollHitPoints } = useCharacterRoll()
+
+// The throw that gave the maximum, to show the dice that fell; it is dropped once the field holds
+// anything else (an actor being edited, a form reset).
+const lastRoll = ref<DiceRoll>()
+
+function rolledFaces(): number[] | undefined {
+  return lastRoll.value?.score === values.hpMax ? lastRoll.value?.dice : undefined
+}
 
 /** An edited actor is made anew by the roll, so it comes out at full health. */
 async function onRollHitPoints(isEditing?: boolean): Promise<void> {
-  const hitPoints = await rollHitPoints()
-  if (hitPoints === undefined) return
-  setFieldValue('hpMax', hitPoints)
-  if (isEditing) setFieldValue('hpCurrent', hitPoints)
+  const roll = await rollHitPoints()
+  if (!roll) return
+  lastRoll.value = roll
+  setFieldValue('hpMax', roll.score)
+  if (isEditing) setFieldValue('hpCurrent', roll.score)
 }
 
 const fieldLabelClass = 'text-meta font-medium text-muted-foreground'
@@ -44,44 +56,54 @@ const inputClass =
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-4">
-    <FormField v-slot="{ componentField }" name="hpMax" keep-value>
-      <FormItem class="w-28 gap-1.5">
-        <div class="flex min-h-6 items-center justify-between">
-          <FormLabel :class="fieldLabelClass">Vida máxima</FormLabel>
-          <DiceRollButton
-            v-if="!locked"
-            :label="`Rolar ${actorRollRules.hitPointDice}d6 para a vida máxima`"
-            :rolling="isRolling"
-            :disabled="disabled"
-            @roll="onRollHitPoints(showCurrent)"
-          />
-        </div>
-        <FormControl>
-          <Input
-            :model-value="componentField.modelValue"
-            readonly
-            :class="inputClass"
-            :placeholder="String(defaultMax ?? '')"
-          />
-        </FormControl>
-        <FormDescription v-if="defaultMax !== undefined && !showCurrent" class="text-badge">
-          Vazio usa o padrão ({{ defaultMax }}).
-        </FormDescription>
-        <FormMessage />
-      </FormItem>
-    </FormField>
+  <div class="flex flex-col gap-2">
+    <p v-if="!locked" class="text-meta text-muted-foreground">
+      A vida máxima é a soma de {{ actorRollRules.hitPointDice }}d6 (de {{ actorHpLimits.minMax }} a
+      {{ actorHpLimits.max }}).
+      <template v-if="defaultMax !== undefined && !showCurrent">
+        Sem rolar, usa o padrão ({{ defaultMax }}).
+      </template>
+    </p>
 
-    <FormField v-if="showCurrent" v-slot="{ componentField }" name="hpCurrent" keep-value>
-      <FormItem class="w-28 gap-1.5">
-        <div class="flex min-h-6 items-center">
-          <FormLabel :class="fieldLabelClass">Vida atual</FormLabel>
-        </div>
-        <FormControl>
-          <Input :model-value="componentField.modelValue" readonly :class="inputClass" />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    </FormField>
+    <div class="flex flex-wrap items-start gap-4">
+      <FormField v-slot="{ componentField }" name="hpMax" keep-value>
+        <FormItem class="w-28 gap-1.5">
+          <div class="flex min-h-6 items-center justify-between">
+            <FormLabel :class="fieldLabelClass">Vida máxima</FormLabel>
+            <DiceRollButton
+              v-if="!locked"
+              :label="`Rolar ${actorRollRules.hitPointDice}d6 para a vida máxima`"
+              :rolling="isRolling"
+              :disabled="disabled"
+              @roll="onRollHitPoints(showCurrent)"
+            />
+          </div>
+          <FormControl>
+            <Input
+              :model-value="componentField.modelValue"
+              readonly
+              :class="inputClass"
+              :placeholder="String(defaultMax ?? '')"
+            />
+          </FormControl>
+          <div v-if="!locked" class="flex min-h-5 items-center justify-center">
+            <DiceFaces v-if="rolledFaces()" :faces="rolledFaces() ?? []" />
+          </div>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+
+      <FormField v-if="showCurrent" v-slot="{ componentField }" name="hpCurrent" keep-value>
+        <FormItem class="w-28 gap-1.5">
+          <div class="flex min-h-6 items-center">
+            <FormLabel :class="fieldLabelClass">Vida atual</FormLabel>
+          </div>
+          <FormControl>
+            <Input :model-value="componentField.modelValue" readonly :class="inputClass" />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+    </div>
   </div>
 </template>

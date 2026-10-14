@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ACTOR_ATTRIBUTES } from './actor-attribute.shared'
 import { ROLL_MODES } from './roll-mode.shared'
 
 /** Component every narrator UI block starts from (`root = Stack(...)`). */
@@ -32,12 +33,17 @@ export const NARRATOR_UI_COMPONENTS: readonly NarratorUiComponentSpec[] = [
   {
     name: 'RollRequest',
     description:
-      'Asks the player to roll the dice for a check. The player clicks a button, the dice roll on their screen, the game engine resolves the check, and the outcome comes back as the next player message. You choose only what is at stake and the mode; the dice shown on the button come from the mode',
+      "Asks the player to roll the dice for a check of their own character. The player clicks a button, the dice roll on their screen, the game engine resolves the check, and the outcome comes back as the next player message. You choose only what is at stake, the attribute it depends on and the mode; how many dice are rolled comes from the character's attribute and the mode",
     props: z.object({
       label: z
         .string()
         .describe(
           'What is at stake, a few words, in the player language (e.g. "Persuade the guard")'
+        ),
+      attribute: z
+        .enum(ACTOR_ATTRIBUTES)
+        .describe(
+          'The attribute the action depends on: `strength` for force, `dexterity` for agility and precision, `intelligence` for knowledge, reasoning and perception'
         ),
       mode: z
         .enum(ROLL_MODES)

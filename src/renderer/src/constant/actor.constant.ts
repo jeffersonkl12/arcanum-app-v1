@@ -43,8 +43,8 @@ export const actorGenderOptions: readonly ActorGenderOption[] = [
 /** Mirrors ACTOR_ATTRIBUTE_LIMITS in the engine: the range of a score and what an actor gets. */
 export const actorAttributeLimits = {
   min: 1,
-  max: 20,
-  default: 10
+  max: 6,
+  default: 4
 } as const
 
 export const actorAttributeKeys = [
@@ -67,22 +67,22 @@ export const actorAttributeOptions: readonly ActorAttributeOption[] = [
 ]
 
 /**
- * How a character made from scratch is rolled: each attribute is the sum of 3d6, and the maximum
- * health is 1d6.
+ * How a character made from scratch is rolled: each attribute is the highest of 2d6 (and is then
+ * the number of d6 a check with it rolls, 6 at most), and the maximum health is the sum of 2d6.
  */
 export const actorRollRules = {
-  attributeDice: 3,
-  hitPointDice: 1
+  attributeDice: 2,
+  hitPointDice: 2
 } as const
 
-export type ActorAttributes =Record<ActorAttributeKey, number>
+export type ActorAttributes = Record<ActorAttributeKey, number>
 
 /** Mirrors ACTOR_HP in the engine: the range of the maximum health and what a new actor gets. */
 export const actorHpLimits = {
-  minMax: 1,
-  max: 9999,
-  defaultPlayer: 40,
-  defaultNpc: 20
+  minMax: 2,
+  max: 12,
+  defaultPlayer: 7,
+  defaultNpc: 7
 } as const
 
 /** Mirrors ACTOR_COIN_LIMITS in the engine: the range of an amount of coins and what an actor gets. */

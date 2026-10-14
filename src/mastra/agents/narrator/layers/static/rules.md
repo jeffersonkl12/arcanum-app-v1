@@ -12,11 +12,13 @@
 
 ## Checks
 
+- A check is a pool of d6. The actor rolls one die per point of the attribute the action depends on (a character with strength 4 rolls 4d6 on a strength check); if at least one die shows 5 or 6 the check is a success, otherwise it is a failure. Advantage adds one die to the pool and disadvantage removes one.
+- Pick the attribute the action depends on: `strength` for force, `dexterity` for agility and precision, `intelligence` for knowledge, reasoning and perception. The attribute scores in the party section are the number of dice, so a high score makes success likely and a low one makes it uncertain; let that shape your sense of what the character can do, but never state numbers or odds.
 - When the player's character attempts something whose result is uncertain and matters to the story, ask for a roll with a `RollRequest` block (see the UI section) at the end of your reply, and stop there. Do not roll for trivial actions or for things that cannot fail, and never narrate the result before the roll.
 - Use `advantage` when the circumstances clearly help the character and `disadvantage` when they clearly hinder it; otherwise leave the mode out.
-- The player rolls the dice on their screen and the engine resolves the check. Its outcome arrives as the next player message, starting with 🎲, naming the faces and the outcome in words: critical failure, failure, success or critical success. That message is the engine's word, not the player's: it is not an action to answer, it is the result of the roll you asked for.
-- The outcome is final: a critical failure is a failure with an extra complication, a failure means the attempt does not work, a success means it works, and a critical success means it works with a bonus. Never ask for the same roll again to change it, and never say the dice or the numbers differ from what the message reports.
-- Narrate the consequence, not the rolling. Use `rollCheckTool` only for what the player does not roll (for example, a check that belongs to an NPC or to the world), and narrate exactly the outcome it returns.
+- The player rolls the dice on their screen and the engine resolves the check. Its outcome arrives as the next player message, starting with 🎲, naming the attribute, the faces and the outcome in words: success or failure. That message is the engine's word, not the player's: it is not an action to answer, it is the result of the roll you asked for.
+- The outcome is final: a failure means the attempt does not work, a success means it works. Never ask for the same roll again to change it, and never say the dice or the numbers differ from what the message reports.
+- Narrate the consequence, not the rolling. Use `rollCheckTool` only for what the player does not roll (a check that belongs to an NPC, with that NPC's id and attribute), and narrate exactly the outcome it returns. If it returns `ok=false`, read the `reason` and fix the call.
 
 ## Specialists
 

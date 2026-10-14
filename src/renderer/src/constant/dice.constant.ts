@@ -11,10 +11,8 @@ export const diceTrayKey: InjectionKey<IDiceTray> = Symbol('dice-tray')
 export const checkOutcomeLabel: Readonly<
   Record<IpcOutput<'dice:resolveCheck'>['outcome'], string>
 > = {
-  critical_failure: 'Falha crítica',
   failure: 'Falha',
-  success: 'Sucesso',
-  critical_success: 'Sucesso crítico'
+  success: 'Sucesso'
 }
 
 /** Only the modes that change the roll get a tag on the button. */
