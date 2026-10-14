@@ -1,11 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { gameContextSchema } from '../context/game.context'
-import {
-  itemOutcomeSchema,
-  itemTransferSchema,
-  MAX_ITEMS_PER_CALL
-} from '../context/item.context'
+import { itemOutcomeSchema, itemTransferSchema, MAX_ITEMS_PER_CALL } from '../context/item.context'
 
 export const transferItemsTool = createTool({
   id: 'transfer-items',

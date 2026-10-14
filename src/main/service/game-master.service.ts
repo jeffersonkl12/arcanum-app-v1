@@ -14,6 +14,7 @@ import type { IPartyService } from '@service/party.service'
 import type { IWorldService } from '@service/world.service'
 import type {
   CheckRequest,
+  CreatedNpc,
   CreateNpcResult,
   IDiceChecker,
   INpcRegistry,
@@ -205,13 +206,17 @@ export class GameMasterService implements IGameMasterService {
             strength: draft.strength,
             dexterity: draft.dexterity,
             intelligence: draft.intelligence,
+            hpMax: draft.hpMax,
+            goldPieces: draft.goldPieces,
+            silverPieces: draft.silverPieces,
+            bronzePieces: draft.bronzePieces,
             profession: draft.profession ?? null,
             appearance: draft.appearance ?? null,
             personality: draft.personality ?? null,
             background: draft.background ?? null
           })
 
-          return { ok: true, npc: { ...draft, id: actor.id } }
+          return { ok: true, npc: toCreatedNpc(actor) }
         } catch (error) {
           // Only rule violations go back to the AI so it can fix the NPC; anything else is a bug.
           if (error instanceof ConflictError) return { ok: false, reason: error.message }
@@ -219,5 +224,26 @@ export class GameMasterService implements IGameMasterService {
         }
       }
     }
+  }
+}
+
+/** The NPC as the engine stored it, defaults included; empty text fields are left out. */
+function toCreatedNpc(actor: Actor): CreatedNpc {
+  return {
+    id: actor.id,
+    name: actor.name,
+    age: actor.age,
+    gender: actor.gender,
+    hpMax: actor.hpMax,
+    strength: actor.strength,
+    dexterity: actor.dexterity,
+    intelligence: actor.intelligence,
+    goldPieces: actor.goldPieces,
+    silverPieces: actor.silverPieces,
+    bronzePieces: actor.bronzePieces,
+    profession: actor.profession ?? undefined,
+    appearance: actor.appearance ?? undefined,
+    personality: actor.personality ?? undefined,
+    background: actor.background ?? undefined
   }
 }

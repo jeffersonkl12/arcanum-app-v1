@@ -16,6 +16,14 @@ export const itemTypeOptions: readonly Option<ItemType>[] = [
   { value: 'consumable', label: 'Consumível' }
 ]
 
+/** What each type means for the player, shown under the type field. */
+export const itemTypeHints: Record<ItemType, string> = {
+  weapon: 'Pode ser equipada nas mãos.',
+  clothing: 'Pode ser vestida; só uma vestimenta por vez.',
+  tool: 'Objeto útil; fica no inventário e não é equipado.',
+  consumable: 'Some do inventário quando usado.'
+}
+
 export const itemTypeValues = [
   'weapon',
   'clothing',

@@ -15,7 +15,7 @@ export const rollCheckTool = createTool({
     'outcome; never roll again to get a better one. If `ok=false`, the `reason` says what to fix.',
   inputSchema: z.object({
     actorId: z
-      .string()
+      .uuid()
       .describe(
         'Id of the actor who attempts the action (from the party section or the npcCreator).'
       ),

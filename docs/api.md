@@ -694,8 +694,8 @@ Pontos a reter:
 
 | Agente          | id            | Modelo                                                         | Tools / sub-agentes                  | Memória                                                         |
 | --------------- | ------------- | -------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------- |
-| **Narrator**    | `narrator`    | Dinâmico: `requestContext.narratorModel.id` (`provider/model`) | `rollCheckTool`, agente `npcCreator` | Sim (Observational Memory, modelo `google/gemini-2.5-flash`)    |
-| **NPC Creator** | `npc-creator` | Fixo: `google/gemini-3.5-flash-lite`                           | `createNpcTool`                      | Não (cada delegação tem thread novo sob `{worldId}-npcCreator`) |
+| **Narrator**    | `narrator`    | Dinâmico: `requestContext.narratorModel.id` (`provider/model`) | `rollCheckTool`, tools de item (§6.5), agente `npcCreator` | Sim (Observational Memory, modelo `google/gemini-2.5-flash`)    |
+| **NPC Creator** | `npc-creator` | Fixo: `google/gemini-3.5-flash-lite`                           | `createNpcTool`, `createItemsTool`   | Não (cada delegação tem thread novo sob `{worldId}-npcCreator`) |
 
 Ambos validam o `RequestContext` com `gameContextSchema` e estão registrados em `src/mastra/index.ts`.
 
@@ -711,7 +711,7 @@ O system prompt do narrador é a junção de _layers_ (um `.md` cada), nesta ord
 | 1   | `identity` | estático | Quem é o narrador                                                                                                                                                                                                             |
 | 2   | `rules`    | estático | Nunca inventar mecânica · rolar `rollCheckTool` só para ações incertas e relevantes · o resultado é final · delegar NPC novo ao `npcCreator` **antes** de narrá-lo · responder no idioma do jogador · nunca agir pelo jogador |
 | 3   | `world`    | dinâmico | `name`, `genre`, `description` (opcional)                                                                                                                                                                                     |
-| 4   | `party`    | dinâmico | Membros: `name`, `isPlayer`, `age`, `gender`, `hpCurrent`/`hpMax`, `id`, `strength`/`dexterity`/`intelligence` (só leitura para a IA; cada um é quantos d6 o teste rola) e, se houver, `profession`, `appearance`, `personality`, `background`                                                                |
+| 4   | `party`    | dinâmico | Membros: `name`, `isPlayer`, `age`, `gender`, `hpCurrent`/`hpMax`, `id`, `strength`/`dexterity`/`intelligence` (só leitura para a IA; cada um é quantos d6 o teste rola), `goldPieces`/`silverPieces`/`bronzePieces`, `equipped`/`carried` (só os nomes dos itens) e, se houver, `profession`, `appearance`, `personality`, `background`                                                                |
 
 - Camadas estáticas vêm primeiro (prefixo imutável ajuda o cache do provedor). Dinâmicas, do que menos muda para o que mais muda.
 - Dinâmicas são **Handlebars em modo `strict`**: campo ausente **lança erro**. Campo opcional precisa de `{{#if campo}}`.
@@ -757,7 +757,17 @@ Rola um d6 por ponto do atributo. Se algum dado cair em 5 ou 6, `success`; senã
 `ok=false` quando o ator não existe ou não é do mundo; a `reason` diz o que corrigir.
 
 ```jsonc
-{ "ok": true, "result": { "actorId": "…", "attribute": "dexterity", "mode": "normal", "dice": [3, 5, 1], "outcome": "success", "succeeded": true } }
+{
+  "ok": true,
+  "result": {
+    "actorId": "…",
+    "attribute": "dexterity",
+    "mode": "normal",
+    "dice": [3, 5, 1],
+    "outcome": "success",
+    "succeeded": true
+  }
+}
 ```
 
 #### `createNpcTool` (id `create-npc`)
@@ -770,9 +780,13 @@ Só o `npcCreator` a usa. Registra um NPC pela engine (`ActorService.create` com
   name: string            // trim, 1–120
   age: ActorAge
   gender: ActorGender
-  strength?: number       // 1–20, omitido = 10 (idem dexterity, intelligence)
+  strength?: number       // 1–6 (nº de d6 do teste), omitido = 4 (idem dexterity, intelligence)
   dexterity?: number
   intelligence?: number
+  hpMax?: number          // 2–12, omitido = 7; o NPC nasce com vida cheia
+  goldPieces?: number     // 0–999 999 999, omitido = 0 (idem silverPieces, bronzePieces)
+  silverPieces?: number
+  bronzePieces?: number
   profession?: string     // ≤ 120
   appearance?: string     // ≤ 5000
   personality?: string    // ≤ 5000
@@ -780,12 +794,59 @@ Só o `npcCreator` a usa. Registra um NPC pela engine (`ActorService.create` com
 }
 
 // output
-{ created: boolean; npc?: npcDraft & { id: string }; reason?: string }
+{ ok: boolean; npc?: npcView; reason?: string }
+
+// npcView: o NPC como a engine gravou, com os defaults preenchidos
+{
+  id: string; name: string; age: ActorAge; gender: ActorGender
+  hpMax: number
+  strength: number; dexterity: number; intelligence: number
+  goldPieces: number; silverPieces: number; bronzePieces: number
+  profession?: string; appearance?: string; personality?: string; background?: string // ausentes se vazios
+}
 ```
 
-Se a engine rejeitar (`ConflictError`), a tool devolve `{ created: false, reason }` para a **IA corrigir e tentar de novo**. Qualquer outro erro é relançado e vira `internal`.
+Itens **não** fazem parte do NPC: o `npcCreator` os cria depois com `create-items`, usando o `id` devolvido como `ownerId`.
+
+Se a engine rejeitar (`ConflictError`), a tool devolve `{ ok: false, reason }` para a **IA corrigir e tentar de novo**. Qualquer outro erro é relançado e vira `internal`.
 
 > O NPC criado pela IA aparece em `actor:listByWorld`. A UI deve recarregar a lista depois de um turno.
+
+#### Tools de item
+
+Todas passam por `IItemRegistry` (`ItemRegistryService`), que delega as regras ao `InventoryService` e confere que todo item e ator pertence ao mundo do turno. As de escrita são **em lote** (1–20 entradas): cada entrada é tentada em ordem e tem o seu resultado; uma recusada não perde as outras.
+
+| Tool (id)                              | Input                                                  | Para quê                                                                                 |
+| -------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `createItemsTool` (`create-items`)     | `{ items: itemDraft[] }`                               | Cria itens soltos ou no inventário de um ator (`ownerId`), já equipados com `equip`      |
+| `updateItemsTool` (`update-items`)     | `{ updates: { itemId, patch }[] }`                     | Muda nome, descrição, tipo, classe, espaços. `null` limpa campo opcional                 |
+| `deleteItemsTool` (`delete-items`)     | `{ itemIds: uuid[] }`                                  | Destrói de vez (queimado, gasto, perdido)                                                |
+| `transferItemsTool` (`transfer-items`) | `{ transfers: { itemId, toActorId: uuid \| null }[] }` | Move entre atores ou para o chão (`null`); o item chega desequipado                      |
+| `equipItemsTool` (`equip-items`)       | `{ changes: { itemId, equipped }[] }`                  | Equipa/desequipa; a engine escolhe o slot (`main_hand`, `off_hand`, `body`)              |
+| `getInventoryTool` (`get-inventory`)   | `{ actorId?: uuid }`                                   | Inventário de um ator (`capacity`, `usedSlots`, `freeSlots`) ou os itens soltos do mundo |
+| `findItemsTool` (`find-items`)         | `{ itemId? , name?, actorId? }` (`itemId` ou `name`)   | Detalhes e id de itens por nome (sem caixa/acento) ou id                                 |
+
+```ts
+// itemDraft
+{
+  name: string                 // trim, 1–120
+  description?: string         // ≤ 5000
+  type: 'weapon' | 'clothing' | 'tool' | 'consumable'
+  slots?: number               // 1–18, omitido = 1 (todo item ocupa ao menos 1)
+  weaponClass?: 'light' | 'heavy' | 'ranged'    // obrigatório para weapon, proibido nos outros
+  clothingClass?: 'light' | 'medium' | 'heavy'  // obrigatório para clothing, proibido nos outros
+  ownerId?: uuid               // omitido = item solto no mundo
+  equip?: boolean              // só weapon/clothing, e só com ownerId
+}
+
+// resultado de cada entrada (create/update/delete/transfer/equip)
+{ ok: boolean; itemId?: string; item?: itemView; reason?: string; warning?: string }
+```
+
+- `weapon` e `clothing` equipam; `tool` e `consumable` não. Arma `light` ocupa uma mão (duas, no máximo); `heavy` e `ranged` ocupam as duas. Só uma vestimenta (`body`) por vez; equipar por cima desequipa o que estava.
+- Trocar o `type` no `update-items` exige a classe do novo tipo no mesmo patch (a do tipo antigo é descartada). Item equipado não muda de tipo nem de classe.
+- `ok=false` + `reason` é a resposta da engine (sem espaço, item de outro mundo, classe que não bate com o tipo…); `warning` quer dizer que o item foi criado mas não equipado.
+- Não há tool para **moedas**: a IA vê `goldPieces`/`silverPieces`/`bronzePieces` na seção `party`, mas só o jogador/UI as altera.
 
 ### 6.6 Configuração e chaves
 

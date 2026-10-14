@@ -115,6 +115,7 @@ export const inventoryViewSchema = z.object({
   reason: z.string().optional(),
   capacity: z.number().int().optional(),
   usedSlots: z.number().int().optional(),
+  freeSlots: z.number().int().optional(),
   items: z.array(itemViewSchema)
 })
 

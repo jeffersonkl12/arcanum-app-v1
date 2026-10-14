@@ -7,7 +7,9 @@ import {
   ACTOR_ATTRIBUTE_LIMITS,
   type ActorAttribute
 } from '../../main/constant/actor-attribute.constant'
+import { ACTOR_COIN_LIMITS } from '../../main/constant/actor-coin.constant'
 import { ACTOR_GENDERS } from '../../main/constant/actor-gender.constant'
+import { ACTOR_HP } from '../../main/constant/actor-hp.constant'
 import { CHECK_OUTCOMES } from '../../main/constant/check-outcome.constant'
 import { ROLL_MODES, type RollMode } from '../../main/constant/roll-mode.constant'
 import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
@@ -18,6 +20,8 @@ const attributeScoreSchema = z
   .int()
   .min(ACTOR_ATTRIBUTE_LIMITS.min)
   .max(ACTOR_ATTRIBUTE_LIMITS.max)
+
+const coinAmountSchema = z.number().int().min(ACTOR_COIN_LIMITS.min).max(ACTOR_COIN_LIMITS.max)
 
 /** What the AI proposes for an NPC. The engine validates and persists it. */
 export const npcDraftSchema = z.object({
@@ -31,6 +35,22 @@ export const npcDraftSchema = z.object({
     ),
   dexterity: attributeScoreSchema.optional(),
   intelligence: attributeScoreSchema.optional(),
+  hpMax: z
+    .number()
+    .int()
+    .min(ACTOR_HP.minMax)
+    .max(ACTOR_HP.max)
+    .optional()
+    .describe(
+      `Hit points, ${ACTOR_HP.minMax} to ${ACTOR_HP.max}; the NPC starts at full health. Omit for an average person (${ACTOR_HP.defaultNpc}).`
+    ),
+  goldPieces: coinAmountSchema
+    .optional()
+    .describe(
+      `Money the NPC carries, the most valuable coin. Omit for none (${ACTOR_COIN_LIMITS.default}).`
+    ),
+  silverPieces: coinAmountSchema.optional(),
+  bronzePieces: coinAmountSchema.optional(),
   profession: z.string().max(TEXT_LIMITS.shortText).optional(),
   appearance: z.string().max(TEXT_LIMITS.longText).optional(),
   personality: z.string().max(TEXT_LIMITS.longText).optional(),
@@ -39,7 +59,29 @@ export const npcDraftSchema = z.object({
 
 export type NpcDraft = z.infer<typeof npcDraftSchema>
 
-export type CreatedNpc = NpcDraft & { id: string }
+/**
+ * An NPC as the engine registered it, with the defaults it filled in (so the AI reports the real
+ * attributes, health and money, not what it left out). Text fields that were not given are left out.
+ */
+export const npcViewSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  age: z.enum(ACTOR_AGES),
+  gender: z.enum(ACTOR_GENDERS),
+  hpMax: z.number().int(),
+  strength: z.number().int(),
+  dexterity: z.number().int(),
+  intelligence: z.number().int(),
+  goldPieces: z.number().int(),
+  silverPieces: z.number().int(),
+  bronzePieces: z.number().int(),
+  profession: z.string().optional(),
+  appearance: z.string().optional(),
+  personality: z.string().optional(),
+  background: z.string().optional()
+})
+
+export type CreatedNpc = z.infer<typeof npcViewSchema>
 
 export type CreateNpcResult = { ok: true; npc: CreatedNpc } | { ok: false; reason: string }
 

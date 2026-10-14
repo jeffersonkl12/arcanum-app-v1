@@ -1,16 +1,19 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { gameContextSchema, npcDraftSchema } from '../context/game.context'
+import { gameContextSchema, npcDraftSchema, npcViewSchema } from '../context/game.context'
 
 export const createNpcTool = createTool({
   id: 'create-npc',
   description:
-    'Registers a new NPC in the current world through the game engine and returns it with its id. ' +
-    'If the engine rejects the NPC, `reason` says why; fix the data and call again.',
+    'Registers a new NPC in the current world through the game engine and returns it with its id ' +
+    'and the values the engine settled on (attributes, hit points and money, with the defaults ' +
+    'filled in). Items are not part of it: create them afterwards with `create-items`, using the ' +
+    'id returned here as `ownerId`. If the engine rejects the NPC (`ok=false`), `reason` says why; ' +
+    'fix the data and call again.',
   inputSchema: npcDraftSchema,
   outputSchema: z.object({
-    created: z.boolean(),
-    npc: npcDraftSchema.extend({ id: z.string() }).optional(),
+    ok: z.boolean(),
+    npc: npcViewSchema.optional(),
     reason: z.string().optional()
   }),
   requestContextSchema: gameContextSchema,
@@ -19,8 +22,6 @@ export const createNpcTool = createTool({
       .get('npcRegistry')
       .createNpc(requestContext.get('worldId'), draft)
 
-    return result.ok
-      ? { created: true, npc: result.npc }
-      : { created: false, reason: result.reason }
+    return result.ok ? { ok: true, npc: result.npc } : { ok: false, reason: result.reason }
   }
 })

@@ -12,6 +12,7 @@ import {
   clothingClassOptions,
   clothingClassValues,
   itemLimits,
+  itemTypeHints,
   itemTypeOptions,
   itemTypeValues,
   weaponClassOptions,
@@ -333,6 +334,9 @@ const textareaClass =
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormDescription class="text-badge">
+                    {{ values.type ? itemTypeHints[values.type] : 'Escolha o que é o item.' }}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               </FormField>
@@ -356,7 +360,8 @@ const textareaClass =
                     </NumberFieldContent>
                   </NumberField>
                   <FormDescription class="text-badge">
-                    O inventário carrega {{ itemLimits.inventoryCapacity }} espaços.
+                    Todo item ocupa ao menos 1; o inventário carrega
+                    {{ itemLimits.inventoryCapacity }}.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

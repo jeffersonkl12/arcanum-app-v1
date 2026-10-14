@@ -129,6 +129,7 @@ export class ItemRegistryService implements IItemRegistry {
         ok: true,
         capacity: inventory.capacity,
         usedSlots: inventory.usedSlots,
+        freeSlots: inventory.freeSlots,
         items: inventory.items.map(toView)
       }
     } catch (error) {

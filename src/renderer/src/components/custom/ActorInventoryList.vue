@@ -40,14 +40,10 @@ function tagsOf(item: Item): string {
   return toItemSummary(item).tags.join(' • ')
 }
 
+const isFull = computed(() => (inventory.value?.freeSlots ?? 1) <= 0)
+
 function canEquip(item: Item): boolean {
   return item.type === 'weapon' || item.type === 'clothing'
-}
-
-function handsHint(item: Item): string {
-  if (item.weaponClass === 'light') return 'Uma mão'
-  if (item.weaponClass) return 'Duas mãos'
-  return ''
 }
 
 async function change(item: Item, channel: 'inventory:equip' | 'inventory:unequip'): Promise<void> {
@@ -79,8 +75,11 @@ onMounted(async () => {
     <CoinPurse v-if="coins" :coins="coins" />
 
     <div class="flex items-center justify-between text-sm">
-      <span class="font-medium text-muted-foreground">
+      <span :class="isFull ? 'font-medium text-destructive' : 'font-medium text-muted-foreground'">
         Espaços: {{ inventory.usedSlots }} / {{ inventory.capacity }}
+      </span>
+      <span class="text-xs text-tertiary">
+        {{ inventory.freeSlots }} {{ inventory.freeSlots === 1 ? 'livre' : 'livres' }}
       </span>
     </div>
 
@@ -90,7 +89,10 @@ onMounted(async () => {
         <div
           v-for="{ slot, label } in equipmentSlots"
           :key="slot"
-          class="flex min-w-0 flex-col gap-1 rounded-lg border border-border bg-background px-3 py-2"
+          :class="[
+            'flex min-w-0 flex-col gap-1 rounded-lg border border-border bg-background px-3 py-2',
+            slot === 'body' && 'col-span-2'
+          ]"
         >
           <span class="text-badge font-semibold tracking-wide text-tertiary uppercase">
             {{ label }}
@@ -115,7 +117,7 @@ onMounted(async () => {
             </Button>
           </template>
           <span v-else-if="slot === 'off_hand' && offHandTaken" class="text-sm text-tertiary">
-            Ocupada (arma de duas mãos)
+            Ocupada pela arma de duas mãos
           </span>
           <span v-else class="text-sm text-tertiary">Vazio</span>
         </div>
@@ -138,7 +140,7 @@ onMounted(async () => {
         <div class="flex min-w-0 flex-1 flex-col">
           <span class="truncate text-sm font-semibold text-foreground">{{ item.name }}</span>
           <span class="truncate text-xs text-muted-foreground">
-            {{ tagsOf(item) }}{{ handsHint(item) ? ` • ${handsHint(item)}` : '' }}
+            {{ tagsOf(item) }}
           </span>
         </div>
         <span class="shrink-0 text-xs text-muted-foreground">
