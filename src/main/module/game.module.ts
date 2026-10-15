@@ -134,5 +134,7 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   campaignService,
   new CampaignRegistryService(campaignService),
   new MessageRatingService(new MessageRatingRepository(database)),
-  pointOfInterestService
+  pointOfInterestService,
+  cultureService,
+  languageService
 )

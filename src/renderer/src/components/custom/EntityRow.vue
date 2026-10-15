@@ -4,7 +4,8 @@ import { Button } from '@renderer/components/ui/button'
 
 defineProps<{
   name: string
-  description: string
+  /** A secondary line under the name, e.g. the culture of a language. */
+  subtitle?: string
 }>()
 
 defineEmits<{
@@ -17,7 +18,7 @@ defineEmits<{
   <div class="flex w-full items-center gap-4 rounded-lg border border-border bg-card px-4 py-3">
     <div class="flex min-w-0 flex-1 flex-col gap-1">
       <p class="truncate font-body text-base font-bold text-foreground">{{ name }}</p>
-      <p class="truncate text-sm text-muted-foreground">{{ description }}</p>
+      <p v-if="subtitle" class="truncate text-sm text-muted-foreground">{{ subtitle }}</p>
     </div>
     <div class="flex items-center gap-2">
       <Button

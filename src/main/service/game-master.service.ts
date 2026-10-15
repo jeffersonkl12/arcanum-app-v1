@@ -9,6 +9,8 @@ import type {
 import type { Actor } from '@schema/actor.schema'
 import type { PointOfInterest } from '@schema/point-of-interest.schema'
 import type { IActorService } from '@service/actor.service'
+import type { ICultureService } from '@service/culture.service'
+import type { ILanguageService } from '@service/language.service'
 import type { ICampaignService } from '@service/campaign.service'
 import type { IAiSettingService } from '@service/ai-setting.service'
 import type { IDiceCheckService } from '@service/dice-check.service'
@@ -114,7 +116,9 @@ export class GameMasterService implements IGameMasterService {
     private readonly campaignService: ICampaignService,
     private readonly campaignRegistry: ICampaignRegistry,
     private readonly messageRatingService: IMessageRatingService,
-    private readonly pointOfInterestService: IPointOfInterestService
+    private readonly pointOfInterestService: IPointOfInterestService,
+    private readonly cultureService: ICultureService,
+    private readonly languageService: ILanguageService
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
@@ -242,6 +246,7 @@ export class GameMasterService implements IGameMasterService {
   private async prepareTurn(worldId: string, message: string): Promise<NarratorTurn> {
     const world = await this.worldService.get(worldId)
     const { provider, model, temperature, apiKey } = await this.aiSettingService.resolve()
+    const names = await this.loadCultureNames(worldId)
 
     return {
       worldId,
@@ -253,10 +258,10 @@ export class GameMasterService implements IGameMasterService {
         name: world.name,
         genre: world.genre,
         description: world.description,
-        currentPlace: await this.loadCurrentPlace(worldId)
+        currentPlace: await this.loadCurrentPlace(worldId, names)
       },
       knowledge: await this.loadKnowledge(worldId),
-      party: await this.loadParty(worldId),
+      party: await this.loadParty(worldId, names),
       npcRegistry: this.createNpcRegistry(),
       itemRegistry: this.itemRegistry,
       coinRegistry: this.coinRegistry,
@@ -293,7 +298,22 @@ export class GameMasterService implements IGameMasterService {
    * Where the party is: the place of the player's character, else of the first member that has one.
    * `null` while nobody in the party is in a place.
    */
-  private async loadCurrentPlace(worldId: string): Promise<CurrentPlace | null> {
+  private async loadCultureNames(worldId: string): Promise<CultureNames> {
+    const [cultures, languages] = await Promise.all([
+      this.cultureService.listByWorld(worldId),
+      this.languageService.listByWorld(worldId)
+    ])
+
+    return {
+      cultures: new Map(cultures.map(({ id, name }) => [id, name])),
+      languages: new Map(languages.map(({ id, name }) => [id, name]))
+    }
+  }
+
+  private async loadCurrentPlace(
+    worldId: string,
+    names: CultureNames
+  ): Promise<CurrentPlace | null> {
     const party = await this.partyService.findByWorld(worldId)
     if (!party) return null
 
@@ -322,12 +342,12 @@ export class GameMasterService implements IGameMasterService {
       inside: outlineInside(place.id, places, npcs),
       npcs: npcs
         .filter((npc) => npc.pointOfInterestId === place.id)
-        .map(({ id, name }) => ({ id, name }))
+        .map((npc) => toPlaceNpc(npc, names))
     }
   }
 
   /** Read on every turn, so the prompt always shows the party as it is now. */
-  private async loadParty(worldId: string): Promise<PartySnapshot> {
+  private async loadParty(worldId: string, names: CultureNames): Promise<PartySnapshot> {
     const party = await this.partyService.findByWorld(worldId)
     if (!party) return { members: [] }
 
@@ -341,7 +361,9 @@ export class GameMasterService implements IGameMasterService {
 
     return {
       members: await Promise.all(
-        actors.map((actor) => this.toPartyMember(actor, toRelationships(actor, actors, values)))
+        actors.map((actor) =>
+          this.toPartyMember(actor, toRelationships(actor, actors, values), names)
+        )
       )
     }
   }
@@ -349,7 +371,8 @@ export class GameMasterService implements IGameMasterService {
   /** The member plus the names of its items; ids, slots and descriptions stay out of the prompt. */
   private async toPartyMember(
     actor: Actor,
-    relationships: PartyRelationship[]
+    relationships: PartyRelationship[],
+    names: CultureNames
   ): Promise<PartyMember> {
     const { items } = await this.itemRegistry.getInventory(actor.worldId, actor.id)
 
@@ -359,6 +382,8 @@ export class GameMasterService implements IGameMasterService {
       isPlayer: !actor.isNpc,
       age: actor.age,
       gender: actor.gender,
+      culture: nameOf(names.cultures, actor.cultureId),
+      language: nameOf(names.languages, actor.languageId),
       hpCurrent: actor.hpCurrent,
       hpMax: actor.hpMax,
       strength: actor.strength,
@@ -473,6 +498,34 @@ function outlineInside(rootId: string, places: PointOfInterest[], npcs: Actor[])
   visit(rootId, 0)
 
   return omitted > 0 ? [...lines, `...and ${omitted} more`] : lines
+}
+
+/** The names of the cultures and languages of a world, by id, to put on the sheets. */
+interface CultureNames {
+  cultures: ReadonlyMap<string, string>
+  languages: ReadonlyMap<string, string>
+}
+
+function nameOf(names: ReadonlyMap<string, string>, id: string | null): string | null {
+  return (id && names.get(id)) || null
+}
+
+/**
+ * An NPC standing in the current place, as a short sheet. The background is left out on purpose:
+ * it is long and only matters once the NPC becomes part of the story.
+ */
+function toPlaceNpc(npc: Actor, names: CultureNames): CurrentPlace['npcs'][number] {
+  return {
+    id: npc.id,
+    name: npc.name,
+    age: npc.age,
+    gender: npc.gender,
+    culture: nameOf(names.cultures, npc.cultureId),
+    language: nameOf(names.languages, npc.languageId),
+    profession: npc.profession,
+    appearance: npc.appearance,
+    personality: npc.personality
+  }
 }
 
 /** What `actor` feels about each of the other members; `values` maps `fromId:toId` to the stored value. */

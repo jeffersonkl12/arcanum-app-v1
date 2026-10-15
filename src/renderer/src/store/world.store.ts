@@ -5,6 +5,7 @@ import type { WorldGenreFilter } from '@renderer/constant/world-genre.constant'
 import type {
   ActorSummary,
   ItemSummary,
+  LanguageSummary,
   NamedEntitySummary,
   PlaceSummary,
   WorldDetail,
@@ -19,7 +20,7 @@ export const useWorldStore = defineStore('world', () => {
 
   const currentWorld = ref<WorldDetail>()
   const actors = ref<ActorSummary[]>([])
-  const languages = ref<NamedEntitySummary[]>([])
+  const languages = ref<LanguageSummary[]>([])
   const cultures = ref<NamedEntitySummary[]>([])
   const items = ref<ItemSummary[]>([])
   const places = ref<PlaceSummary[]>([])

@@ -16,6 +16,7 @@ import { useRequest } from './request.composable'
 import {
   toActorSummary,
   toItemSummary,
+  toLanguageSummary,
   toNamedEntitySummary,
   toPlaceSummaries,
   toWorldDetail,
@@ -24,6 +25,7 @@ import {
 import type {
   ActorSummary,
   ItemSummary,
+  LanguageSummary,
   NamedEntitySummary,
   PlaceSummary,
   WorldDetail,
@@ -42,8 +44,10 @@ type CreateActorInput = Omit<PlacedActorInput, 'worldId' | 'isNpc' | 'partyId'> 
 
 type NamedEntityInput = {
   name: string
-  description: string
 }
+
+/** A language is always created inside a culture. */
+type LanguageInput = NamedEntityInput & { cultureId: string }
 
 /** What the item form sends; the class of the types the item is not is `null`. */
 type ItemInput = Pick<CreateItem, 'name' | 'type'> & {
@@ -91,10 +95,10 @@ export function useWorld(): {
   currentWorld: Ref<WorldDetail | undefined>
   entityTab: Ref<WorldEntityTab>
   entitySearch: Ref<string>
-  languages: Ref<NamedEntitySummary[]>
+  languages: Ref<LanguageSummary[]>
   cultures: Ref<NamedEntitySummary[]>
   visibleActors: ComputedRef<ActorSummary[]>
-  visibleLanguages: ComputedRef<NamedEntitySummary[]>
+  visibleLanguages: ComputedRef<LanguageSummary[]>
   visibleCultures: ComputedRef<NamedEntitySummary[]>
   items: Ref<ItemSummary[]>
   visibleItems: ComputedRef<ItemSummary[]>
@@ -124,11 +128,8 @@ export function useWorld(): {
   deleteActor: (actorId: string) => Promise<boolean>
   createActor: (input: CreateActorInput) => Promise<ActorSummary | undefined>
   updateActor: (actorId: string, input: CreateActorInput) => Promise<ActorSummary | undefined>
-  createLanguage: (input: NamedEntityInput) => Promise<NamedEntitySummary | undefined>
-  updateLanguage: (
-    languageId: string,
-    input: NamedEntityInput
-  ) => Promise<NamedEntitySummary | undefined>
+  createLanguage: (input: LanguageInput) => Promise<LanguageSummary | undefined>
+  updateLanguage: (languageId: string, input: LanguageInput) => Promise<LanguageSummary | undefined>
   deleteLanguage: (languageId: string) => Promise<boolean>
   createCulture: (input: NamedEntityInput) => Promise<NamedEntitySummary | undefined>
   updateCulture: (
@@ -290,7 +291,7 @@ export function useWorld(): {
     ])
     places.value = toPlaceSummaries(placeList ?? [])
     items.value = (itemList ?? []).map(toItemSummary)
-    languages.value = (languageList ?? []).map(toNamedEntitySummary)
+    languages.value = (languageList ?? []).map(toLanguageSummary)
     cultures.value = (cultureList ?? []).map(toNamedEntitySummary)
     actors.value = (actorList ?? [])
       .filter((actor) => actor.isNpc)
@@ -431,26 +432,26 @@ export function useWorld(): {
     return summary
   }
 
-  async function createLanguage(input: NamedEntityInput): Promise<NamedEntitySummary | undefined> {
+  async function createLanguage(input: LanguageInput): Promise<LanguageSummary | undefined> {
     const worldId = currentWorld.value?.id
     if (!worldId) return undefined
 
     const created = await namedEntityRequest('language:create', { worldId, ...input })
     if (!created) return undefined
 
-    const summary = toNamedEntitySummary(created)
+    const summary = toLanguageSummary(created)
     languages.value = [summary, ...languages.value]
     return summary
   }
 
   async function updateLanguage(
     languageId: string,
-    input: NamedEntityInput
-  ): Promise<NamedEntitySummary | undefined> {
+    input: LanguageInput
+  ): Promise<LanguageSummary | undefined> {
     const updated = await namedEntityRequest('language:update', { id: languageId, patch: input })
     if (!updated) return undefined
 
-    const summary = toNamedEntitySummary(updated)
+    const summary = toLanguageSummary(updated)
     languages.value = languages.value.map((item) => (item.id === languageId ? summary : item))
     return summary
   }

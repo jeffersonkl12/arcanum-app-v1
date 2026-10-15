@@ -4,8 +4,7 @@ import { createInsertSchema } from 'drizzle-orm/zod'
 import type { z } from 'zod'
 
 export const createCultureSchema = createInsertSchema(cultureTable, {
-  name: (schema) => schema.trim().min(1).max(TEXT_LIMITS.name),
-  description: (schema) => schema.max(TEXT_LIMITS.longText)
+  name: (schema) => schema.trim().min(1).max(TEXT_LIMITS.name)
 }).omit({ id: true })
 
 /** The world of an existing culture cannot change. */

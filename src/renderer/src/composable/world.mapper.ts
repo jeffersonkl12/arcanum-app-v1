@@ -9,6 +9,7 @@ import { worldGenreLabel } from '@renderer/constant/world-genre.constant'
 import type {
   ActorSummary,
   ItemSummary,
+  LanguageSummary,
   NamedEntitySummary,
   PlaceSummary,
   WorldDetail,
@@ -90,9 +91,12 @@ export function toItemSummary(item: Item): ItemSummary {
 export function toNamedEntitySummary(entity: Culture | Language): NamedEntitySummary {
   return {
     id: entity.id,
-    name: entity.name,
-    description: entity.description
+    name: entity.name
   }
+}
+
+export function toLanguageSummary(language: Language): LanguageSummary {
+  return { id: language.id, name: language.name, cultureId: language.cultureId }
 }
 
 /** The places in tree order (each one right under its parent, siblings by name), with their depth and path. */

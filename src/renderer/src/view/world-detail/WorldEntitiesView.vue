@@ -21,6 +21,7 @@ import { useWorld } from '@renderer/composable/world.composable'
 import type {
   ActorSummary,
   ItemSummary,
+  LanguageSummary,
   NamedEntitySummary,
   PlaceSummary
 } from '@renderer/composable/world.type'
@@ -32,6 +33,7 @@ const {
   visibleActors,
   visibleLanguages,
   visibleCultures,
+  cultures,
   visibleItems,
   places,
   visiblePlaces,
@@ -41,6 +43,10 @@ const {
   deleteCulture,
   deleteItem
 } = useWorld()
+
+function cultureNameOf(cultureId: string): string {
+  return cultures.value.find((culture) => culture.id === cultureId)?.name ?? ''
+}
 
 type DeletableKind = 'actor' | 'language' | 'culture' | 'item' | 'place'
 
@@ -61,7 +67,7 @@ const deleteCopy: Record<DeletableKind, { title: string; success: string }> = {
 const npcOpen = ref(false)
 const editingNpc = ref<ActorSummary | null>(null)
 const languageOpen = ref(false)
-const editingLanguage = ref<NamedEntitySummary | null>(null)
+const editingLanguage = ref<LanguageSummary | null>(null)
 const cultureOpen = ref(false)
 const editingCulture = ref<NamedEntitySummary | null>(null)
 const itemOpen = ref(false)
@@ -110,7 +116,7 @@ function openEditNpc(actor: ActorSummary): void {
   npcOpen.value = true
 }
 
-function openEditLanguage(language: NamedEntitySummary): void {
+function openEditLanguage(language: LanguageSummary): void {
   editingLanguage.value = language
   languageOpen.value = true
 }
@@ -291,7 +297,7 @@ const tabTriggerClass = cn(
           v-for="language in visibleLanguages"
           :key="language.id"
           :name="language.name"
-          :description="language.description"
+          :subtitle="cultureNameOf(language.cultureId)"
           @edit="openEditLanguage(language)"
           @remove="requestDelete('language', language)"
         />
@@ -305,7 +311,6 @@ const tabTriggerClass = cn(
           v-for="culture in visibleCultures"
           :key="culture.id"
           :name="culture.name"
-          :description="culture.description"
           @edit="openEditCulture(culture)"
           @remove="requestDelete('culture', culture)"
         />

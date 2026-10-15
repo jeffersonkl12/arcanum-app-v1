@@ -74,7 +74,13 @@ export class WorldCloneRepository implements IWorldCloneRepository {
         // Actors point to the other four through composite foreign keys, so those go in first.
         // Drizzle rejects an insert without rows, hence the guards.
         if (cultures.rows.length > 0) await tx.insert(cultureTable).values(cultures.rows)
-        if (languages.rows.length > 0) await tx.insert(languageTable).values(languages.rows)
+        if (languages.rows.length > 0)
+          await tx.insert(languageTable).values(
+            languages.rows.map((language) => ({
+              ...language,
+              cultureId: cultures.newIds.get(language.cultureId) ?? language.cultureId
+            }))
+          )
         if (parties.rows.length > 0) await tx.insert(partyTable).values(parties.rows)
         // Places point to their parent in the same table; the foreign key is checked once the whole
         // statement has run, so the order of the rows does not matter.

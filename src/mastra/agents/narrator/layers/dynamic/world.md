@@ -22,10 +22,16 @@ Route, from the largest place down to here: {{#each currentPlace.path}}{{#unless
 {{/if}}
 {{#if currentPlace.npcs.length}}
 
-NPCs here right now, whether or not they are taking part in the scene (they are in the room; keep them present and consistent, let them react, and never forget one):
+NPCs relevant to this place. They are here right now, but they are not necessarily doing something, interacting with the party or needing to: they are part of the setting. Keep them present and consistent, let them react when it makes sense, and do not force them into the scene. Below is only a short sheet of each; their full story is not shown, so do not invent a past that contradicts what is written:
 
 {{#each currentPlace.npcs}}
-- {{name}} (id: {{id}})
+- {{name}} (id: {{id}}): {{age}}, {{gender}}{{#if culture}}, culture {{culture}}{{/if}}{{#if language}}, speaks {{language}}{{/if}}{{#if profession}}, {{profession}}{{/if}}
+{{#if appearance}}
+  - Appearance: {{appearance}}
+{{/if}}
+{{#if personality}}
+  - Personality: {{personality}}
+{{/if}}
 {{/each}}
 {{/if}}
 {{#if currentPlace.inside.length}}

@@ -7,7 +7,7 @@ import { computed, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { z } from 'zod'
 import { useWorld } from '@renderer/composable/world.composable'
-import type { NamedEntitySummary } from '@renderer/composable/world.type'
+import type { LanguageSummary, NamedEntitySummary } from '@renderer/composable/world.type'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -19,13 +19,20 @@ import {
 } from '@renderer/components/ui/dialog'
 import {
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage
 } from '@renderer/components/ui/form'
 import { Input } from '@renderer/components/ui/input'
-import { Textarea } from '@renderer/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
 import type { IpcError } from '@shared'
 
 const props = defineProps<{
@@ -33,13 +40,16 @@ const props = defineProps<{
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
-const entity = defineModel<NamedEntitySummary | null>('entity', { default: null })
+// `cultureId` is only there when the entity is a language.
+const entity = defineModel<NamedEntitySummary | LanguageSummary | null>('entity', {
+  default: null
+})
 
-const formFields = ['name', 'description'] as const
+const formFields = ['name', 'cultureId'] as const
 
 type FormFieldName = (typeof formFields)[number]
 
-// Mirrors TEXT_LIMITS in the engine: name 120, long text 5000.
+// Mirrors TEXT_LIMITS in the engine: name 120.
 const createNamedEntityFormSchema = toTypedSchema(
   z.object({
     name: z
@@ -47,15 +57,14 @@ const createNamedEntityFormSchema = toTypedSchema(
       .trim()
       .min(1, 'Informe o nome')
       .max(120, 'O nome pode ter no máximo 120 caracteres'),
-    description: z
-      .string('A descrição é inválida')
-      .max(5000, 'A descrição pode ter no máximo 5000 caracteres')
+    // Required for a language (checked on submit): it always belongs to a culture.
+    cultureId: z.string().optional()
   })
 )
 
 const emptyForm = {
   name: '',
-  description: ''
+  cultureId: undefined
 }
 
 const isEditing = computed(() => entity.value != null)
@@ -65,10 +74,9 @@ const copy = computed(() => {
     return {
       trigger: 'Adicionar idioma',
       title: isEditing.value ? 'Editar Idioma' : 'Adicionar Idioma',
-      description: 'Informe o nome e a descrição do idioma.',
+      description: 'Informe o nome e a cultura do idioma.',
       nameLabel: 'Nome do Idioma',
       namePlaceholder: 'Ex: Aethérico',
-      descriptionPlaceholder: 'Uma breve descrição sobre este idioma...',
       submit: isEditing.value ? 'Salvar Alterações' : 'Salvar Idioma',
       success: isEditing.value ? 'Idioma atualizado' : 'Idioma criado'
     }
@@ -77,10 +85,9 @@ const copy = computed(() => {
   return {
     trigger: 'Adicionar cultura',
     title: isEditing.value ? 'Editar Cultura' : 'Adicionar Cultura',
-    description: 'Informe o nome e a descrição da cultura.',
+    description: 'Informe o nome da cultura.',
     nameLabel: 'Nome da Cultura',
     namePlaceholder: 'Ex: Elfos de Sylaris',
-    descriptionPlaceholder: 'Uma breve descrição sobre esta cultura...',
     submit: isEditing.value ? 'Salvar Alterações' : 'Salvar Cultura',
     success: isEditing.value ? 'Cultura atualizada' : 'Cultura criada'
   }
@@ -91,6 +98,7 @@ const {
   updateLanguage,
   createCulture,
   updateCulture,
+  cultures,
   isCreatingNamedEntity,
   createNamedEntityError
 } = useWorld()
@@ -101,15 +109,19 @@ const { handleSubmit, resetForm, setErrors } = useForm({
 
 const onSubmit = handleSubmit(async (values) => {
   const payload = {
-    name: values.name,
-    description: values.description
+    name: values.name
   }
 
   let saved: NamedEntitySummary | undefined
   if (props.kind === 'language') {
+    if (!values.cultureId) {
+      setErrors({ cultureId: 'Selecione a cultura do idioma' })
+      return
+    }
+    const languagePayload = { ...payload, cultureId: values.cultureId }
     saved = entity.value
-      ? await updateLanguage(entity.value.id, payload)
-      : await createLanguage(payload)
+      ? await updateLanguage(entity.value.id, languagePayload)
+      : await createLanguage(languagePayload)
   } else {
     saved = entity.value
       ? await updateCulture(entity.value.id, payload)
@@ -137,7 +149,7 @@ function startCreate(): void {
   entity.value = null
 }
 
-function fillForm(item: NamedEntitySummary | null): void {
+function fillForm(item: NamedEntitySummary | LanguageSummary | null): void {
   if (!item) {
     resetForm({ values: emptyForm })
     return
@@ -146,7 +158,7 @@ function fillForm(item: NamedEntitySummary | null): void {
   resetForm({
     values: {
       name: item.name,
-      description: item.description
+      cultureId: 'cultureId' in item ? item.cultureId : undefined
     }
   })
 }
@@ -213,17 +225,34 @@ function isFormField(path: string): path is FormFieldName {
               </FormItem>
             </FormField>
 
-            <FormField v-slot="{ componentField }" name="description" keep-value>
+            <FormField
+              v-if="kind === 'language'"
+              v-slot="{ componentField }"
+              name="cultureId"
+              keep-value
+            >
               <FormItem>
-                <FormLabel class="text-muted-foreground">Descrição</FormLabel>
-                <FormControl>
-                  <Textarea
-                    :placeholder="copy.descriptionPlaceholder"
-                    :disabled="isCreatingNamedEntity"
-                    class="field-sizing-fixed h-30 resize-none rounded-lg border-border bg-background px-4 py-3 text-sm shadow-none placeholder:text-tertiary"
-                    v-bind="componentField"
-                  />
-                </FormControl>
+                <FormLabel class="text-muted-foreground">Cultura</FormLabel>
+                <Select
+                  v-bind="componentField"
+                  :disabled="isCreatingNamedEntity || cultures.length === 0"
+                >
+                  <FormControl>
+                    <SelectTrigger
+                      class="h-auto w-full rounded-lg border-border bg-background px-4 py-3 text-sm data-placeholder:text-tertiary"
+                    >
+                      <SelectValue placeholder="Selecione a cultura" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent position="popper" class="bg-card">
+                    <SelectItem v-for="culture in cultures" :key="culture.id" :value="culture.id">
+                      {{ culture.name }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription v-if="cultures.length === 0" class="text-xs text-destructive">
+                  Crie uma cultura antes: todo idioma pertence a uma cultura.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             </FormField>

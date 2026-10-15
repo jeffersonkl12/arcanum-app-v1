@@ -8,8 +8,7 @@ export const cultureTable = pgTable(
     worldId: uuid('world_id')
       .notNull()
       .references(() => worldTable.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    description: text('description').notNull().default('')
+    name: text('name').notNull()
   },
   (table) => [
     // Target of the composite foreign key of `actor`, which keeps an actor and its culture in the same world.

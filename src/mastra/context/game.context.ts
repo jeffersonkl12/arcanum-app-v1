@@ -148,8 +148,23 @@ export const currentPlaceSchema = z.object({
    * saying how many were left out. Empty when it holds nothing.
    */
   inside: z.array(z.string()),
-  /** The NPCs standing in this very place, whether or not they are doing anything. The party is not one. */
-  npcs: z.array(z.object({ id: z.string(), name: z.string() }))
+  /**
+   * The NPCs standing in this very place, whether or not they are doing anything. The party is not
+   * one. A short sheet each: no background.
+   */
+  npcs: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      age: z.enum(ACTOR_AGES),
+      gender: z.enum(ACTOR_GENDERS),
+      culture: z.string().nullable(),
+      language: z.string().nullable(),
+      profession: z.string().nullable(),
+      appearance: z.string().nullable(),
+      personality: z.string().nullable()
+    })
+  )
 })
 
 export type CurrentPlace = z.infer<typeof currentPlaceSchema>
@@ -191,6 +206,9 @@ export const partyMemberSchema = z.object({
   isPlayer: z.boolean(),
   age: z.enum(ACTOR_AGES),
   gender: z.enum(ACTOR_GENDERS),
+  /** Names of its culture and language; `null` when it has none. */
+  culture: z.string().nullable(),
+  language: z.string().nullable(),
   hpCurrent: z.number().int(),
   hpMax: z.number().int(),
   strength: z.number().int(),

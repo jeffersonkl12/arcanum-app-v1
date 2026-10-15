@@ -46,7 +46,11 @@ export interface ActorSummary {
 export interface NamedEntitySummary {
   id: string
   name: string
-  description: string
+}
+
+/** A language always belongs to a culture of its world. */
+export interface LanguageSummary extends NamedEntitySummary {
+  cultureId: string
 }
 
 export interface ItemSummary {

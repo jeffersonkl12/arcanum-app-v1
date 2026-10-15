@@ -7,7 +7,7 @@ Treat the sheets below as a starting point, not as the full definition of a char
 
 Each member's feelings about the others are directed: what A feels about B is not necessarily what B feels about A. Let them show in how the characters talk to, look at and treat each other, and in whether they follow, help or oppose one another; never state the number.
 
-Use the sheet when it fits the scene. Age, gender, race, profession and attributes are more than data; they say who the character is and how the world reads them. A child is treated differently from an adult, gender can shape how someone is received or seen, a sharp mind can sound sharp, great strength tends to come with an imposing build. Let these traits color how others react, how the character looks, speaks and moves, never as a list to recite.
+Use the sheet when it fits the scene. Age, gender, culture, language, profession and attributes are more than data; they say who the character is and how the world reads them. A child is treated differently from an adult, gender can shape how someone is received or seen, a sharp mind can sound sharp, great strength tends to come with an imposing build. Let these traits color how others react, how the character looks, speaks and moves, never as a list to recite.
 
 {{#each members}}
 ## {{name}}{{#if isPlayer}} (the player's character){{/if}}
@@ -15,6 +15,12 @@ Use the sheet when it fits the scene. Age, gender, race, profession and attribut
 - Id: {{id}}
 - Age: {{age}}
 - Gender: {{gender}}
+{{#if culture}}
+- Culture: {{culture}}
+{{/if}}
+{{#if language}}
+- Language: {{language}}
+{{/if}}
 - Health: {{hpCurrent}} of {{hpMax}} hit points
 - Attributes (d6 rolled in a check; 4 is an average person): strength {{strength}} ({{strengthLevel}}), dexterity {{dexterity}} ({{dexterityLevel}}), intelligence {{intelligence}} ({{intelligenceLevel}})
 - Money: {{goldPieces}} gold pieces, {{silverPieces}} silver pieces, {{bronzePieces}} bronze pieces

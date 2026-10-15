@@ -6,7 +6,7 @@ export interface ICultureService extends ICrudService<Culture, CreateCulture, Up
   listByWorld(worldId: string): Promise<Culture[]>
 }
 
-/** A culture still used by an actor cannot be deleted (`ConflictError`). */
+/** A culture still used by an actor or with languages cannot be deleted (`ConflictError`). */
 export class CultureService
   extends BaseService<Culture, CreateCulture, UpdateCulture>
   implements ICultureService

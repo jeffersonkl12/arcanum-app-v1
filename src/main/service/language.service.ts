@@ -6,7 +6,10 @@ export interface ILanguageService extends ICrudService<Language, CreateLanguage,
   listByWorld(worldId: string): Promise<Language[]>
 }
 
-/** A language still used by an actor cannot be deleted (`ConflictError`). */
+/**
+ * A language belongs to a culture of its world (`ConflictError` otherwise), and one still used by
+ * an actor cannot be deleted.
+ */
 export class LanguageService
   extends BaseService<Language, CreateLanguage, UpdateLanguage>
   implements ILanguageService

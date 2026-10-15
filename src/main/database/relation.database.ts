@@ -59,10 +59,12 @@ export const relations = defineRelations(
     },
     culture: {
       world: r.one.world({ from: r.culture.worldId, to: r.world.id, optional: false }),
-      actors: r.many.actor({ from: r.culture.id, to: r.actor.cultureId })
+      actors: r.many.actor({ from: r.culture.id, to: r.actor.cultureId }),
+      languages: r.many.language({ from: r.culture.id, to: r.language.cultureId })
     },
     language: {
       world: r.one.world({ from: r.language.worldId, to: r.world.id, optional: false }),
+      culture: r.one.culture({ from: r.language.cultureId, to: r.culture.id, optional: false }),
       actors: r.many.actor({ from: r.language.id, to: r.actor.languageId })
     },
     campaign: {
