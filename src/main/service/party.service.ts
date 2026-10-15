@@ -10,11 +10,13 @@ export interface IPartyService extends ICrudService<Party, CreateParty, never> {
   listMembers(partyId: string): Promise<Actor[]>
   addMember(partyId: string, actorId: string): Promise<Actor>
   removeMember(partyId: string, actorId: string): Promise<Actor>
+  /** Takes every member to the place (`null`: nowhere in particular) at once and returns them. */
+  move(partyId: string, pointOfInterestId: string | null): Promise<Actor[]>
 }
 
 /**
  * A world has at most one party, and only actors of the party's world can join it; both rules
- * surface as `ConflictError`. Deleting a party that still has members is also a `ConflictError`.
+ * surface as `ConflictError`, and so does moving the party to a place of another world. Deleting a party that still has members is also a `ConflictError`.
  */
 export class PartyService extends BaseService<Party, CreateParty, never> implements IPartyService {
   constructor(
@@ -48,6 +50,12 @@ export class PartyService extends BaseService<Party, CreateParty, never> impleme
     }
 
     return this.updateActorParty(actorId, null)
+  }
+
+  async move(partyId: string, pointOfInterestId: string | null): Promise<Actor[]> {
+    await this.get(partyId)
+
+    return this.actorRepository.moveByParty(partyId, pointOfInterestId)
   }
 
   private async updateActorParty(actorId: string, partyId: string | null): Promise<Actor> {

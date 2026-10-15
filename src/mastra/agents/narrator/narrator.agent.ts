@@ -6,11 +6,15 @@ import { dynamicLayer, generatedLayer, staticLayer } from '../../prompt/layer.pr
 import { narratorUiPrompt } from '../../prompt/narrator-ui.prompt'
 import { adjustRelationshipsTool } from '../../tools/adjust-relationships.tool'
 import { updateCampaignSummaryTool } from '../../tools/update-campaign-summary.tool'
+import { createPlacesTool } from '../../tools/create-places.tool'
 import { createItemsTool } from '../../tools/create-items.tool'
 import { deleteItemsTool } from '../../tools/delete-items.tool'
 import { equipItemsTool } from '../../tools/equip-items.tool'
 import { findItemsTool } from '../../tools/find-items.tool'
 import { getInventoryTool } from '../../tools/get-inventory.tool'
+import { findPlacesTool } from '../../tools/find-places.tool'
+import { moveActorsTool } from '../../tools/move-actors.tool'
+import { movePartyTool } from '../../tools/move-party.tool'
 import { recallMemoriesTool } from '../../tools/recall-memories.tool'
 import { rememberEventsTool } from '../../tools/remember-events.tool'
 import { rollCheckTool } from '../../tools/roll-check.tool'
@@ -62,6 +66,10 @@ export const narratorAgent = new Agent({
     equipItemsTool,
     getInventoryTool,
     findItemsTool,
+    findPlacesTool,
+    createPlacesTool,
+    moveActorsTool,
+    movePartyTool,
     rememberEventsTool,
     recallMemoriesTool
   },

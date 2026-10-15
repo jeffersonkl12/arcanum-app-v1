@@ -18,6 +18,7 @@ import type { ICoinRegistry } from './coin.context'
 import type { IItemRegistry } from './item.context'
 import { liveContextSchema } from './live-context.context'
 import type { IMemoryRegistry } from './memory.context'
+import type { IPointOfInterestRegistry } from './point-of-interest.context'
 import type { IRelationshipRegistry } from './relationship.context'
 
 const attributeScoreSchema = z
@@ -239,6 +240,13 @@ export const gameContextSchema = z.object({
       value !== null &&
       typeof (value as ICoinRegistry).transferCoins === 'function',
     'coinRegistry must implement ICoinRegistry'
+  ),
+  pointOfInterestRegistry: z.custom<IPointOfInterestRegistry>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as IPointOfInterestRegistry).moveParty === 'function',
+    'pointOfInterestRegistry must implement IPointOfInterestRegistry'
   ),
   memoryRegistry: z.custom<IMemoryRegistry>(
     (value) =>

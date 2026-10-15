@@ -24,6 +24,11 @@ export interface IActorRepository extends IRepository<Actor, CreateActor, Update
   listByWorld(worldId: string): Promise<Actor[]>
   listByParty(partyId: string): Promise<Actor[]>
   /**
+   * Puts every member of the party in the place (`null`: nowhere in particular) in a single
+   * statement, so the party never ends up split halfway. Returns the members as they are now.
+   */
+  moveByParty(partyId: string, pointOfInterestId: string | null): Promise<Actor[]>
+  /**
    * Debits and credits in a single transaction, so money is never lost or created halfway. A
    * balance that would leave its range (a payer without enough coins) is refused with
    * `ConflictError`; an actor that does not exist is a `NotFoundError`. Nothing changes on failure.
@@ -53,6 +58,18 @@ export class ActorRepository
       .from(actorTable)
       .where(eq(actorTable.partyId, partyId))
       .orderBy(asc(actorTable.name))
+  }
+
+  async moveByParty(partyId: string, pointOfInterestId: string | null): Promise<Actor[]> {
+    try {
+      return await this.database
+        .update(actorTable)
+        .set({ pointOfInterestId })
+        .where(eq(actorTable.partyId, partyId))
+        .returning()
+    } catch (error) {
+      throw translateDatabaseError(error)
+    }
   }
 
   async transferCoins({ fromActorId, toActorId, coins }: CoinMove): Promise<CoinMoveResult> {

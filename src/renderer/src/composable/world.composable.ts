@@ -12,6 +12,7 @@ import {
   toActorSummary,
   toItemSummary,
   toNamedEntitySummary,
+  toPlaceSummaries,
   toWorldDetail,
   toWorldSummary
 } from './world.mapper'
@@ -19,6 +20,7 @@ import type {
   ActorSummary,
   ItemSummary,
   NamedEntitySummary,
+  PlaceSummary,
   WorldDetail,
   WorldEntityTab,
   WorldSummary
@@ -44,6 +46,15 @@ type ItemInput = Pick<CreateItem, 'name' | 'type'> & {
   slots: number
   weaponClass: CreateItem['weaponClass']
   clothingClass: CreateItem['clothingClass']
+  imageData?: Uint8Array
+}
+
+/** What the place form sends; `parentId` is null for a place at the top. */
+type PlaceInput = {
+  name: string
+  type: string
+  description: string
+  parentId: string | null
   imageData?: Uint8Array
 }
 
@@ -82,6 +93,15 @@ export function useWorld(): {
   visibleCultures: ComputedRef<NamedEntitySummary[]>
   items: Ref<ItemSummary[]>
   visibleItems: ComputedRef<ItemSummary[]>
+  places: Ref<PlaceSummary[]>
+  /** The places in tree order; while searching, the ones whose name or type match, flat. */
+  visiblePlaces: ComputedRef<PlaceSummary[]>
+  isSavingPlace: Ref<boolean>
+  savePlaceError: Ref<IpcError | undefined>
+  createPlace: (input: PlaceInput) => Promise<PlaceSummary | undefined>
+  updatePlace: (placeId: string, input: PlaceInput) => Promise<PlaceSummary | undefined>
+  /** `conflict` while the place still has places or actors inside; the engine's message is toasted. */
+  deletePlace: (placeId: string) => Promise<boolean>
   isSavingItem: Ref<boolean>
   saveItemError: Ref<IpcError | undefined>
   createItem: (input: ItemInput) => Promise<ItemSummary | undefined>
@@ -122,6 +142,7 @@ export function useWorld(): {
     languages,
     cultures,
     items,
+    places,
     entityTab,
     entitySearch,
     isNotFound
@@ -155,6 +176,13 @@ export function useWorld(): {
     execute: itemExecute
   } = useRequest()
 
+  const {
+    isLoading: isSavingPlace,
+    error: savePlaceError,
+    request: placeRequest,
+    execute: placeExecute
+  } = useRequest()
+
   const worlds = computed(() => {
     const countByTemplate = new Map<string, number>()
     for (const campaign of campaigns.value) {
@@ -171,6 +199,17 @@ export function useWorld(): {
   const visibleLanguages = computed(() => filterByName(languages.value, entitySearch.value))
   const visibleCultures = computed(() => filterByName(cultures.value, entitySearch.value))
   const visibleItems = computed(() => filterByName(items.value, entitySearch.value))
+  const visiblePlaces = computed(() => {
+    const term = entitySearch.value.trim().toLocaleLowerCase()
+    if (term.length === 0) return places.value
+    return places.value
+      .filter(
+        (place) =>
+          place.name.toLocaleLowerCase().includes(term) ||
+          place.type.toLocaleLowerCase().includes(term)
+      )
+      .map((place) => ({ ...place, depth: 0 }))
+  })
 
   /** The templates that match the dashboard filters; the engine does the filtering. */
   async function loadWorlds(): Promise<void> {
@@ -221,6 +260,7 @@ export function useWorld(): {
     languages.value = []
     cultures.value = []
     items.value = []
+    places.value = []
   }
 
   async function loadWorld(worldId: string): Promise<void> {
@@ -236,18 +276,72 @@ export function useWorld(): {
     }
 
     currentWorld.value = toWorldDetail(world)
-    const [actorList, languageList, cultureList, itemList] = await Promise.all([
+    const [actorList, languageList, cultureList, itemList, placeList] = await Promise.all([
       detailRequest('actor:listByWorld', worldId),
       detailRequest('language:listByWorld', worldId),
       detailRequest('culture:listByWorld', worldId),
-      detailRequest('item:listByWorld', worldId)
+      detailRequest('item:listByWorld', worldId),
+      detailRequest('pointOfInterest:listByWorld', worldId)
     ])
+    places.value = toPlaceSummaries(placeList ?? [])
     items.value = (itemList ?? []).map(toItemSummary)
     languages.value = (languageList ?? []).map(toNamedEntitySummary)
     cultures.value = (cultureList ?? []).map(toNamedEntitySummary)
     actors.value = (actorList ?? [])
       .filter((actor) => actor.isNpc)
       .map((actor) => toActorSummary(actor, cultures.value))
+  }
+
+  async function reloadPlaces(worldId: string): Promise<void> {
+    const placeList = await placeRequest('pointOfInterest:listByWorld', worldId)
+    if (placeList) places.value = toPlaceSummaries(placeList)
+  }
+
+  async function savePlaceImage(placeId: string, imageData?: Uint8Array): Promise<void> {
+    if (!imageData) return
+    await placeRequest('pointOfInterest:setImage', {
+      id: placeId,
+      data: new Uint8Array(imageData)
+    })
+  }
+
+  async function createPlace(input: PlaceInput): Promise<PlaceSummary | undefined> {
+    const worldId = currentWorld.value?.id
+    if (!worldId) return undefined
+
+    const { imageData, ...fields } = input
+    const created = await placeRequest('pointOfInterest:create', { worldId, ...fields })
+    if (!created) return undefined
+
+    await savePlaceImage(created.id, imageData)
+    await reloadPlaces(worldId)
+    return places.value.find((place) => place.id === created.id)
+  }
+
+  /** `conflict` when the new parent would put the place inside itself; the engine's message is toasted. */
+  async function updatePlace(
+    placeId: string,
+    input: PlaceInput
+  ): Promise<PlaceSummary | undefined> {
+    const worldId = currentWorld.value?.id
+    if (!worldId) return undefined
+
+    const { imageData, ...fields } = input
+    const updated = await placeRequest('pointOfInterest:update', { id: placeId, patch: fields })
+    if (!updated) return undefined
+
+    await savePlaceImage(placeId, imageData)
+    await reloadPlaces(worldId)
+    return places.value.find((place) => place.id === placeId)
+  }
+
+  async function deletePlace(placeId: string): Promise<boolean> {
+    const worldId = currentWorld.value?.id
+    if (!worldId) return false
+
+    if (!(await placeExecute('pointOfInterest:delete', placeId))) return false
+    await reloadPlaces(worldId)
+    return true
   }
 
   async function reloadActors(worldId: string): Promise<void> {
@@ -500,6 +594,13 @@ export function useWorld(): {
     visibleCultures,
     items,
     visibleItems,
+    places,
+    visiblePlaces,
+    isSavingPlace,
+    savePlaceError,
+    createPlace,
+    updatePlace,
+    deletePlace,
     isSavingItem,
     saveItemError,
     createItem,

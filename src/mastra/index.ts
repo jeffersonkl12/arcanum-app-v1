@@ -15,11 +15,15 @@ import { narratorAgent } from './agents/narrator/narrator.agent'
 import { npcCreatorAgent } from './agents/npc-creator/npc-creator.agent'
 import { adjustRelationshipsTool } from './tools/adjust-relationships.tool'
 import { createNpcTool } from './tools/create-npc.tool'
+import { createPlacesTool } from './tools/create-places.tool'
 import { createItemsTool } from './tools/create-items.tool'
 import { deleteItemsTool } from './tools/delete-items.tool'
 import { equipItemsTool } from './tools/equip-items.tool'
 import { findItemsTool } from './tools/find-items.tool'
 import { getInventoryTool } from './tools/get-inventory.tool'
+import { findPlacesTool } from './tools/find-places.tool'
+import { moveActorsTool } from './tools/move-actors.tool'
+import { movePartyTool } from './tools/move-party.tool'
 import { recallMemoriesTool } from './tools/recall-memories.tool'
 import { rememberEventsTool } from './tools/remember-events.tool'
 import { rollCheckTool } from './tools/roll-check.tool'
@@ -49,6 +53,10 @@ export const mastra = new Mastra({
     equipItemsTool,
     getInventoryTool,
     findItemsTool,
+    findPlacesTool,
+    createPlacesTool,
+    moveActorsTool,
+    movePartyTool,
     rememberEventsTool,
     recallMemoriesTool
   },

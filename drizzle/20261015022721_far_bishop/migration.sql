@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "point_of_interest_world_id_name_unique" ON "point_of_interest" ("world_id",lower("name"));

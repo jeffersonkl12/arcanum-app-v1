@@ -1,4 +1,4 @@
-import type { Actor, Culture, Item, Language, World } from '@schema'
+import type { Actor, Culture, Item, Language, PointOfInterest, World } from '@schema'
 import {
   clothingClassOptions,
   itemTypeOptions,
@@ -10,6 +10,7 @@ import type {
   ActorSummary,
   ItemSummary,
   NamedEntitySummary,
+  PlaceSummary,
   WorldDetail,
   WorldSummary
 } from './world.type'
@@ -91,4 +92,38 @@ export function toNamedEntitySummary(entity: Culture | Language): NamedEntitySum
     name: entity.name,
     description: entity.description
   }
+}
+
+/** The places in tree order (each one right under its parent, siblings by name), with their depth and path. */
+export function toPlaceSummaries(places: PointOfInterest[]): PlaceSummary[] {
+  const childrenOf = new Map<string | null, PointOfInterest[]>()
+  for (const place of places) {
+    const siblings = childrenOf.get(place.parentId) ?? []
+    siblings.push(place)
+    childrenOf.set(place.parentId, siblings)
+  }
+
+  const summaries: PlaceSummary[] = []
+  const visit = (place: PointOfInterest, path: string[]): void => {
+    const children = (childrenOf.get(place.id) ?? []).sort(byName)
+    summaries.push({
+      id: place.id,
+      name: place.name,
+      type: place.type,
+      description: place.description,
+      imagePath: place.imagePath,
+      parentId: place.parentId,
+      depth: path.length,
+      path,
+      childCount: children.length
+    })
+    for (const child of children) visit(child, [...path, place.name])
+  }
+
+  for (const root of (childrenOf.get(null) ?? []).sort(byName)) visit(root, [])
+  return summaries
+}
+
+function byName(a: PointOfInterest, b: PointOfInterest): number {
+  return a.name.localeCompare(b.name)
 }

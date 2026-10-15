@@ -16,6 +16,7 @@ import { MessageRatingRepository } from '@repository/message-rating.repository'
 import { LanguageRepository } from '@repository/language.repository'
 import { CampaignRepository } from '@repository/campaign.repository'
 import { PartyRepository } from '@repository/party.repository'
+import { PointOfInterestRepository } from '@repository/point-of-interest.repository'
 import { RelationshipRepository } from '@repository/relationship.repository'
 import { WorldCloneRepository } from '@repository/world-clone.repository'
 import { WorldRepository } from '@repository/world.repository'
@@ -39,6 +40,11 @@ import { MessageRatingService } from '@service/message-rating.service'
 import { CampaignRegistryService } from '@service/campaign-registry.service'
 import { CampaignService, type ICampaignService } from '@service/campaign.service'
 import { PartyService, type IPartyService } from '@service/party.service'
+import { PointOfInterestRegistryService } from '@service/point-of-interest-registry.service'
+import {
+  PointOfInterestService,
+  type IPointOfInterestService
+} from '@service/point-of-interest.service'
 import { RelationshipRegistryService } from '@service/relationship-registry.service'
 import { RelationshipService, type IRelationshipService } from '@service/relationship.service'
 import { WorldCloneService, type IWorldCloneService } from '@service/world-clone.service'
@@ -76,6 +82,14 @@ export const relationshipService: IRelationshipService = new RelationshipService
   new RelationshipRepository(database),
   actorRepository
 )
+export const pointOfInterestService: IPointOfInterestService = new PointOfInterestService(
+  new PointOfInterestRepository(database)
+)
+const pointOfInterestRegistry = new PointOfInterestRegistryService(
+  pointOfInterestService,
+  actorService,
+  partyService
+)
 export const aiSettingService: IAiSettingService = new AiSettingService(
   new AiSettingRepository(database),
   new SecretCipher()
@@ -111,6 +125,7 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   diceCheckService,
   new ItemRegistryService(inventoryService, actorService),
   new CoinRegistryService(new CoinService(actorRepository), actorService),
+  pointOfInterestRegistry,
   new MemoryRegistryService(memoryService, memoryContextService),
   memoryService,
   liveContextService,

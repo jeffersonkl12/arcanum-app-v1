@@ -12,10 +12,17 @@ const CONSTRAINT_MESSAGES: Readonly<Record<string, string>> = {
   actor_culture_world_fk: 'The culture does not exist in the actor world, or is still in use',
   actor_language_world_fk: 'The language does not exist in the actor world, or is still in use',
   actor_party_world_fk: 'The party does not exist in the actor world, or is still in use',
+  actor_point_of_interest_world_fk:
+    'The place does not exist in the actor world, or still has actors in it',
   actor_hp_max_range: 'The maximum health must be between 2 and 12',
   actor_hp_current_range: 'The current health must be between 0 and the maximum',
   actor_attributes_range: 'Strength, dexterity and intelligence must be between 1 and 6',
   actor_coins_range: 'Gold, silver and bronze pieces must be between 0 and 999999999',
+  point_of_interest_parent_world_fk:
+    'The parent place does not exist in the same world, or still has places inside',
+  point_of_interest_world_id_name_unique:
+    'A place with this name already exists in the world; use that one or pick another name',
+  point_of_interest_not_own_parent: 'A place cannot be inside itself',
   relationship_from_actor_world_fk: 'Both actors of a relationship must exist in the same world',
   relationship_to_actor_world_fk: 'Both actors of a relationship must exist in the same world',
   relationship_not_self: 'An actor has no relationship with itself',

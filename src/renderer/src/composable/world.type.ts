@@ -63,4 +63,19 @@ export interface ItemSummary {
   isEquipped: boolean
 }
 
-export type WorldEntityTab = 'npcs' | 'languages' | 'cultures' | 'items'
+/** A place of the world, placed in the tree: `depth` is how many places it is inside of. */
+export interface PlaceSummary {
+  id: string
+  name: string
+  type: string
+  description: string
+  imagePath?: string | null
+  parentId: string | null
+  depth: number
+  /** Names of the places it is inside of, from the top down; empty at the top. */
+  path: string[]
+  /** How many places are directly inside it. */
+  childCount: number
+}
+
+export type WorldEntityTab = 'npcs' | 'languages' | 'cultures' | 'items' | 'places'

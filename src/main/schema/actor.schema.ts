@@ -28,7 +28,7 @@ export const createActorSchema = createInsertSchema(actorTable, {
   bronzePieces: coinAmount
 }).omit({ id: true, imagePath: true })
 
-/** The world of an existing actor cannot change: its culture, language and party belong to it. */
+/** The world of an existing actor cannot change: its culture, language, party and place belong to it. */
 export const updateActorSchema = createActorSchema.omit({ worldId: true }).partial()
 
 export type Actor = typeof actorTable.$inferSelect

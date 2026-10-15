@@ -8,6 +8,7 @@ import {
 import { cultureTable } from '@database/entity/culture.entity'
 import { languageTable } from '@database/entity/language.entity'
 import { partyTable } from '@database/entity/party.entity'
+import { pointOfInterestTable } from '@database/entity/point-of-interest.entity'
 import { worldTable } from '@database/entity/world.entity'
 import { sql } from 'drizzle-orm'
 import {
@@ -59,7 +60,9 @@ export const actorTable = pgTable(
     silverPieces: integer('silver_pieces').notNull().default(ACTOR_COIN_LIMITS.default),
     bronzePieces: integer('bronze_pieces').notNull().default(ACTOR_COIN_LIMITS.default),
     isNpc: boolean('is_npc').notNull().default(true),
-    partyId: uuid('party_id')
+    partyId: uuid('party_id'),
+    // Where the actor is; null while it is nowhere in particular.
+    pointOfInterestId: uuid('point_of_interest_id')
   },
   (table) => [
     // Composite foreign keys (id + world) make it impossible to link an actor to another world's
@@ -78,6 +81,11 @@ export const actorTable = pgTable(
       name: 'actor_party_world_fk',
       columns: [table.partyId, table.worldId],
       foreignColumns: [partyTable.id, partyTable.worldId]
+    }),
+    foreignKey({
+      name: 'actor_point_of_interest_world_fk',
+      columns: [table.pointOfInterestId, table.worldId],
+      foreignColumns: [pointOfInterestTable.id, pointOfInterestTable.worldId]
     }),
     // Target of the composite foreign key of `item`, which keeps an item and its carrier in the same world.
     unique('actor_id_world_id_unique').on(table.id, table.worldId),

@@ -1,5 +1,6 @@
 import { actorTable } from '@database/entity/actor.entity'
 import { itemTable } from '@database/entity/item.entity'
+import { pointOfInterestTable } from '@database/entity/point-of-interest.entity'
 import { worldTable } from '@database/entity/world.entity'
 import { ImageProtocol, ImageStorage, resolveImagesFolder, type IImageStorage } from '@lib'
 import { database } from '@module/database.module'
@@ -12,6 +13,7 @@ export const imageStorage: IImageStorage = new ImageStorage(resolveImagesFolder(
 
 const actorImageRepository = new ImageRepository(database, actorTable)
 const itemImageRepository = new ImageRepository(database, itemTable)
+const pointOfInterestImageRepository = new ImageRepository(database, pointOfInterestTable)
 const worldImageRepository = new ImageRepository(database, worldTable)
 const masterImageRepository = new AiSettingImageRepository(database)
 
@@ -41,6 +43,13 @@ export const worldImageService: IImageService = new ImageService(
   'World'
 )
 
+export const pointOfInterestImageService: IImageService = new ImageService(
+  pointOfInterestImageRepository,
+  imageStorage,
+  'point-of-interest',
+  'PointOfInterest'
+)
+
 export const masterImageService: IImageService = new ImageService(
   masterImageRepository,
   imageStorage,
@@ -52,6 +61,7 @@ const imageSweepService: IImageSweepService = new ImageSweepService(imageStorage
   { scope: 'actor', repository: actorImageRepository },
   { scope: 'item', repository: itemImageRepository },
   { scope: 'world', repository: worldImageRepository },
+  { scope: 'point-of-interest', repository: pointOfInterestImageRepository },
   { scope: 'master', repository: masterImageRepository }
 ])
 

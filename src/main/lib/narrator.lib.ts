@@ -19,6 +19,7 @@ import type { ICoinRegistry } from '../../mastra/context/coin.context'
 import type { IItemRegistry } from '../../mastra/context/item.context'
 import type { LiveContextSection } from '../../mastra/context/live-context.context'
 import type { IMemoryRegistry } from '../../mastra/context/memory.context'
+import type { IPointOfInterestRegistry } from '../../mastra/context/point-of-interest.context'
 import type { IRelationshipRegistry } from '../../mastra/context/relationship.context'
 
 /** Upper bound of model/tool steps in one turn: narrator, tool or specialist, narrator. */
@@ -39,6 +40,7 @@ export interface NarratorTurn {
   npcRegistry: INpcRegistry
   itemRegistry: IItemRegistry
   coinRegistry: ICoinRegistry
+  pointOfInterestRegistry: IPointOfInterestRegistry
   memoryRegistry: IMemoryRegistry
   relationshipRegistry: IRelationshipRegistry
   campaignRegistry: ICampaignRegistry
@@ -159,6 +161,7 @@ export class NarratorGateway implements INarratorGateway {
     npcRegistry,
     itemRegistry,
     coinRegistry,
+    pointOfInterestRegistry,
     memoryRegistry,
     relationshipRegistry,
     campaignRegistry,
@@ -177,6 +180,7 @@ export class NarratorGateway implements INarratorGateway {
     requestContext.set('npcRegistry', npcRegistry)
     requestContext.set('itemRegistry', itemRegistry)
     requestContext.set('coinRegistry', coinRegistry)
+    requestContext.set('pointOfInterestRegistry', pointOfInterestRegistry)
     requestContext.set('memoryRegistry', memoryRegistry)
     requestContext.set('relationshipRegistry', relationshipRegistry)
     requestContext.set('campaignRegistry', campaignRegistry)

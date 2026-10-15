@@ -6,6 +6,7 @@ import type {
   ActorSummary,
   ItemSummary,
   NamedEntitySummary,
+  PlaceSummary,
   WorldDetail,
   WorldEntityTab
 } from '@renderer/composable/world.type'
@@ -21,6 +22,7 @@ export const useWorldStore = defineStore('world', () => {
   const languages = ref<NamedEntitySummary[]>([])
   const cultures = ref<NamedEntitySummary[]>([])
   const items = ref<ItemSummary[]>([])
+  const places = ref<PlaceSummary[]>([])
   const entityTab = ref<WorldEntityTab>('npcs')
   const entitySearch = ref('')
   const isNotFound = ref(false)
@@ -34,6 +36,7 @@ export const useWorldStore = defineStore('world', () => {
     languages,
     cultures,
     items,
+    places,
     entityTab,
     entitySearch,
     isNotFound

@@ -9,12 +9,14 @@ import type {
   CreateItem,
   CreateLanguage,
   CreateParty,
+  CreatePointOfInterest,
   CreateWorld,
   Culture,
   Inventory,
   Item,
   Language,
   Party,
+  PointOfInterest,
   SetImage,
   SetMasterImage,
   UpdateActor,
@@ -22,6 +24,7 @@ import type {
   UpdateCulture,
   UpdateItem,
   UpdateLanguage,
+  UpdatePointOfInterest,
   UpdateWorld,
   UpdateAiSetting,
   World,
@@ -123,6 +126,25 @@ export const ipcContract = {
   /** Sets or replaces the item's image with the bytes of the file; returns the new `imagePath`. */
   'item:setImage': channel<SetImage, string>(),
   'item:removeImage': channel<string, void>(),
+
+  /** Every place of the world, flat; the `parentId` links give the tree. */
+  'pointOfInterest:listByWorld': channel<string, PointOfInterest[]>(),
+  /** The places directly inside `parentId`, or the ones at the top of the world when it is `null`. */
+  'pointOfInterest:listChildren': channel<
+    { worldId: string; parentId: string | null },
+    PointOfInterest[]
+  >(),
+  /** The place and everything it is inside of, from the top down to the place itself. */
+  'pointOfInterest:getPath': channel<string, PointOfInterest[]>(),
+  'pointOfInterest:get': channel<string, PointOfInterest>(),
+  'pointOfInterest:create': channel<CreatePointOfInterest, PointOfInterest>(),
+  /** `parentId: null` takes the place to the top; `conflict` if it would end up inside itself. */
+  'pointOfInterest:update': channel<Update<UpdatePointOfInterest>, PointOfInterest>(),
+  /** `conflict` while the place still has places inside. */
+  'pointOfInterest:delete': channel<string, void>(),
+  /** Sets or replaces the place's image with the bytes of the file; returns the new `imagePath`. */
+  'pointOfInterest:setImage': channel<SetImage, string>(),
+  'pointOfInterest:removeImage': channel<string, void>(),
 
   'party:findByWorld': channel<string, Party | undefined>(),
   'party:create': channel<CreateParty, Party>(),

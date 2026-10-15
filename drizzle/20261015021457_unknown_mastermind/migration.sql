@@ -1,0 +1,2 @@
+ALTER TABLE "actor" ADD COLUMN "point_of_interest_id" uuid;--> statement-breakpoint
+ALTER TABLE "actor" ADD CONSTRAINT "actor_point_of_interest_world_fk" FOREIGN KEY ("point_of_interest_id","world_id") REFERENCES "point_of_interest"("id","world_id");

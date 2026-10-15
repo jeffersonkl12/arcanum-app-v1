@@ -38,6 +38,7 @@ import type {
 } from '../../mastra/context/game.context'
 import type { IItemRegistry } from '../../mastra/context/item.context'
 import type { IMemoryRegistry } from '../../mastra/context/memory.context'
+import type { IPointOfInterestRegistry } from '../../mastra/context/point-of-interest.context'
 
 export interface IGameMasterService {
   /** Plays one turn of the world's campaign. Throws `NotFoundError` if the world does not exist. */
@@ -101,6 +102,7 @@ export class GameMasterService implements IGameMasterService {
     private readonly diceCheckService: IDiceCheckService,
     private readonly itemRegistry: IItemRegistry,
     private readonly coinRegistry: ICoinRegistry,
+    private readonly pointOfInterestRegistry: IPointOfInterestRegistry,
     private readonly memoryRegistry: IMemoryRegistry,
     private readonly memoryService: IMemoryService,
     private readonly liveContext: ILiveContextService,
@@ -249,6 +251,7 @@ export class GameMasterService implements IGameMasterService {
       npcRegistry: this.createNpcRegistry(),
       itemRegistry: this.itemRegistry,
       coinRegistry: this.coinRegistry,
+      pointOfInterestRegistry: this.pointOfInterestRegistry,
       memoryRegistry: this.memoryRegistry,
       relationshipRegistry: this.relationshipRegistry,
       campaignRegistry: this.campaignRegistry,

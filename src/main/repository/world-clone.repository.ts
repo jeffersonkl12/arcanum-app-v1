@@ -6,6 +6,7 @@ import { cultureTable } from '@database/entity/culture.entity'
 import { itemTable } from '@database/entity/item.entity'
 import { languageTable } from '@database/entity/language.entity'
 import { partyTable } from '@database/entity/party.entity'
+import { pointOfInterestTable } from '@database/entity/point-of-interest.entity'
 import { relationshipTable } from '@database/entity/relationship.entity'
 import { worldTable } from '@database/entity/world.entity'
 import { translateDatabaseError } from '@database/error.database'
@@ -26,7 +27,7 @@ export interface WorldClone {
 export interface IWorldCloneRepository {
   /**
    * Copies a world and everything that belongs to it, (cultures, languages, party, actors and the relationships
-   * between them, with their links) into a new, non-template world, all or nothing. Returns `undefined` when the
+   * between them, places, with their links) into a new, non-template world, all or nothing. Returns `undefined` when the
    * source world does not exist. The campaign is never copied: it only exists in a non-template world, and the copy starts without one. The database cannot copy files, so the images come back as
    * `imageCopies` for the caller to copy once the transaction has committed.
    */
@@ -68,12 +69,24 @@ export class WorldCloneRepository implements IWorldCloneRepository {
         const languages = copyInto(world.id, await tx.query.language.findMany({ where }))
         const parties = copyInto(world.id, await tx.query.party.findMany({ where }))
         const actors = copyInto(world.id, await tx.query.actor.findMany({ where }))
+        const places = copyInto(world.id, await tx.query.pointOfInterest.findMany({ where }))
 
-        // Actors point to the other three through composite foreign keys, so those go in first.
+        // Actors point to the other four through composite foreign keys, so those go in first.
         // Drizzle rejects an insert without rows, hence the guards.
         if (cultures.rows.length > 0) await tx.insert(cultureTable).values(cultures.rows)
         if (languages.rows.length > 0) await tx.insert(languageTable).values(languages.rows)
         if (parties.rows.length > 0) await tx.insert(partyTable).values(parties.rows)
+        // Places point to their parent in the same table; the foreign key is checked once the whole
+        // statement has run, so the order of the rows does not matter.
+        if (places.rows.length > 0) {
+          await tx.insert(pointOfInterestTable).values(
+            places.rows.map((place) => ({
+              ...place,
+              parentId: remapId(places.newIds, place.parentId),
+              imagePath: copyImagePath('point-of-interest', place.imagePath, imageCopies)
+            }))
+          )
+        }
         if (actors.rows.length > 0) {
           await tx.insert(actorTable).values(
             actors.rows.map((actor) => ({
@@ -81,6 +94,7 @@ export class WorldCloneRepository implements IWorldCloneRepository {
               cultureId: remapId(cultures.newIds, actor.cultureId),
               languageId: remapId(languages.newIds, actor.languageId),
               partyId: remapId(parties.newIds, actor.partyId),
+              pointOfInterestId: remapId(places.newIds, actor.pointOfInterestId),
               imagePath: copyImagePath('actor', actor.imagePath, imageCopies)
             }))
           )

@@ -5,6 +5,7 @@ import {
   itemTable,
   languageTable,
   partyTable,
+  pointOfInterestTable,
   relationshipTable,
   worldTable
 } from '@database/entity'
@@ -24,6 +25,7 @@ export const relations = defineRelations(
     item: itemTable,
     language: languageTable,
     party: partyTable,
+    pointOfInterest: pointOfInterestTable,
     relationship: relationshipTable
   },
   (r) => ({
@@ -34,6 +36,10 @@ export const relations = defineRelations(
       items: r.many.item({ from: r.world.id, to: r.item.worldId }),
       languages: r.many.language({ from: r.world.id, to: r.language.worldId }),
       party: r.one.party({ from: r.world.id, to: r.party.worldId }),
+      pointsOfInterest: r.many.pointOfInterest({
+        from: r.world.id,
+        to: r.pointOfInterest.worldId
+      }),
       relationships: r.many.relationship({ from: r.world.id, to: r.relationship.worldId })
     },
     actor: {
@@ -41,6 +47,10 @@ export const relations = defineRelations(
       culture: r.one.culture({ from: r.actor.cultureId, to: r.culture.id }),
       language: r.one.language({ from: r.actor.languageId, to: r.language.id }),
       party: r.one.party({ from: r.actor.partyId, to: r.party.id }),
+      pointOfInterest: r.one.pointOfInterest({
+        from: r.actor.pointOfInterestId,
+        to: r.pointOfInterest.id
+      }),
       items: r.many.item({ from: r.actor.id, to: r.item.actorId })
     },
     item: {
@@ -57,6 +67,21 @@ export const relations = defineRelations(
     },
     campaign: {
       world: r.one.world({ from: r.campaign.worldId, to: r.world.id, optional: false })
+    },
+    pointOfInterest: {
+      world: r.one.world({ from: r.pointOfInterest.worldId, to: r.world.id, optional: false }),
+      parent: r.one.pointOfInterest({
+        from: r.pointOfInterest.parentId,
+        to: r.pointOfInterest.id
+      }),
+      actors: r.many.actor({
+        from: r.pointOfInterest.id,
+        to: r.actor.pointOfInterestId
+      }),
+      children: r.many.pointOfInterest({
+        from: r.pointOfInterest.id,
+        to: r.pointOfInterest.parentId
+      })
     },
     party: {
       world: r.one.world({ from: r.party.worldId, to: r.world.id, optional: false }),

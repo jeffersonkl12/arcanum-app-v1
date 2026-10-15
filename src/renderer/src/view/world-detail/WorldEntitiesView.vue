@@ -8,14 +8,22 @@ import {
   CreateItemDialog,
   CreateNamedEntityDialog,
   CreateNpcDialog,
+  CreatePlaceDialog,
   EntityRow,
   ItemDetailDialog,
-  ItemRow
+  ItemRow,
+  PlaceDetailDialog,
+  PlaceRow
 } from '@renderer/components/custom'
 import { Input } from '@renderer/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
 import { useWorld } from '@renderer/composable/world.composable'
-import type { ActorSummary, ItemSummary, NamedEntitySummary } from '@renderer/composable/world.type'
+import type {
+  ActorSummary,
+  ItemSummary,
+  NamedEntitySummary,
+  PlaceSummary
+} from '@renderer/composable/world.type'
 import { cn } from '@renderer/lib/utils'
 
 const {
@@ -25,13 +33,16 @@ const {
   visibleLanguages,
   visibleCultures,
   visibleItems,
+  places,
+  visiblePlaces,
+  deletePlace,
   deleteActor,
   deleteLanguage,
   deleteCulture,
   deleteItem
 } = useWorld()
 
-type DeletableKind = 'actor' | 'language' | 'culture' | 'item'
+type DeletableKind = 'actor' | 'language' | 'culture' | 'item' | 'place'
 
 interface PendingDelete {
   kind: DeletableKind
@@ -43,7 +54,8 @@ const deleteCopy: Record<DeletableKind, { title: string; success: string }> = {
   actor: { title: 'Apagar personagem', success: 'NPC removido' },
   language: { title: 'Apagar idioma', success: 'Idioma removido' },
   culture: { title: 'Apagar cultura', success: 'Cultura removida' },
-  item: { title: 'Apagar item', success: 'Item removido' }
+  item: { title: 'Apagar item', success: 'Item removido' },
+  place: { title: 'Apagar lugar', success: 'Lugar removido' }
 }
 
 const npcOpen = ref(false)
@@ -56,9 +68,21 @@ const itemOpen = ref(false)
 const editingItem = ref<ItemSummary | null>(null)
 const itemDetailOpen = ref(false)
 const viewingItem = ref<ItemSummary | null>(null)
+const placeOpen = ref(false)
+const editingPlace = ref<PlaceSummary | null>(null)
+const placeDetailOpen = ref(false)
+const viewingPlaceId = ref<string | null>(null)
 const deleteConfirmOpen = ref(false)
 const pendingDelete = ref<PendingDelete | null>(null)
 const isDeleting = ref(false)
+
+// Looked up by id, so the detail follows the list when the place is edited.
+const viewingPlace = computed(
+  () => places.value.find((place) => place.id === viewingPlaceId.value) ?? null
+)
+const placesInsideViewing = computed(() =>
+  places.value.filter((place) => place.parentId === viewingPlaceId.value)
+)
 
 const deleteTitle = computed(() => deleteCopy[pendingDelete.value?.kind ?? 'actor'].title)
 
@@ -72,6 +96,7 @@ const searchPlaceholder = computed(() => {
   if (entityTab.value === 'languages') return 'Buscar idiomas...'
   if (entityTab.value === 'cultures') return 'Buscar culturas...'
   if (entityTab.value === 'items') return 'Buscar itens...'
+  if (entityTab.value === 'places') return 'Buscar lugares...'
   return 'Buscar NPCs...'
 })
 
@@ -97,6 +122,28 @@ function openEditCulture(culture: NamedEntitySummary): void {
 function openEditItem(item: ItemSummary): void {
   editingItem.value = item
   itemOpen.value = true
+}
+
+function openEditPlace(place: PlaceSummary): void {
+  editingPlace.value = place
+  placeOpen.value = true
+}
+
+function openPlaceDetail(place: PlaceSummary): void {
+  viewingPlaceId.value = place.id
+  placeDetailOpen.value = true
+}
+
+function editPlaceFromDetail(): void {
+  if (!viewingPlace.value) return
+  placeDetailOpen.value = false
+  openEditPlace(viewingPlace.value)
+}
+
+function deletePlaceFromDetail(): void {
+  if (!viewingPlace.value) return
+  placeDetailOpen.value = false
+  requestDelete('place', viewingPlace.value)
 }
 
 function openItemDetail(item: ItemSummary): void {
@@ -132,7 +179,8 @@ async function confirmDelete(): Promise<void> {
       actor: deleteActor,
       language: deleteLanguage,
       culture: deleteCulture,
-      item: deleteItem
+      item: deleteItem,
+      place: deletePlace
     }
     // On failure (a language still in use, say) the engine's message was already shown.
     if (!(await deleters[target.kind](target.id))) return
@@ -164,6 +212,7 @@ const tabTriggerClass = cn(
         <TabsTrigger value="languages" :class="tabTriggerClass">Idiomas</TabsTrigger>
         <TabsTrigger value="cultures" :class="tabTriggerClass">Cultura</TabsTrigger>
         <TabsTrigger value="items" :class="tabTriggerClass">Itens</TabsTrigger>
+        <TabsTrigger value="places" :class="tabTriggerClass">Lugares</TabsTrigger>
       </TabsList>
 
       <div class="flex w-full items-center justify-between gap-4">
@@ -193,6 +242,11 @@ const tabTriggerClass = cn(
           v-else-if="entityTab === 'items'"
           v-model:open="itemOpen"
           v-model:entity="editingItem"
+        />
+        <CreatePlaceDialog
+          v-else-if="entityTab === 'places'"
+          v-model:open="placeOpen"
+          v-model:entity="editingPlace"
         />
         <CreateNamedEntityDialog
           v-else
@@ -260,7 +314,30 @@ const tabTriggerClass = cn(
           Nenhum item encontrado.
         </p>
       </TabsContent>
+
+      <TabsContent value="places" class="mt-0 flex flex-col gap-3 outline-none">
+        <PlaceRow
+          v-for="place in visiblePlaces"
+          :key="place.id"
+          :place="place"
+          @view="openPlaceDetail(place)"
+          @edit="openEditPlace(place)"
+          @remove="requestDelete('place', place)"
+        />
+        <p v-if="visiblePlaces.length === 0" class="text-sm text-tertiary">
+          Nenhum lugar encontrado.
+        </p>
+      </TabsContent>
     </Tabs>
+
+    <PlaceDetailDialog
+      v-model:open="placeDetailOpen"
+      :place="viewingPlace"
+      :inside="placesInsideViewing"
+      :deleting="isDeleting"
+      @edit="editPlaceFromDetail"
+      @delete="deletePlaceFromDetail"
+    />
 
     <ItemDetailDialog
       v-model:open="itemDetailOpen"
