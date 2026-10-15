@@ -148,13 +148,15 @@ export function useGame(): {
     const playerName = playerActor?.name ?? DEFAULT_PLAYER_NAME
     const playerImagePath = playerActor?.imagePath ?? undefined
 
-    session.value = { worldId, worldName: world.name, playerName, playerImagePath }
+    const masterImagePath = aiSetting?.imagePath ?? undefined
+
+    session.value = { worldId, worldName: world.name, playerName, playerImagePath, masterImagePath }
     languages.value = (languageList ?? []).map(toNamedEntitySummary)
     cultures.value = (cultureList ?? []).map(toNamedEntitySummary)
     isAiKeyMissing.value = aiSetting !== undefined && !aiSetting.apiKey.configured
     applyParty(loadedActors, party)
     messages.value = (history ?? []).map((message) =>
-      toGameChatMessage(message, playerName, playerImagePath)
+      toGameChatMessage(message, playerName, playerImagePath, masterImagePath)
     )
     rememberCampaign(worldId)
   }
@@ -167,6 +169,7 @@ export function useGame(): {
       role: 'master',
       senderName: 'Mestre',
       timeLabel: formatMessageTime(now),
+      imagePath: session.value?.masterImagePath,
       segments: [],
       isStreaming: true
     }
@@ -237,7 +240,12 @@ export function useGame(): {
     if (!history || !current || current.worldId !== worldId) return
 
     messages.value = history.map((message) =>
-      toGameChatMessage(message, current.playerName, current.playerImagePath)
+      toGameChatMessage(
+        message,
+        current.playerName,
+        current.playerImagePath,
+        current.masterImagePath
+      )
     )
   }
 

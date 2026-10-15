@@ -46,6 +46,7 @@ export interface GameSession {
   worldName: string
   playerName: string
   playerImagePath?: string
+  masterImagePath?: string
 }
 
 export interface CharacterSheet {

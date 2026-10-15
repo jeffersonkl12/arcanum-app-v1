@@ -44,6 +44,8 @@ export interface EmbeddingApiKeyStatus {
 export interface AiSettingView extends AiSetting {
   /** Whose embeddings search the characters' memory. */
   embeddingProvider: EmbeddingProvider
+  /** The game master's picture, relative to the images folder (see `toImageUrl`). */
+  imagePath: string | null
   apiKey: ApiKeyStatus
   embeddingApiKey: EmbeddingApiKeyStatus
 }
@@ -93,6 +95,11 @@ export const updateAiSettingSchema = z
   .superRefine(checkAiSetting)
 
 export type UpdateAiSetting = z.infer<typeof updateAiSettingSchema>
+
+/** Sets (or replaces) the game master's picture with the bytes of the file. */
+export const setMasterImageSchema = z.object({ data: z.instanceof(Uint8Array) })
+
+export type SetMasterImage = z.infer<typeof setMasterImageSchema>
 
 /**
  * Asks whether a provider answers with a key, before the player saves anything. `provider` (and

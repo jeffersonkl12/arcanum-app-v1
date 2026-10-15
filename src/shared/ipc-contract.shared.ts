@@ -16,6 +16,7 @@ import type {
   Language,
   Party,
   SetImage,
+  SetMasterImage,
   UpdateActor,
   UpdateCampaign,
   UpdateCulture,
@@ -145,6 +146,9 @@ export const ipcContract = {
   'aiSetting:clearApiKey': channel<undefined, AiSettingView>(),
   /** Forgets the saved key of the memory's embeddings. */
   'aiSetting:clearEmbeddingApiKey': channel<undefined, AiSettingView>(),
+  /** Gives the game master a picture (the bytes of the file) and returns its new path. */
+  'aiSetting:setImage': channel<SetMasterImage, string>(),
+  'aiSetting:removeImage': channel<undefined, void>(),
   /**
    * Calls the provider with a key (the one sent, else the one in use) to see that it works. A failure
    * resolves as `{ ok: false, reason }`, not as an IPC error.

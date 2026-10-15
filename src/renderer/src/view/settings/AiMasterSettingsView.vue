@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { toTypedSchema } from '@vee-validate/zod'
 import {
+  Camera,
   CircleCheck,
   CircleX,
   Eye,
@@ -8,8 +9,10 @@ import {
   KeyRound,
   PlugZap,
   Save,
-  ShieldAlert
+  ShieldAlert,
+  Trash2
 } from '@lucide/vue'
+import { toImageUrl } from '@shared'
 import { useForm } from 'vee-validate'
 import { computed, onMounted, ref, watch } from 'vue'
 import { z } from 'zod'
@@ -63,6 +66,26 @@ const settingsFormSchema = toTypedSchema(
   })
 )
 
+const imageInput = ref<HTMLInputElement>()
+
+const masterImageUrl = computed(() =>
+  setting.value?.imagePath ? toImageUrl(setting.value.imagePath) : undefined
+)
+
+function openImagePicker(): void {
+  imageInput.value?.click()
+}
+
+// The picture is stored as soon as it is picked, apart from the "Salvar" of the form below.
+async function onImageSelected(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  await setMasterImage(new Uint8Array(await file.arrayBuffer()))
+  // Lets the same file be picked again.
+  input.value = ''
+}
+
 const showApiKey = ref(false)
 const showEmbeddingApiKey = ref(false)
 const {
@@ -74,6 +97,8 @@ const {
   saveAiSetting,
   clearApiKey,
   clearEmbeddingApiKey,
+  setMasterImage,
+  removeMasterImage,
   isTesting,
   testConnection
 } = useAiSetting()
@@ -270,6 +295,63 @@ function onTemperatureChange(value: number[] | undefined): void {
 
     <form class="flex flex-col gap-8" @submit="onSubmit">
       <div class="flex flex-col gap-6 rounded-xl border border-border bg-card p-8">
+        <div class="flex items-center gap-5">
+          <input
+            ref="imageInput"
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            class="sr-only"
+            :disabled="isLoading"
+            @change="onImageSelected"
+          />
+          <button
+            type="button"
+            class="flex size-20 shrink-0 flex-col items-center justify-center overflow-hidden rounded-full border border-border bg-background text-tertiary"
+            :disabled="isLoading"
+            @click="openImagePicker"
+          >
+            <img
+              v-if="masterImageUrl"
+              :src="masterImageUrl"
+              alt="Imagem do Mestre"
+              class="size-full object-cover"
+            />
+            <Camera v-else class="size-6" />
+            <span class="sr-only">Escolher imagem do Mestre</span>
+          </button>
+          <div class="flex flex-col gap-2">
+            <span class="text-sm font-medium text-foreground">Imagem do Mestre</span>
+            <p class="text-xs text-tertiary">
+              Aparece ao lado das mensagens do Mestre na campanha. PNG, JPEG, WebP ou GIF, até 5 MB.
+            </p>
+            <div class="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                class="gap-2 rounded-full bg-transparent"
+                :disabled="isLoading"
+                @click="openImagePicker"
+              >
+                <Camera class="size-4" />
+                {{ masterImageUrl ? 'Trocar imagem' : 'Escolher imagem' }}
+              </Button>
+              <Button
+                v-if="masterImageUrl"
+                type="button"
+                variant="ghost"
+                size="sm"
+                class="gap-2 rounded-full text-muted-foreground"
+                :disabled="isLoading"
+                @click="void removeMasterImage()"
+              >
+                <Trash2 class="size-4" />
+                Remover
+              </Button>
+            </div>
+          </div>
+        </div>
+
         <div class="flex gap-6">
           <FormField v-slot="{ componentField }" name="provider">
             <FormItem class="flex flex-1 flex-col gap-2">

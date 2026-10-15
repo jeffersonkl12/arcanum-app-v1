@@ -3,6 +3,7 @@ import { itemTable } from '@database/entity/item.entity'
 import { worldTable } from '@database/entity/world.entity'
 import { ImageProtocol, ImageStorage, resolveImagesFolder, type IImageStorage } from '@lib'
 import { database } from '@module/database.module'
+import { AiSettingImageRepository } from '@repository/ai-setting.repository'
 import { ImageRepository } from '@repository/image.repository'
 import { ImageService, type IImageService } from '@service/image.service'
 import { ImageSweepService, type IImageSweepService } from '@service/image-sweep.service'
@@ -12,6 +13,7 @@ export const imageStorage: IImageStorage = new ImageStorage(resolveImagesFolder(
 const actorImageRepository = new ImageRepository(database, actorTable)
 const itemImageRepository = new ImageRepository(database, itemTable)
 const worldImageRepository = new ImageRepository(database, worldTable)
+const masterImageRepository = new AiSettingImageRepository(database)
 
 /**
  * To give another entity an image: add its scope to `IMAGE_SCOPES`, an `image_path` column to its
@@ -39,10 +41,18 @@ export const worldImageService: IImageService = new ImageService(
   'World'
 )
 
+export const masterImageService: IImageService = new ImageService(
+  masterImageRepository,
+  imageStorage,
+  'master',
+  'AiSetting'
+)
+
 const imageSweepService: IImageSweepService = new ImageSweepService(imageStorage, [
   { scope: 'actor', repository: actorImageRepository },
   { scope: 'item', repository: itemImageRepository },
-  { scope: 'world', repository: worldImageRepository }
+  { scope: 'world', repository: worldImageRepository },
+  { scope: 'master', repository: masterImageRepository }
 ])
 
 /** Declares the image scheme; must run before the app is ready. */

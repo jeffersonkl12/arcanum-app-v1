@@ -166,7 +166,8 @@ export class AiSettingService implements IAiSettingService {
           encryptedKey: null,
           keyHint: null,
           embeddingEncryptedKey: null,
-          embeddingKeyHint: null
+          embeddingKeyHint: null,
+          imagePath: null
         }
   }
 
@@ -178,6 +179,7 @@ export class AiSettingService implements IAiSettingService {
       model,
       temperature,
       embeddingProvider: stored.embeddingProvider,
+      imagePath: stored.imagePath,
       apiKey: this.keyStatus(stored),
       embeddingApiKey: this.embeddingKeyStatus(stored)
     }

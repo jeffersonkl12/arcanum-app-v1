@@ -53,7 +53,8 @@ export function toChatSegments(segments: NarrationSegment[]): ChatSegment[] {
 export function toGameChatMessage(
   message: CampaignMessage,
   playerName: string,
-  playerImagePath?: string
+  playerImagePath?: string,
+  masterImagePath?: string
 ): GameChatMessage {
   const isPlayer = message.role === 'user'
   return {
@@ -62,7 +63,7 @@ export function toGameChatMessage(
     role: isPlayer ? 'player' : 'master',
     senderName: isPlayer ? playerName : 'Mestre',
     timeLabel: formatMessageTime(message.createdAt),
-    imagePath: isPlayer ? playerImagePath : undefined,
+    imagePath: isPlayer ? playerImagePath : masterImagePath,
     segments: isPlayer ? proseToChatSegments(message.text) : toChatSegments(message.segments),
     text: isPlayer ? undefined : message.text,
     rating: isPlayer ? undefined : message.rating,

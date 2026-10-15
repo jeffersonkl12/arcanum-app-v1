@@ -14,7 +14,12 @@ import {
   isTrustedSender,
   registerIpcRoutes
 } from '@ipc'
-import { actorImageService, itemImageService, worldImageService } from '@module/image.module'
+import {
+  actorImageService,
+  itemImageService,
+  masterImageService,
+  worldImageService
+} from '@module/image.module'
 import {
   actorService,
   aiConnectionService,
@@ -46,7 +51,7 @@ export function registerIpc(): void {
       ...createItemRoutes(inventoryService, itemImageService),
       ...createPartyRoutes(partyService),
       ...createCampaignRoutes(campaignService),
-      ...createAiSettingRoutes(aiSettingService, aiConnectionService),
+      ...createAiSettingRoutes(aiSettingService, aiConnectionService, masterImageService),
       ...createGameMasterRoutes(gameMasterService, new RendererEvents())
     },
     {

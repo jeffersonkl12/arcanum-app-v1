@@ -17,11 +17,13 @@ export function useAiSetting(): {
   saveAiSetting: (input: UpdateAiSetting) => Promise<AiSettingView | undefined>
   clearApiKey: () => Promise<AiSettingView | undefined>
   clearEmbeddingApiKey: () => Promise<AiSettingView | undefined>
+  setMasterImage: (data: Uint8Array) => Promise<boolean>
+  removeMasterImage: () => Promise<boolean>
   isTesting: Ref<boolean>
   testConnection: (input: TestAiConnection) => Promise<AiConnectionResult | undefined>
 } {
   const { setting, catalog } = storeToRefs(useAiSettingStore())
-  const { isLoading, error, request } = useRequest()
+  const { isLoading, error, request, execute } = useRequest()
   // Apart from `isLoading`, so a test in flight does not lock the whole form.
   const { isLoading: isTesting, request: requestTest } = useRequest()
 
@@ -62,6 +64,22 @@ export function useAiSetting(): {
     return updated
   }
 
+  async function setMasterImage(data: Uint8Array): Promise<boolean> {
+    const imagePath = await request('aiSetting:setImage', { data: new Uint8Array(data) })
+    if (!imagePath || !setting.value) return false
+    setting.value = { ...setting.value, imagePath }
+    toast.success('Imagem do Mestre salva')
+    return true
+  }
+
+  async function removeMasterImage(): Promise<boolean> {
+    if (!setting.value) return false
+    if (!(await execute('aiSetting:removeImage'))) return false
+    setting.value = { ...setting.value, imagePath: null }
+    toast.success('Imagem do Mestre removida')
+    return true
+  }
+
   async function testConnection(input: TestAiConnection): Promise<AiConnectionResult | undefined> {
     return requestTest('aiSetting:testConnection', input)
   }
@@ -76,6 +94,8 @@ export function useAiSetting(): {
     saveAiSetting,
     clearApiKey,
     clearEmbeddingApiKey,
+    setMasterImage,
+    removeMasterImage,
     isTesting,
     testConnection
   }

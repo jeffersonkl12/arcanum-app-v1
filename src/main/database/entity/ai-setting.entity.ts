@@ -15,6 +15,9 @@ export const embeddingProviderEnum = pgEnum('embedding_provider', EMBEDDING_PROV
  * The key belongs to `provider` and is stored encrypted (see `ISecretCipher`); `keyHint` is its last
  * characters, so the UI can show which key is saved without decrypting it.
  *
+ * `imagePath` is the picture of the game master, shown beside its messages (see `ImageService`; it
+ * is kept out of the update schema, the renderer only sends bytes).
+ *
  * The embedding key is a second key, the one of `embeddingProvider` (the characters' memory is
  * searched with that provider's embeddings). It does not depend on the narrator's provider: it stays
  * when that changes, and only goes when the embedding provider does.
@@ -30,7 +33,8 @@ export const aiSettingTable = pgTable(
     keyHint: text('key_hint'),
     embeddingProvider: embeddingProviderEnum('embedding_provider').notNull().default('openai'),
     embeddingEncryptedKey: text('embedding_encrypted_key'),
-    embeddingKeyHint: text('embedding_key_hint')
+    embeddingKeyHint: text('embedding_key_hint'),
+    imagePath: text('image_path')
   },
   (table) => [
     check('ai_setting_single_row', sql`${table.id}`),
