@@ -2,6 +2,7 @@ import { computed, type ComputedRef, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import type {
   CreateActorInput as PlacedActorInput,
+  NewRelative,
   CreateItem,
   CreateWorld,
   WorldFilter
@@ -40,7 +41,12 @@ type UpdateWorldInput = Pick<CreateWorld, 'name' | 'genre' | 'description'>
 
 type CreateActorInput = Omit<PlacedActorInput, 'worldId' | 'isNpc' | 'partyId'> & {
   imageData?: Uint8Array
+  /** Family bonds a new actor is created with; ignored when editing (the family is edited on its own). */
+  relatives?: NewRelative[]
 }
+
+/** An existing actor's family is edited on its own, so the edit form never carries `relatives`. */
+type UpdateActorFormInput = Omit<CreateActorInput, 'relatives'>
 
 type NamedEntityInput = {
   name: string
@@ -130,7 +136,7 @@ export function useWorld(): {
   loadWorld: (worldId: string) => Promise<void>
   deleteActor: (actorId: string) => Promise<boolean>
   createActor: (input: CreateActorInput) => Promise<ActorSummary | undefined>
-  updateActor: (actorId: string, input: CreateActorInput) => Promise<ActorSummary | undefined>
+  updateActor: (actorId: string, input: UpdateActorFormInput) => Promise<ActorSummary | undefined>
   createLanguage: (input: LanguageInput) => Promise<LanguageSummary | undefined>
   updateLanguage: (languageId: string, input: LanguageInput) => Promise<LanguageSummary | undefined>
   deleteLanguage: (languageId: string) => Promise<boolean>
@@ -409,7 +415,7 @@ export function useWorld(): {
 
   async function updateActor(
     actorId: string,
-    input: CreateActorInput
+    input: UpdateActorFormInput
   ): Promise<ActorSummary | undefined> {
     const { imageData, ...fields } = input
     const updated = await actorRequest('actor:update', {

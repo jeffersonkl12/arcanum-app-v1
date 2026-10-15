@@ -2,16 +2,13 @@ import { z } from 'zod'
 // Pure constants of the engine. Imported by relative path because this folder is also loaded by the
 // Mastra CLI, which does not resolve the `@constant` alias.
 import { ACTOR_AGES } from '../../main/constant/actor-age.constant'
-import {
-  ACTOR_ATTRIBUTES,
-  ACTOR_ATTRIBUTE_LIMITS,
-  type ActorAttribute
-} from '../../main/constant/actor-attribute.constant'
+import { ACTOR_ATTRIBUTES, type ActorAttribute } from '../../main/constant/actor-attribute.constant'
 import { ACTOR_COIN_LIMITS } from '../../main/constant/actor-coin.constant'
 import { ACTOR_GENDERS } from '../../main/constant/actor-gender.constant'
-import { ACTOR_HP } from '../../main/constant/actor-hp.constant'
 import { ACTOR_TEXT_LIMITS } from '../../main/constant/actor-text.constant'
 import { CHECK_OUTCOMES } from '../../main/constant/check-outcome.constant'
+import { NPC_TIER_MEANINGS, NPC_TIERS } from '../../main/constant/npc-tier.constant'
+import { KINSHIP_INPUTS } from '../../main/constant/kinship.constant'
 import { ROLL_MODES, type RollMode } from '../../main/constant/roll-mode.constant'
 import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
 import type { ICampaignRegistry } from './campaign.context'
@@ -24,11 +21,21 @@ import type { INpcSceneRegistry } from './npc-scene.context'
 import type { IPointOfInterestRegistry } from './point-of-interest.context'
 import type { IRelationshipRegistry } from './relationship.context'
 
-const attributeScoreSchema = z
-  .number()
-  .int()
-  .min(ACTOR_ATTRIBUTE_LIMITS.min)
-  .max(ACTOR_ATTRIBUTE_LIMITS.max)
+/**
+ * A relative of an actor as the prompt cites it: the bond is the English word for what the relative
+ * is to that actor (`mother`, `half-brother`, `uncle`), and the id lets the narrator act on them.
+ */
+export const relativeSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  relation: z.string(),
+  age: z.string()
+})
+
+export type Relative = z.infer<typeof relativeSchema>
+
+/** Maximum bonds an NPC can be created with: both parents, a spouse and a few children. */
+const MAX_NPC_RELATIVES = 8
 
 const coinAmountSchema = z.number().int().min(ACTOR_COIN_LIMITS.min).max(ACTOR_COIN_LIMITS.max)
 
@@ -37,21 +44,26 @@ export const npcDraftSchema = z.object({
   name: z.string().trim().min(1).max(TEXT_LIMITS.name),
   age: z.enum(ACTOR_AGES),
   gender: z.enum(ACTOR_GENDERS),
-  strength: attributeScoreSchema
+  tier: z
+    .enum(NPC_TIERS)
     .optional()
     .describe(
-      `The d6 the NPC rolls in a check with it. Omit for an average person (${ACTOR_ATTRIBUTE_LIMITS.default}).`
+      'How capable the NPC is; the engine turns it into attributes and hit points, adjusted by age. ' +
+        `Omit for an ordinary person. ${NPC_TIERS.map((tier) => `\`${tier}\`: ${NPC_TIER_MEANINGS[tier]}`).join('; ')}.`
     ),
-  dexterity: attributeScoreSchema.optional(),
-  intelligence: attributeScoreSchema.optional(),
-  hpMax: z
-    .number()
-    .int()
-    .min(ACTOR_HP.minMax)
-    .max(ACTOR_HP.max)
+  strongAt: z
+    .array(z.enum(ACTOR_ATTRIBUTES))
+    .max(ACTOR_ATTRIBUTES.length)
     .optional()
     .describe(
-      `Hit points, ${ACTOR_HP.minMax} to ${ACTOR_HP.max}; the NPC starts at full health. Omit for an average person (${ACTOR_HP.defaultNpc}).`
+      'Attributes the NPC stands out in for its tier (a brawler: `strength`). One step up.'
+    ),
+  weakAt: z
+    .array(z.enum(ACTOR_ATTRIBUTES))
+    .max(ACTOR_ATTRIBUTES.length)
+    .optional()
+    .describe(
+      'Attributes in which the NPC is poor for its tier (a frail sage: `strength`). One step down.'
     ),
   goldPieces: coinAmountSchema
     .optional()
@@ -80,6 +92,30 @@ export const npcDraftSchema = z.object({
     .describe(
       'Id of the place where the NPC is when it enters the story (from the request, `find-places` or ' +
         "the world section). Omit it only when the NPC appears where the party is: it is then placed in the party's current place."
+    ),
+  relatives: z
+    .array(
+      z.object({
+        relativeId: z
+          .string()
+          .describe(
+            'Id of an actor that already exists in this world (the party, a sheet in the prompt or a result of `create-npc`). Never invent one.'
+          ),
+        relation: z
+          .enum(KINSHIP_INPUTS)
+          .describe(
+            'What THAT existing actor is to the NEW NPC: `parent` (the existing actor is its father or mother), ' +
+              '`child` (its son or daughter) or `spouse`.'
+          )
+      })
+    )
+    .max(MAX_NPC_RELATIVES)
+    .optional()
+    .describe(
+      'Family the new NPC has among actors that already exist. Only direct bonds are given (parent, child, ' +
+        'spouse); siblings, grandparents, uncles and cousins follow from them on their own. At most 2 parents ' +
+        'and 1 spouse. Omit when the NPC has no kin among the existing actors. To make two NPCs siblings, ' +
+        'create the parent first and then give it as `parent` of each.'
     )
 })
 
@@ -108,7 +144,11 @@ export const npcViewSchema = z.object({
   culture: z.string().optional(),
   language: z.string().optional(),
   placeId: z.string().optional().describe('The place the engine put the NPC in.'),
-  placeName: z.string().optional()
+  placeName: z.string().optional(),
+  family: z
+    .array(relativeSchema)
+    .optional()
+    .describe('Its whole family as the engine settled it, derived bonds included.')
 })
 
 export type CreatedNpc = z.infer<typeof npcViewSchema>
@@ -185,7 +225,9 @@ export const currentPlaceSchema = z.object({
       language: z.string().nullable(),
       profession: z.string().nullable(),
       appearance: z.string().nullable(),
-      personality: z.string().nullable()
+      personality: z.string().nullable(),
+      /** Its kin (name, bond, age, id), closest first; empty when it has none. */
+      family: z.array(relativeSchema)
     })
   )
 })
@@ -255,7 +297,9 @@ export const partyMemberSchema = z.object({
   equipped: z.array(z.string()),
   carried: z.array(z.string()),
   /** What this member feels about each of the others; empty when the party has only one member. */
-  relationships: z.array(partyRelationshipSchema)
+  relationships: z.array(partyRelationshipSchema),
+  /** Its kin (name, bond, age, id), closest first; empty when it has none. */
+  family: z.array(relativeSchema)
 })
 
 export type PartyRelationship = z.infer<typeof partyRelationshipSchema>

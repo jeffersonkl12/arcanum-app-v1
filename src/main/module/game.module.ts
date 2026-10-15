@@ -17,6 +17,7 @@ import { LanguageRepository } from '@repository/language.repository'
 import { CampaignRepository } from '@repository/campaign.repository'
 import { PartyRepository } from '@repository/party.repository'
 import { PointOfInterestRepository } from '@repository/point-of-interest.repository'
+import { KinshipRepository } from '@repository/kinship.repository'
 import { RelationshipRepository } from '@repository/relationship.repository'
 import { WorldCloneRepository } from '@repository/world-clone.repository'
 import { WorldRepository } from '@repository/world.repository'
@@ -48,6 +49,7 @@ import {
   PointOfInterestService,
   type IPointOfInterestService
 } from '@service/point-of-interest.service'
+import { KinshipService, type IKinshipService } from '@service/kinship.service'
 import { RelationshipRegistryService } from '@service/relationship-registry.service'
 import { RelationshipService, type IRelationshipService } from '@service/relationship.service'
 import { WorldCloneService, type IWorldCloneService } from '@service/world-clone.service'
@@ -80,6 +82,11 @@ export const campaignService: ICampaignService = new CampaignService(
 export const partyService: IPartyService = new PartyService(
   new PartyRepository(database),
   actorRepository
+)
+export const kinshipService: IKinshipService = new KinshipService(
+  new KinshipRepository(database),
+  actorRepository,
+  actorService
 )
 export const relationshipService: IRelationshipService = new RelationshipService(
   new RelationshipRepository(database),
@@ -120,6 +127,7 @@ const npcSceneService = new NpcSceneService(
   actorService,
   partyService,
   relationshipService,
+  kinshipService,
   cultureService,
   languageService,
   itemRegistry
@@ -158,5 +166,6 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   pointOfInterestService,
   cultureService,
   languageService,
-  npcSceneService
+  npcSceneService,
+  kinshipService
 )

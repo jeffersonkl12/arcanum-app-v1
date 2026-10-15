@@ -1,4 +1,5 @@
 // Pure, with relative imports only: it is plain text from plain data.
+import { formatRelative, type PromptRelative } from './kinship.util'
 
 /** What the prompt shows of an NPC engaged in the scene: all of it, background included. */
 export interface NpcSheet {
@@ -26,6 +27,8 @@ export interface NpcSheet {
   equipped: string[]
   carried: string[]
   /** What the NPC feels about the party members. */
+  /** Who the NPC is kin to, closest first. */
+  family: PromptRelative[]
   relationships: { targetName: string; level: string; value: number; meaning: string }[]
 }
 
@@ -48,6 +51,8 @@ export function formatNpcSheet(sheet: NpcSheet): string {
     sheet.background && `- Background: ${sheet.background}`,
     `- Equipped: ${sheet.equipped.length > 0 ? sheet.equipped.join(', ') : 'nothing'}`,
     sheet.carried.length > 0 && `- Carrying: ${sheet.carried.join(', ')}`,
+    sheet.family.length > 0 &&
+      `- Family (fixed by the world; never contradict it; name, bond, age, id): ${sheet.family.map(formatRelative).join('; ')}`,
     ...(sheet.relationships.length > 0
       ? [
           '- Feels about the party (-100 hatred to 100 devotion, 0 indifferent):',

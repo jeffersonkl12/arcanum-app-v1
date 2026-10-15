@@ -23,6 +23,7 @@ import {
   healthFormShape,
   isHealthConsistent
 } from '@renderer/util/health.util'
+import type { NewRelative } from '@schema'
 import type { ActorSummary } from '@renderer/composable/world.type'
 import AttributeFields from '@renderer/components/custom/AttributeFields.vue'
 import ActorPlaceField from '@renderer/components/custom/ActorPlaceField.vue'
@@ -54,6 +55,7 @@ import {
 } from '@renderer/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
 import { Textarea } from '@renderer/components/ui/textarea'
+import ActorFamilyPanel from '@renderer/components/custom/ActorFamilyPanel.vue'
 import ActorInventoryPicker from '@renderer/components/custom/ActorInventoryPicker.vue'
 import { cn } from '@renderer/lib/utils'
 
@@ -160,12 +162,15 @@ const activeTab = ref('profile')
 // The items the actor will carry, and the ones it carried when the dialog opened (editing).
 const inventoryIds = ref<string[]>([])
 const carriedIds = ref<string[]>([])
+// The family bonds a new actor is created with; an existing one edits its family live.
+const relatives = ref<NewRelative[]>([])
 
 const {
   createActor,
   updateActor,
   isCreatingActor,
   createActorError,
+  currentWorld,
   languages,
   cultures,
   places,
@@ -205,7 +210,8 @@ const onSubmit = handleSubmit(async (values) => {
     goldPieces: values.goldPieces,
     silverPieces: values.silverPieces,
     bronzePieces: values.bronzePieces,
-    imageData: imageData.value
+    imageData: imageData.value,
+    ...(isEditing.value ? {} : { relatives: relatives.value })
   }
 
   const editing = isEditing.value
@@ -255,6 +261,7 @@ function fillForm(actor: ActorSummary | null): void {
   activeTab.value = 'profile'
   inventoryIds.value = []
   carriedIds.value = []
+  relatives.value = []
   if (!actor) {
     resetForm({ values: emptyForm })
     return
@@ -546,6 +553,7 @@ const textareaClass =
                   Aparência e História
                 </TabsTrigger>
                 <TabsTrigger value="inventory" :class="tabTriggerClass">Inventário</TabsTrigger>
+                <TabsTrigger value="family" :class="tabTriggerClass">Família</TabsTrigger>
               </TabsList>
 
               <!-- force-mount: the fields stay registered in the form while the other tab is open. -->
@@ -612,6 +620,19 @@ const textareaClass =
                   :carried-ids="carriedIds"
                   :disabled="isCreatingActor"
                 />
+              </TabsContent>
+
+              <TabsContent value="family" class="outline-none">
+                <ActorFamilyPanel
+                  v-model:draft="relatives"
+                  :actor-id="entity?.id"
+                  :world-id="currentWorld?.id"
+                  editable
+                  :disabled="isCreatingActor"
+                />
+                <p v-if="isEditing" class="mt-3 text-xs text-tertiary">
+                  Alterações na família são salvas na hora, sem precisar salvar o personagem.
+                </p>
               </TabsContent>
             </Tabs>
           </div>

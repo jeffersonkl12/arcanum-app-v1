@@ -6,7 +6,10 @@ import type {
   Campaign,
   CloneWorld,
   CreateCampaign,
-  CreateActorInput,
+  CreateActorWithFamily,
+  FamilyMember,
+  RemoveKinship,
+  SetKinship,
   CreateCulture,
   CreateItem,
   CreateLanguage,
@@ -96,13 +99,18 @@ export const ipcContract = {
 
   'actor:listByWorld': channel<string, Actor[]>(),
   'actor:get': channel<string, Actor>(),
-  'actor:create': channel<CreateActorInput, Actor>(),
+  'actor:create': channel<CreateActorWithFamily, Actor>(),
   'actor:update': channel<Update<UpdateActorInput>, Actor>(),
   'actor:delete': channel<string, void>(),
   /** Sets or replaces the actor's image with the bytes of the file; returns the new `imagePath`. */
   'actor:setImage': channel<SetImage, string>(),
   'actor:removeImage': channel<string, void>(),
 
+  /** The family of the actor: the direct bonds and everyone derived from them (siblings, uncles, cousins...). */
+  'kinship:listByActor': channel<string, FamilyMember[]>(),
+  /** Records or changes a direct bond (parent, child, spouse); `conflict` if it breaks a family rule. Returns the family afterwards. */
+  'kinship:set': channel<SetKinship, FamilyMember[]>(),
+  'kinship:remove': channel<RemoveKinship, FamilyMember[]>(),
   /** Everyone with a stored feeling toward or from the actor, in both directions. */
   'relationship:listByActor': channel<string, ActorRelationship[]>(),
   /** Every memory the actor shares, newest first. */

@@ -3,6 +3,7 @@ import {
   campaignTable,
   cultureTable,
   itemTable,
+  kinshipTable,
   languageTable,
   partyTable,
   pointOfInterestTable,
@@ -23,6 +24,7 @@ export const relations = defineRelations(
     campaign: campaignTable,
     culture: cultureTable,
     item: itemTable,
+    kinship: kinshipTable,
     language: languageTable,
     party: partyTable,
     pointOfInterest: pointOfInterestTable,
@@ -34,6 +36,7 @@ export const relations = defineRelations(
       campaign: r.one.campaign({ from: r.world.id, to: r.campaign.worldId }),
       cultures: r.many.culture({ from: r.world.id, to: r.culture.worldId }),
       items: r.many.item({ from: r.world.id, to: r.item.worldId }),
+      kinships: r.many.kinship({ from: r.world.id, to: r.kinship.worldId }),
       languages: r.many.language({ from: r.world.id, to: r.language.worldId }),
       party: r.one.party({ from: r.world.id, to: r.party.worldId }),
       pointsOfInterest: r.many.pointOfInterest({

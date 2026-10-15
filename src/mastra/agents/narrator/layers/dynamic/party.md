@@ -40,6 +40,12 @@ Use the sheet when it fits the scene. Age, gender, culture, language, profession
 {{#if carried.length}}
 - Carrying: {{#each carried}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
 {{/if}}
+{{#if family.length}}
+- Family (fixed by the world; never contradict it; name, bond, age, id):
+{{#each family}}
+  - {{name}} ({{relation}}, {{age}}, id: {{id}})
+{{/each}}
+{{/if}}
 {{#if relationships.length}}
 - Feels about the others (-100 hatred to 100 devotion, 0 indifferent):
 {{#each relationships}}

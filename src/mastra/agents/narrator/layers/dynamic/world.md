@@ -40,6 +40,12 @@ NPCs relevant to this place. They are here right now, but they are not necessari
 {{#if personality}}
   - Personality: {{personality}}
 {{/if}}
+{{#if family.length}}
+  - Family (fixed by the world; name, bond, age, id):
+{{#each family}}
+    - {{name}} ({{relation}}, {{age}}, id: {{id}})
+{{/each}}
+{{/if}}
 {{/each}}
 {{/if}}
 {{#if currentPlace.inside.length}}

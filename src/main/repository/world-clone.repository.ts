@@ -7,6 +7,7 @@ import { itemTable } from '@database/entity/item.entity'
 import { languageTable } from '@database/entity/language.entity'
 import { partyTable } from '@database/entity/party.entity'
 import { pointOfInterestTable } from '@database/entity/point-of-interest.entity'
+import { kinshipTable } from '@database/entity/kinship.entity'
 import { relationshipTable } from '@database/entity/relationship.entity'
 import { worldTable } from '@database/entity/world.entity'
 import { translateDatabaseError } from '@database/error.database'
@@ -26,7 +27,7 @@ export interface WorldClone {
 
 export interface IWorldCloneRepository {
   /**
-   * Copies a world and everything that belongs to it, (cultures, languages, party, actors and the relationships
+   * Copies a world and everything that belongs to it, (cultures, languages, party, actors, the relationships and the family bonds
    * between them, places, with their links) into a new, non-template world, all or nothing. Returns `undefined` when the
    * source world does not exist. The campaign is never copied: it only exists in a non-template world, and the copy starts without one. The database cannot copy files, so the images come back as
    * `imageCopies` for the caller to copy once the transaction has committed.
@@ -126,6 +127,18 @@ export class WorldCloneRepository implements IWorldCloneRepository {
               ...relationship,
               fromActorId: actors.newIds.get(relationship.fromActorId)!,
               toActorId: actors.newIds.get(relationship.toActorId)!
+            }))
+          )
+        }
+
+        // Family bonds go in after the two actors they link (composite foreign keys).
+        const kinships = copyInto(world.id, await tx.query.kinship.findMany({ where }))
+        if (kinships.rows.length > 0) {
+          await tx.insert(kinshipTable).values(
+            kinships.rows.map((kinship) => ({
+              ...kinship,
+              fromActorId: actors.newIds.get(kinship.fromActorId)!,
+              toActorId: actors.newIds.get(kinship.toActorId)!
             }))
           )
         }

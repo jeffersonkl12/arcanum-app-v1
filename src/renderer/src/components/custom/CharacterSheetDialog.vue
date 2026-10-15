@@ -4,6 +4,7 @@ import { DialogContent, DialogPortal } from 'reka-ui'
 import { computed, ref, watch } from 'vue'
 import { toImageUrl } from '@shared'
 import ActorInventoryList from '@renderer/components/custom/ActorInventoryList.vue'
+import ActorFamilyPanel from '@renderer/components/custom/ActorFamilyPanel.vue'
 import ActorMemoryList from '@renderer/components/custom/ActorMemoryList.vue'
 import ActorRelationshipList from '@renderer/components/custom/ActorRelationshipList.vue'
 import AttributeStats from '@renderer/components/custom/AttributeStats.vue'
@@ -142,6 +143,7 @@ const narrativeFields = computed(() => {
             >
               <TabsTrigger value="sheet" :class="tabTriggerClass">Ficha</TabsTrigger>
               <TabsTrigger value="inventory" :class="tabTriggerClass">Inventário</TabsTrigger>
+              <TabsTrigger value="family" :class="tabTriggerClass">Família</TabsTrigger>
               <TabsTrigger value="relationships" :class="tabTriggerClass">Relações</TabsTrigger>
               <TabsTrigger value="memories" :class="tabTriggerClass">Memórias</TabsTrigger>
             </TabsList>
@@ -173,6 +175,10 @@ const narrativeFields = computed(() => {
 
             <TabsContent value="inventory" class="outline-none">
               <ActorInventoryList :key="sheet.id" :actor-id="sheet.id" :coins="sheet.coins" />
+            </TabsContent>
+
+            <TabsContent value="family" class="outline-none">
+              <ActorFamilyPanel :key="sheet.id" :actor-id="sheet.id" />
             </TabsContent>
 
             <TabsContent value="relationships" class="outline-none">

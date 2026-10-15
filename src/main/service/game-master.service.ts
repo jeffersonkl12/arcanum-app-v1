@@ -19,9 +19,12 @@ import type { IMemoryService } from '@service/memory.service'
 import type { IMessageRatingService } from '@service/message-rating.service'
 import type { IPartyService } from '@service/party.service'
 import type { IPointOfInterestService } from '@service/point-of-interest.service'
+import type { IKinshipService } from '@service/kinship.service'
 import type { IRelationshipService } from '@service/relationship.service'
 import type { IWorldService } from '@service/world.service'
 import { describeAttributeLevel } from '@util/attribute-level.util'
+import { formatRelative, type PromptRelative } from '@util/kinship.util'
+import { resolveNpcStats } from '@util/npc-tier.util'
 import { describeFeelings } from '@util/relationship.util'
 import type { ICampaignRegistry } from '../../mastra/context/campaign.context'
 import type { ICoinRegistry } from '../../mastra/context/coin.context'
@@ -121,7 +124,8 @@ export class GameMasterService implements IGameMasterService {
     private readonly pointOfInterestService: IPointOfInterestService,
     private readonly cultureService: ICultureService,
     private readonly languageService: ILanguageService,
-    private readonly npcSceneRegistry: INpcSceneRegistry
+    private readonly npcSceneRegistry: INpcSceneRegistry,
+    private readonly kinshipService: IKinshipService
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
@@ -339,6 +343,10 @@ export class GameMasterService implements IGameMasterService {
     const place = path[path.length - 1]
     // The party is already in the party section; what is listed here is everyone else.
     const npcs = actors.filter((actor) => actor.isNpc && !actor.partyId && actor.pointOfInterestId)
+    const families = await this.kinshipService.listForPrompt(
+      worldId,
+      npcs.map((npc) => npc.id)
+    )
 
     return {
       name: place.name,
@@ -346,10 +354,10 @@ export class GameMasterService implements IGameMasterService {
       description: place.description,
       path: path.map(({ name, type }) => ({ name, type })),
       hasParent: place.parentId !== null,
-      inside: outlineInside(place.id, places, npcs),
+      inside: outlineInside(place.id, places, npcs, families),
       npcs: npcs
         .filter((npc) => npc.pointOfInterestId === place.id)
-        .map((npc) => toPlaceNpc(npc, names))
+        .map((npc) => toPlaceNpc(npc, names, families.get(npc.id) ?? []))
     }
   }
 
@@ -366,10 +374,20 @@ export class GameMasterService implements IGameMasterService {
       stored.map((row) => [`${row.fromActorId}:${row.toActorId}`, row.value] as const)
     )
 
+    const families = await this.kinshipService.listForPrompt(
+      worldId,
+      actors.map((actor) => actor.id)
+    )
+
     return {
       members: await Promise.all(
         actors.map((actor) =>
-          this.toPartyMember(actor, toRelationships(actor, actors, values), names)
+          this.toPartyMember(
+            actor,
+            toRelationships(actor, actors, values),
+            families.get(actor.id) ?? [],
+            names
+          )
         )
       )
     }
@@ -379,6 +397,7 @@ export class GameMasterService implements IGameMasterService {
   private async toPartyMember(
     actor: Actor,
     relationships: PartyRelationship[],
+    family: PromptRelative[],
     names: CultureNames
   ): Promise<PartyMember> {
     const { items } = await this.itemRegistry.getInventory(actor.worldId, actor.id)
@@ -408,7 +427,8 @@ export class GameMasterService implements IGameMasterService {
       background: actor.background,
       equipped: items.filter((item) => item.equippedSlot).map((item) => item.name),
       carried: items.filter((item) => !item.equippedSlot).map((item) => item.name),
-      relationships
+      relationships,
+      family
     }
   }
 
@@ -465,7 +485,7 @@ export class GameMasterService implements IGameMasterService {
           const names = await this.loadCultureNames(worldId)
           const cultureId = resolveNameId(names.cultures, draft.culture, 'culture')
           const languageId = resolveNameId(names.languages, draft.language, 'language')
-          const actor = await this.actorService.create({
+          const actor = await this.kinshipService.createActor({
             worldId,
             isNpc: true,
             pointOfInterestId: place?.id ?? null,
@@ -474,18 +494,19 @@ export class GameMasterService implements IGameMasterService {
             name: draft.name,
             age: draft.age,
             gender: draft.gender,
-            strength: draft.strength,
-            dexterity: draft.dexterity,
-            intelligence: draft.intelligence,
-            hpMax: draft.hpMax,
+            ...resolveNpcStats(draft),
             goldPieces: draft.goldPieces,
             silverPieces: draft.silverPieces,
             bronzePieces: draft.bronzePieces,
             profession: draft.profession ?? null,
             appearance: draft.appearance ?? null,
             personality: draft.personality ?? null,
-            background: draft.background ?? null
+            background: draft.background ?? null,
+            relatives: draft.relatives
           })
+          const family = (await this.kinshipService.listForPrompt(worldId, [actor.id])).get(
+            actor.id
+          )
 
           return {
             ok: true,
@@ -493,7 +514,8 @@ export class GameMasterService implements IGameMasterService {
               ...toCreatedNpc(actor),
               culture: nameOf(names.cultures, actor.cultureId) ?? undefined,
               language: nameOf(names.languages, actor.languageId) ?? undefined,
-              placeName: place?.name
+              placeName: place?.name,
+              family: family?.length ? family : undefined
             }
           }
         } catch (error) {
@@ -515,7 +537,12 @@ const MAX_PLACES_INSIDE = 40
  * Everything inside `rootId` as outline lines, depth first, with the NPCs standing in each place. The `seen` set keeps a loop in the data
  * from hanging it.
  */
-function outlineInside(rootId: string, places: PointOfInterest[], npcs: Actor[]): string[] {
+function outlineInside(
+  rootId: string,
+  places: PointOfInterest[],
+  npcs: Actor[],
+  families: ReadonlyMap<string, PromptRelative[]>
+): string[] {
   const childrenOf = new Map<string, PointOfInterest[]>()
 
   for (const place of places) {
@@ -537,7 +564,9 @@ function outlineInside(rootId: string, places: PointOfInterest[], npcs: Actor[])
       } else {
         const present = npcs.filter((npc) => npc.pointOfInterestId === child.id)
         const who =
-          present.length > 0 ? ` - NPCs: ${present.map((npc) => npc.name).join(', ')}` : ''
+          present.length > 0
+            ? ` - NPCs: ${present.map((npc) => describeInOutline(npc, families.get(npc.id) ?? [])).join('; ')}`
+            : ''
 
         lines.push(`${'  '.repeat(depth)}- ${child.name} (${child.type})${who}`)
       }
@@ -548,6 +577,13 @@ function outlineInside(rootId: string, places: PointOfInterest[], npcs: Actor[])
   visit(rootId, 0)
 
   return omitted > 0 ? [...lines, `...and ${omitted} more`] : lines
+}
+
+/** An NPC in the outline: its name, and its kin (name, bond, age, id) when it has any. */
+function describeInOutline(npc: Actor, family: PromptRelative[]): string {
+  return family.length > 0
+    ? `${npc.name} (id: ${npc.id}; family: ${family.map(formatRelative).join(', ')})`
+    : npc.name
 }
 
 /**
@@ -584,7 +620,11 @@ function nameOf(names: ReadonlyMap<string, string>, id: string | null): string |
  * An NPC standing in the current place, as a short sheet. The background is left out on purpose:
  * it is long and only matters once the NPC becomes part of the story.
  */
-function toPlaceNpc(npc: Actor, names: CultureNames): CurrentPlace['npcs'][number] {
+function toPlaceNpc(
+  npc: Actor,
+  names: CultureNames,
+  family: PromptRelative[]
+): CurrentPlace['npcs'][number] {
   return {
     id: npc.id,
     name: npc.name,
@@ -594,7 +634,8 @@ function toPlaceNpc(npc: Actor, names: CultureNames): CurrentPlace['npcs'][numbe
     language: nameOf(names.languages, npc.languageId),
     profession: npc.profession,
     appearance: npc.appearance,
-    personality: npc.personality
+    personality: npc.personality,
+    family
   }
 }
 

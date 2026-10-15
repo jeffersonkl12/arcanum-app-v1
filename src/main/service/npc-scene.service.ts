@@ -4,6 +4,7 @@ import type { IActorService } from '@service/actor.service'
 import type { ContextEntry, ContextSectionSpec } from '@service/context-window.service'
 import type { ICultureService } from '@service/culture.service'
 import type { ILanguageService } from '@service/language.service'
+import type { IKinshipService } from '@service/kinship.service'
 import type { IContextSource } from '@service/live-context.service'
 import type { IPartyService } from '@service/party.service'
 import type { IRelationshipService } from '@service/relationship.service'
@@ -38,6 +39,7 @@ export class NpcSceneService implements INpcSceneService {
     private readonly actorService: IActorService,
     private readonly partyService: IPartyService,
     private readonly relationshipService: IRelationshipService,
+    private readonly kinshipService: IKinshipService,
     private readonly cultureService: ICultureService,
     private readonly languageService: ILanguageService,
     private readonly itemRegistry: IItemRegistry
@@ -231,7 +233,9 @@ export class NpcSceneService implements INpcSceneService {
       bronzePieces: actor.bronzePieces,
       equipped: items.filter((item) => item.equippedSlot).map((item) => item.name),
       carried: items.filter((item) => !item.equippedSlot).map((item) => item.name),
-      relationships: describeFeelings(actor, context.party, values)
+      relationships: describeFeelings(actor, context.party, values),
+      family:
+        (await this.kinshipService.listForPrompt(actor.worldId, [actor.id])).get(actor.id) ?? []
     }
   }
 }
