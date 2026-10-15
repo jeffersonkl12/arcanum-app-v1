@@ -34,7 +34,11 @@ import {
   StepperTitle,
   StepperTrigger
 } from '@renderer/components/ui/stepper'
-import { actorAgeValues, actorGenderValues } from '@renderer/constant/actor.constant'
+import {
+  actorAgeValues,
+  actorGenderValues,
+  actorTextLimits
+} from '@renderer/constant/actor.constant'
 import { startCampaignSteps } from '@renderer/constant/campaign.constant'
 import { attributeFormShape } from '@renderer/util/attribute.util'
 import { healthFormShape } from '@renderer/util/health.util'
@@ -61,9 +65,24 @@ const startCampaignFormSchema = toTypedSchema(
     pointOfInterestId: z
       .string('Selecione o ponto de interesse')
       .min(1, 'Selecione o ponto de interesse'),
-    appearance: z.string().max(5000, 'A aparência pode ter no máximo 5000 caracteres'),
-    personality: z.string().max(5000, 'A personalidade pode ter no máximo 5000 caracteres'),
-    background: z.string().max(5000, 'O background pode ter no máximo 5000 caracteres'),
+    appearance: z
+      .string()
+      .max(
+        actorTextLimits.appearance,
+        `A aparência pode ter no máximo ${actorTextLimits.appearance} caracteres`
+      ),
+    personality: z
+      .string()
+      .max(
+        actorTextLimits.personality,
+        `A personalidade pode ter no máximo ${actorTextLimits.personality} caracteres`
+      ),
+    background: z
+      .string()
+      .max(
+        actorTextLimits.background,
+        `O background pode ter no máximo ${actorTextLimits.background} caracteres`
+      ),
     prologue: z.string().max(5000, 'O prólogo pode ter no máximo 5000 caracteres'),
     // The current health is not asked: a campaign starts at full health.
     hpMax: healthFormShape.hpMax,

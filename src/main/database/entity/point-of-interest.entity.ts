@@ -1,3 +1,4 @@
+import { TEXT_LIMITS } from '@constant'
 import { worldTable } from '@database/entity/world.entity'
 import { sql } from 'drizzle-orm'
 import { check, foreignKey, pgTable, text, unique, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
@@ -41,6 +42,10 @@ export const pointOfInterestTable = pgTable(
       table.worldId,
       sql`lower(${table.name})`
     ),
-    check('point_of_interest_not_own_parent', sql`${table.parentId} <> ${table.id}`)
+    check('point_of_interest_not_own_parent', sql`${table.parentId} <> ${table.id}`),
+    check(
+      'point_of_interest_description_length',
+      sql`char_length(${table.description}) <= ${sql.raw(String(TEXT_LIMITS.description))}`
+    )
   ]
 )

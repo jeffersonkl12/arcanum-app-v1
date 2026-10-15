@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { descriptionMaxLength } from '@renderer/constant/text-limit.constant'
 import { toTypedSchema } from '@vee-validate/zod'
 import { Camera, Plus, X } from '@lucide/vue'
 import { DialogContent, DialogPortal } from 'reka-ui'
@@ -64,7 +65,7 @@ const formFields = ['name', 'type', 'description', 'parentId'] as const
 
 type FormFieldName = (typeof formFields)[number]
 
-// Mirrors TEXT_LIMITS in the engine: name and type 120, long text 5000.
+// Mirrors TEXT_LIMITS in the engine: name and type 120, description 500.
 const placeFormSchema = toTypedSchema(
   z.object({
     name: z
@@ -77,7 +78,12 @@ const placeFormSchema = toTypedSchema(
       .trim()
       .min(1, 'Informe o tipo')
       .max(120, 'O tipo pode ter no máximo 120 caracteres'),
-    description: z.string().max(5000, 'A descrição pode ter no máximo 5000 caracteres'),
+    description: z
+      .string()
+      .max(
+        descriptionMaxLength,
+        `A descrição pode ter no máximo ${descriptionMaxLength} caracteres`
+      ),
     parentId: z.string()
   })
 )

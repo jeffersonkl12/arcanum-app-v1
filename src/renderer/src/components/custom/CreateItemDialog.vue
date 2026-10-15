@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { descriptionMaxLength } from '@renderer/constant/text-limit.constant'
 import { toTypedSchema } from '@vee-validate/zod'
 import { Camera, Plus, X } from '@lucide/vue'
 import { DialogContent, DialogPortal } from 'reka-ui'
@@ -73,7 +74,7 @@ const formFields = ['name', 'description', 'type', 'slots', 'weaponClass', 'clot
 
 type FormFieldName = (typeof formFields)[number]
 
-// Mirrors TEXT_LIMITS and the item rules in the engine: name 120, long text 5000, slots from 1 to the inventory capacity.
+// Mirrors TEXT_LIMITS and the item rules in the engine: name 120, description 500, slots from 1 to the inventory capacity.
 const itemFormSchema = toTypedSchema(
   z
     .object({
@@ -82,7 +83,12 @@ const itemFormSchema = toTypedSchema(
         .trim()
         .min(1, 'Informe o nome')
         .max(120, 'O nome pode ter no máximo 120 caracteres'),
-      description: z.string().max(5000, 'A descrição pode ter no máximo 5000 caracteres'),
+      description: z
+        .string()
+        .max(
+          descriptionMaxLength,
+          `A descrição pode ter no máximo ${descriptionMaxLength} caracteres`
+        ),
       type: z.enum(itemTypeValues, 'Selecione o tipo'),
       slots: z
         .number('Informe os espaços')

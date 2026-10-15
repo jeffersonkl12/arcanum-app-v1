@@ -60,7 +60,7 @@ export const placeDraftSchema = z.object({
     .min(1)
     .max(TEXT_LIMITS.shortText)
     .describe('What it is, in a word or two: city, village, tavern, house, bedroom...'),
-  description: z.string().max(TEXT_LIMITS.longText).optional(),
+  description: z.string().max(TEXT_LIMITS.description).optional(),
   parentId: z.uuid().optional().describe('Id of an existing place this one is inside of.'),
   parentIndex: z
     .number()

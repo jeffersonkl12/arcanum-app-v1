@@ -1,4 +1,10 @@
-import { ACTOR_ATTRIBUTE_LIMITS, ACTOR_COIN_LIMITS, ACTOR_HP, TEXT_LIMITS } from '@constant'
+import {
+  ACTOR_ATTRIBUTE_LIMITS,
+  ACTOR_COIN_LIMITS,
+  ACTOR_HP,
+  ACTOR_TEXT_LIMITS,
+  TEXT_LIMITS
+} from '@constant'
 import { actorTable } from '@database/entity/actor.entity'
 import { createInsertSchema } from 'drizzle-orm/zod'
 import { z } from 'zod'
@@ -14,9 +20,9 @@ const coinAmount = (schema: z.ZodNumber): z.ZodOptional<z.ZodNumber> =>
 export const createActorSchema = createInsertSchema(actorTable, {
   name: (schema) => schema.trim().min(1).max(TEXT_LIMITS.name),
   profession: (schema) => schema.max(TEXT_LIMITS.shortText),
-  appearance: (schema) => schema.max(TEXT_LIMITS.longText),
-  personality: (schema) => schema.max(TEXT_LIMITS.longText),
-  background: (schema) => schema.max(TEXT_LIMITS.longText),
+  appearance: (schema) => schema.max(ACTOR_TEXT_LIMITS.appearance),
+  personality: (schema) => schema.max(ACTOR_TEXT_LIMITS.personality),
+  background: (schema) => schema.max(ACTOR_TEXT_LIMITS.background),
   // Optional: the service fills what is missing, so the override must keep them optional.
   hpMax: (schema) => schema.min(ACTOR_HP.minMax).max(ACTOR_HP.max).optional(),
   hpCurrent: (schema) => schema.min(0).max(ACTOR_HP.max).optional(),

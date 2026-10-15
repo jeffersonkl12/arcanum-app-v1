@@ -10,7 +10,7 @@ import type { z } from 'zod'
 export const createPointOfInterestSchema = createInsertSchema(pointOfInterestTable, {
   name: (schema) => schema.trim().min(1).max(TEXT_LIMITS.name),
   type: (schema) => schema.trim().min(1).max(TEXT_LIMITS.shortText),
-  description: (schema) => schema.max(TEXT_LIMITS.longText)
+  description: (schema) => schema.max(TEXT_LIMITS.description)
 }).omit({ id: true, imagePath: true })
 
 /** The world of an existing place cannot change; `parentId: null` takes it to the top. */

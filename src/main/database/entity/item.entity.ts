@@ -3,6 +3,7 @@ import {
   EQUIPMENT_SLOTS,
   INVENTORY_CAPACITY,
   ITEM_TYPES,
+  TEXT_LIMITS,
   WEAPON_CLASSES
 } from '@constant'
 import { actorTable } from '@database/entity/actor.entity'
@@ -71,6 +72,10 @@ export const itemTable = pgTable(
     uniqueIndex('item_actor_id_equipped_slot_unique')
       .on(table.actorId, table.equippedSlot)
       .where(sql`${table.equippedSlot} is not null`),
+    check(
+      'item_description_length',
+      sql`char_length(${table.description}) <= ${sql.raw(String(TEXT_LIMITS.description))}`
+    ),
     check(
       'item_slots_range',
       sql`${table.slots} between 1 and ${sql.raw(String(INVENTORY_CAPACITY))}`

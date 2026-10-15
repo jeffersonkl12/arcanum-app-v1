@@ -15,7 +15,7 @@ import {
   actorGenderValues
 } from '@renderer/constant/actor.constant'
 import { useWorld } from '@renderer/composable/world.composable'
-import { actorHpLimits } from '@renderer/constant/actor.constant'
+import { actorHpLimits, actorTextLimits } from '@renderer/constant/actor.constant'
 import { attributeFormShape } from '@renderer/util/attribute.util'
 import { coinFormShape } from '@renderer/util/coin.util'
 import {
@@ -97,7 +97,7 @@ const formFields = [
 
 type FormFieldName = (typeof formFields)[number]
 
-// Mirrors TEXT_LIMITS in the engine: name/shortText 120, longText 5000.
+// Mirrors TEXT_LIMITS in the engine: name/shortText 120, profile texts in ACTOR_TEXT_LIMITS.
 const createNpcFormSchema = toTypedSchema(
   z
     .object({
@@ -114,9 +114,24 @@ const createNpcFormSchema = toTypedSchema(
       pointOfInterestId: z
         .string('Selecione o ponto de interesse')
         .min(1, 'Selecione o ponto de interesse'),
-      appearance: z.string().max(5000, 'A aparência pode ter no máximo 5000 caracteres'),
-      personality: z.string().max(5000, 'A personalidade pode ter no máximo 5000 caracteres'),
-      background: z.string().max(5000, 'O background pode ter no máximo 5000 caracteres'),
+      appearance: z
+        .string()
+        .max(
+          actorTextLimits.appearance,
+          `A aparência pode ter no máximo ${actorTextLimits.appearance} caracteres`
+        ),
+      personality: z
+        .string()
+        .max(
+          actorTextLimits.personality,
+          `A personalidade pode ter no máximo ${actorTextLimits.personality} caracteres`
+        ),
+      background: z
+        .string()
+        .max(
+          actorTextLimits.background,
+          `O background pode ter no máximo ${actorTextLimits.background} caracteres`
+        ),
       ...healthFormShape,
       ...attributeFormShape,
       ...coinFormShape

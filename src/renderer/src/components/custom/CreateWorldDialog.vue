@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { descriptionMaxLength } from '@renderer/constant/text-limit.constant'
 import { toTypedSchema } from '@vee-validate/zod'
 import { Plus, X } from '@lucide/vue'
 import { DialogContent, DialogPortal } from 'reka-ui'
@@ -55,7 +56,7 @@ const formFields = ['name', 'genre', 'description'] as const
 
 type FormFieldName = (typeof formFields)[number]
 
-// Mirrors TEXT_LIMITS in the engine: name 120, long text 5000.
+// Mirrors TEXT_LIMITS in the engine: name 120, description 500.
 const createWorldFormSchema = toTypedSchema(
   z.object({
     name: z
@@ -66,7 +67,10 @@ const createWorldFormSchema = toTypedSchema(
     genre: z.enum(worldGenreValues, 'Selecione um gênero'),
     description: z
       .string('A descrição é inválida')
-      .max(5000, 'A descrição pode ter no máximo 5000 caracteres')
+      .max(
+        descriptionMaxLength,
+        `A descrição pode ter no máximo ${descriptionMaxLength} caracteres`
+      )
   })
 )
 

@@ -10,6 +10,7 @@ import {
 import { ACTOR_COIN_LIMITS } from '../../main/constant/actor-coin.constant'
 import { ACTOR_GENDERS } from '../../main/constant/actor-gender.constant'
 import { ACTOR_HP } from '../../main/constant/actor-hp.constant'
+import { ACTOR_TEXT_LIMITS } from '../../main/constant/actor-text.constant'
 import { CHECK_OUTCOMES } from '../../main/constant/check-outcome.constant'
 import { ROLL_MODES, type RollMode } from '../../main/constant/roll-mode.constant'
 import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
@@ -58,9 +59,9 @@ export const npcDraftSchema = z.object({
   silverPieces: coinAmountSchema.optional(),
   bronzePieces: coinAmountSchema.optional(),
   profession: z.string().max(TEXT_LIMITS.shortText).optional(),
-  appearance: z.string().max(TEXT_LIMITS.longText).optional(),
-  personality: z.string().max(TEXT_LIMITS.longText).optional(),
-  background: z.string().max(TEXT_LIMITS.longText).optional()
+  appearance: z.string().max(ACTOR_TEXT_LIMITS.appearance).optional(),
+  personality: z.string().max(ACTOR_TEXT_LIMITS.personality).optional(),
+  background: z.string().max(ACTOR_TEXT_LIMITS.background).optional()
 })
 
 export type NpcDraft = z.infer<typeof npcDraftSchema>

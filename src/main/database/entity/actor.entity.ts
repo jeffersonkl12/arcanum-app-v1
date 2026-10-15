@@ -3,7 +3,8 @@ import {
   ACTOR_ATTRIBUTE_LIMITS,
   ACTOR_COIN_LIMITS,
   ACTOR_GENDERS,
-  ACTOR_HP
+  ACTOR_HP,
+  ACTOR_TEXT_LIMITS
 } from '@constant'
 import { cultureTable } from '@database/entity/culture.entity'
 import { languageTable } from '@database/entity/language.entity'
@@ -94,6 +95,12 @@ export const actorTable = pgTable(
       .on(table.worldId)
       .where(sql`${table.isNpc} = false`),
     // Health never goes below zero or above the maximum, and the maximum is at least 1.
+    check(
+      'actor_text_length',
+      sql`char_length(${table.appearance}) <= ${sql.raw(String(ACTOR_TEXT_LIMITS.appearance))}
+        and char_length(${table.personality}) <= ${sql.raw(String(ACTOR_TEXT_LIMITS.personality))}
+        and char_length(${table.background}) <= ${sql.raw(String(ACTOR_TEXT_LIMITS.background))}`
+    ),
     check(
       'actor_hp_max_range',
       sql`${table.hpMax} between ${sql.raw(String(ACTOR_HP.minMax))} and ${sql.raw(String(ACTOR_HP.max))}`

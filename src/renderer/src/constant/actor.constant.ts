@@ -77,6 +77,13 @@ export const actorRollRules = {
 
 export type ActorAttributes = Record<ActorAttributeKey, number>
 
+/** Mirrors ACTOR_TEXT_LIMITS in the engine: the length of the profile texts. */
+export const actorTextLimits = {
+  appearance: 500,
+  personality: 500,
+  background: 1000
+} as const
+
 /** Mirrors ACTOR_HP in the engine: the range of the maximum health and what a new actor gets. */
 export const actorHpLimits = {
   minMax: 2,

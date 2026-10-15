@@ -10,7 +10,7 @@ export const MAX_ITEMS_PER_CALL = 20
 /** The fields that describe an item. The engine checks that the class matches the type. */
 const itemFieldsSchema = z.object({
   name: z.string().trim().min(1).max(TEXT_LIMITS.name),
-  description: z.string().max(TEXT_LIMITS.longText).optional(),
+  description: z.string().max(TEXT_LIMITS.description).optional(),
   type: z
     .enum(ITEM_TYPES)
     .describe(
@@ -52,7 +52,7 @@ export type ItemDraft = z.infer<typeof itemDraftSchema>
  * the old type unless the patch gives the new one (a sword that becomes a tool).
  */
 export const itemPatchSchema = itemFieldsSchema.partial().extend({
-  description: z.string().max(TEXT_LIMITS.longText).nullable().optional(),
+  description: z.string().max(TEXT_LIMITS.description).nullable().optional(),
   weaponClass: z.enum(WEAPON_CLASSES).nullable().optional(),
   clothingClass: z.enum(CLOTHING_CLASSES).nullable().optional()
 })
