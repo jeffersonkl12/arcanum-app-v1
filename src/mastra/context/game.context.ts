@@ -141,8 +141,11 @@ export const currentPlaceSchema = z.object({
   path: z.array(placeLabelSchema),
   /** Whether the place sits inside another one, so the prompt shows the route only when it matters. */
   hasParent: z.boolean(),
-  /** The places directly inside it. */
-  children: z.array(placeLabelSchema)
+  /**
+   * Everything inside it, at any depth, as indented outline lines (`- Name (type)`, two spaces per
+   * level), cut at a limit with a last line saying how many were left out. Empty when it holds nothing.
+   */
+  inside: z.array(z.string())
 })
 
 export type CurrentPlace = z.infer<typeof currentPlaceSchema>

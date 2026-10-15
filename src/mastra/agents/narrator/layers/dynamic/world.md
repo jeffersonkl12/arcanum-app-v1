@@ -20,8 +20,12 @@ Route, from the largest place down to here: {{#each currentPlace.path}}{{#unless
 
 {{currentPlace.description}}
 {{/if}}
-{{#if currentPlace.children.length}}
+{{#if currentPlace.inside.length}}
 
-Places inside it: {{#each currentPlace.children}}{{#unless @first}}, {{/unless}}{{name}} ({{type}}){{/each}}
+Already registered inside it, at any depth:
+
+{{#each currentPlace.inside}}
+{{this}}
+{{/each}}
 {{/if}}
 {{/if}}

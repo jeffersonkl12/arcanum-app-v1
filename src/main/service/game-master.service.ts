@@ -7,6 +7,7 @@ import type {
   NarratorTurn
 } from '@lib/narrator.lib'
 import type { Actor } from '@schema/actor.schema'
+import type { PointOfInterest } from '@schema/point-of-interest.schema'
 import type { IActorService } from '@service/actor.service'
 import type { ICampaignService } from '@service/campaign.service'
 import type { IAiSettingService } from '@service/ai-setting.service'
@@ -303,9 +304,9 @@ export class GameMasterService implements IGameMasterService {
     )?.pointOfInterestId
     if (!placeId) return null
 
-    const [path, children] = await Promise.all([
+    const [path, places] = await Promise.all([
       this.pointOfInterestService.getPath(placeId),
-      this.pointOfInterestService.listChildren(worldId, placeId)
+      this.pointOfInterestService.listByWorld(worldId)
     ])
     const place = path[path.length - 1]
 
@@ -315,7 +316,7 @@ export class GameMasterService implements IGameMasterService {
       description: place.description,
       path: path.map(({ name, type }) => ({ name, type })),
       hasParent: place.parentId !== null,
-      children: children.map(({ name, type }) => ({ name, type }))
+      inside: outlineInside(place.id, places)
     }
   }
 
@@ -424,6 +425,44 @@ export class GameMasterService implements IGameMasterService {
       }
     }
   }
+}
+
+/** Most places listed inside the current one, so a big building cannot flood the prompt. */
+const MAX_PLACES_INSIDE = 40
+
+/**
+ * Everything inside `rootId` as outline lines, depth first. The `seen` set keeps a loop in the data
+ * from hanging it.
+ */
+function outlineInside(rootId: string, places: PointOfInterest[]): string[] {
+  const childrenOf = new Map<string, PointOfInterest[]>()
+
+  for (const place of places) {
+    if (place.parentId)
+      childrenOf.set(place.parentId, [...(childrenOf.get(place.parentId) ?? []), place])
+  }
+
+  const lines: string[] = []
+  const seen = new Set([rootId])
+  let omitted = 0
+
+  const visit = (parentId: string, depth: number): void => {
+    for (const child of childrenOf.get(parentId) ?? []) {
+      if (seen.has(child.id)) continue
+      seen.add(child.id)
+
+      if (lines.length >= MAX_PLACES_INSIDE) {
+        omitted++
+      } else {
+        lines.push(`${'  '.repeat(depth)}- ${child.name} (${child.type})`)
+      }
+      visit(child.id, depth + 1)
+    }
+  }
+
+  visit(rootId, 0)
+
+  return omitted > 0 ? [...lines, `...and ${omitted} more`] : lines
 }
 
 /** What `actor` feels about each of the other members; `values` maps `fromId:toId` to the stored value. */

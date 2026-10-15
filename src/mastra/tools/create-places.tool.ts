@@ -16,7 +16,9 @@ export const createPlacesTool = createTool({
     '`find-places`), or inside a place created earlier in this same call with `parentIndex` (its ' +
     'position in `places`, from 0), so a tavern and its rooms go in one call; leave both out for a ' +
     'place at the top of the world. A place that fails (a parent that does not exist, say) does ' +
-    'not stop the others, but one that depends on it fails too. Use it only for a place the story ' +
+    'not stop the others, but one that depends on it fails too. Register only places worth tracking: ' +
+    'a specific place the party will stay in or come back to (a tavern, a house, a tower, a library), ' +
+    'never streets, squares, alleys or other places it merely passes through. Use it only for a place the story ' +
     'introduces and that does not exist yet: look it up with `find-places` first. Returns one ' +
     'result per place, in order, with the ids. Names are unique in the world: a name that is already ' +
     'taken is refused.',
