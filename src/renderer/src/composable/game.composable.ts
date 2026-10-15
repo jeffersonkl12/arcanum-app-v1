@@ -50,6 +50,7 @@ export function useGame(): {
   sendMessage: (text?: string) => Promise<void>
   regenerateLast: () => Promise<void>
   rateMessage: (messageId: string, rating: 1 | -1) => Promise<void>
+  deleteMessage: (messageId: string) => Promise<void>
   playPendingOpening: () => Promise<void>
   openCharacterSheet: (actorId: string) => void
   closeCharacterSheet: () => void
@@ -329,6 +330,20 @@ export function useGame(): {
     }
   }
 
+  /**
+   * Removes a reply of the narrator from the conversation. The game keeps whatever that turn did,
+   * and a reply may be stored as several messages, so the chat is read again.
+   */
+  async function deleteMessage(messageId: string): Promise<void> {
+    const worldId = session.value?.worldId
+    if (!worldId || isSending.value || messageId.startsWith('local-')) return
+
+    if (await execute('gameMaster:deleteMessage', { worldId, messageId })) {
+      await reloadMessages(worldId)
+      toast.success('Resposta removida do histórico')
+    }
+  }
+
   /** The first turn of a campaign that was just created, if the wizard left one. */
   async function playPendingOpening(): Promise<void> {
     const opening = pendingOpening.value
@@ -410,6 +425,7 @@ export function useGame(): {
     sendMessage,
     regenerateLast,
     rateMessage,
+    deleteMessage,
     playPendingOpening,
     openCharacterSheet,
     closeCharacterSheet,

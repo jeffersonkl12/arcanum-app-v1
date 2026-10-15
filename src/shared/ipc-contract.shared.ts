@@ -180,6 +180,11 @@ export const ipcContract = {
   'gameMaster:regenerateTurn': channel<{ turnId: string; worldId: string }, void>(),
   /** Rates a reply of the narrator (`1` up, `-1` down); `null` takes the rating back. */
   'gameMaster:rateMessage': channel<RateMessage, void>(),
+  /**
+   * Removes a reply of the narrator from the conversation (the player's message stays). The game
+   * is not touched. `not_found` if it is not a reply of this campaign, `conflict` while a turn runs.
+   */
+  'gameMaster:deleteMessage': channel<{ worldId: string; messageId: string }, void>(),
   'gameMaster:listHistory': channel<string, CampaignMessage[]>(),
   /** Deletes a campaign (a world that is not a template) with all its data and conversation. */
   'gameMaster:deleteCampaign': channel<string, void>()

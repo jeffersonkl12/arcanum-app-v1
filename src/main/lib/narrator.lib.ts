@@ -106,6 +106,12 @@ export interface INarratorGateway {
    */
   rewindLastTurn(worldId: string): Promise<RewoundTurn | undefined>
   /**
+   * Removes a reply of the narrator from the conversation, with the other messages it wrote in the
+   * same turn (tool calls are stored as messages of their own). The player's message stays.
+   * Returns the ids removed, none if `messageId` is not a reply of this campaign.
+   */
+  deleteReply(worldId: string, messageId: string): Promise<string[]>
+  /**
    * Attaches the player's rating of a reply to the trace that wrote it, for evaluation. Resolves to
    * whether it was recorded: a reply from a run with no trace has nowhere to attach it.
    */
@@ -225,6 +231,24 @@ export class NarratorGateway implements INarratorGateway {
     await memory.deleteMessages(removedIds)
 
     return { playerMessage: textOf(opening), removedIds }
+  }
+
+  async deleteReply(worldId: string, messageId: string): Promise<string[]> {
+    const memory = await this.campaignMemory()
+    const stored = await this.recallCampaign(worldId)
+    const index = stored.findIndex((message) => message.id === messageId)
+    if (!memory || stored[index]?.role !== 'assistant') return []
+
+    // The narrator's messages of one turn are contiguous, between two messages of the player.
+    let first = index
+    let last = index
+    while (stored[first - 1]?.role === 'assistant') first--
+    while (stored[last + 1]?.role === 'assistant') last++
+
+    const removedIds = stored.slice(first, last + 1).map((message) => message.id)
+    await memory.deleteMessages(removedIds)
+
+    return removedIds
   }
 
   async recordFeedback(

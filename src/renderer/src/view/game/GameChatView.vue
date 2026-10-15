@@ -1,15 +1,38 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { KeyRound } from '@lucide/vue'
 import { RouterLink } from 'vue-router'
 import GameChatComposer from '@renderer/components/custom/GameChatComposer.vue'
+import ConfirmDialog from '@renderer/components/custom/ConfirmDialog.vue'
 import GameChatMessage from '@renderer/components/custom/GameChatMessage.vue'
 import { Alert, AlertDescription, AlertTitle } from '@renderer/components/ui/alert'
 import { Separator } from '@renderer/components/ui/separator'
 import { useGame } from '@renderer/composable/game.composable'
 
-const { messages, draft, isSending, isAiKeyMissing, sendMessage, regenerateLast, rateMessage } =
-  useGame()
+const {
+  messages,
+  draft,
+  isSending,
+  isAiKeyMissing,
+  sendMessage,
+  regenerateLast,
+  rateMessage,
+  deleteMessage
+} = useGame()
+const deletingId = ref<string>()
+const deleteConfirmOpen = computed({
+  get: () => deletingId.value !== undefined,
+  set: (open) => {
+    if (!open) deletingId.value = undefined
+  }
+})
+
+async function confirmDelete(): Promise<void> {
+  const id = deletingId.value
+  deletingId.value = undefined
+  if (id) await deleteMessage(id)
+}
+
 const scrollRef = useTemplateRef<HTMLElement>('scrollRef')
 
 // Only the last thing the narrator said can still be answered with its options.
@@ -80,8 +103,18 @@ onMounted(async () => {
         @choose="void sendMessage($event)"
         @rate="void rateMessage(message.id, $event)"
         @regenerate="void regenerateLast()"
+        @delete="deletingId = message.id"
       />
     </div>
+
+    <ConfirmDialog
+      v-model:open="deleteConfirmOpen"
+      title="Excluir esta resposta do histórico?"
+      description="O Mestre deixa de lembrar que disse isso. O que o turno fez no jogo (dados, NPCs, itens, moedas) continua valendo. Sua mensagem permanece."
+      confirm-label="Excluir"
+      confirm-variant="destructive"
+      @confirm="void confirmDelete()"
+    />
 
     <GameChatComposer v-model="draft" :sending="isSending" @send="void sendMessage()" />
   </section>

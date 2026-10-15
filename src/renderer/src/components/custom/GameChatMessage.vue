@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RefreshCw, ThumbsDown, ThumbsUp } from '@lucide/vue'
+import { RefreshCw, ThumbsDown, ThumbsUp, Trash2 } from '@lucide/vue'
 import { toImageUrl } from '@shared'
 import type { GameChatMessage } from '@renderer/composable/game.type'
 import NarratorMarkdown from '@renderer/components/custom/NarratorMarkdown.vue'
@@ -28,6 +28,7 @@ const emit = defineEmits<{
   choose: [text: string]
   rate: [rating: 1 | -1]
   regenerate: []
+  delete: []
 }>()
 
 function initials(value: string): string {
@@ -139,6 +140,16 @@ function initials(value: string): string {
         >
           <RefreshCw />
           Gerar novamente
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          class="text-muted-foreground hover:text-destructive"
+          aria-label="Excluir resposta do histórico"
+          :disabled="props.busy"
+          @click="emit('delete')"
+        >
+          <Trash2 />
         </Button>
       </div>
     </MessageContent>

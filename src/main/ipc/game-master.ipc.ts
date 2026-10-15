@@ -40,6 +40,10 @@ export function createGameMasterRoutes(
     'gameMaster:rateMessage': route(rateMessageSchema, ({ worldId, messageId, rating }) =>
       gameMasterService.rateMessage(worldId, messageId, rating)
     ),
+    'gameMaster:deleteMessage': route(
+      z.object({ worldId: idSchema, messageId: z.string().min(1).max(200) }),
+      ({ worldId, messageId }) => gameMasterService.deleteMessage(worldId, messageId)
+    ),
     'gameMaster:listHistory': route(idSchema, (worldId) => gameMasterService.listHistory(worldId)),
     'gameMaster:deleteCampaign': route(idSchema, (worldId) =>
       gameMasterService.deleteCampaign(worldId)

@@ -60,6 +60,13 @@ export interface IGameMasterService {
    * world or the reply does not exist.
    */
   rateMessage(worldId: string, messageId: string, rating: MessageRating | null): Promise<void>
+  /**
+   * Removes a reply of the narrator from the conversation; the player's message stays. The game is
+   * not touched: whatever the narrator did in that turn (dice, NPCs, items) still stands, only the
+   * narrator no longer remembers having said it. Throws `NotFoundError` if the world or the reply
+   * does not exist and `ConflictError` while a turn is running.
+   */
+  deleteMessage(worldId: string, messageId: string): Promise<void>
   /** The stored conversation of the world's campaign. Throws `NotFoundError` for a missing world. */
   listHistory(worldId: string): Promise<CampaignMessage[]>
   /**
@@ -144,6 +151,19 @@ export class GameMasterService implements IGameMasterService {
     } catch (error) {
       console.warn('The rating could not be recorded as feedback of the narrator:', error)
     }
+  }
+
+  async deleteMessage(worldId: string, messageId: string): Promise<void> {
+    await this.worldService.get(worldId)
+    // A turn writes to the same conversation, and its messages are not stored yet.
+    if (this.streaming.has(worldId)) {
+      throw new ConflictError('The narrator is answering in this world')
+    }
+
+    const removedIds = await this.narrator.deleteReply(worldId, messageId)
+    if (removedIds.length === 0) throw new NotFoundError('Message', messageId)
+
+    await this.messageRatingService.forget(worldId, removedIds)
   }
 
   async listHistory(worldId: string): Promise<CampaignMessage[]> {
