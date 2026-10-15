@@ -49,7 +49,7 @@ const fieldControlClass =
 const selectTriggerClass =
   'h-auto w-full rounded-lg border-border bg-background px-3 py-2.5 text-meta data-placeholder:text-tertiary'
 const textareaClass =
-  'field-sizing-fixed h-16 resize-none rounded-lg border-border bg-background px-3 py-2.5 text-meta shadow-none placeholder:text-tertiary'
+  'field-sizing-fixed h-32 resize-none rounded-lg border-border bg-background px-3 py-2.5 text-meta shadow-none placeholder:text-tertiary'
 </script>
 
 <template>

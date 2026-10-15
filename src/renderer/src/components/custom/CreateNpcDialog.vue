@@ -315,7 +315,7 @@ const fieldControlClass =
 const selectTriggerClass =
   'h-auto w-full rounded-lg border-border bg-background px-3.5 py-2.5 text-sm data-placeholder:text-tertiary'
 const textareaClass =
-  'field-sizing-fixed h-20 resize-none rounded-lg border-border bg-background px-3.5 py-2.5 text-sm shadow-none placeholder:text-tertiary'
+  'field-sizing-fixed h-40 resize-none rounded-lg border-border bg-background px-3.5 py-2.5 text-sm shadow-none placeholder:text-tertiary'
 </script>
 
 <template>
