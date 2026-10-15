@@ -7,5 +7,7 @@ export const READ_ONLY_NARRATOR_TOOLS: readonly string[] = [
   'getInventoryTool',
   'findItemsTool',
   'findPlacesTool',
-  'recallMemoriesTool'
+  'recallMemoriesTool',
+  'recallDocumentsTool',
+  'listDocumentsTool'
 ]

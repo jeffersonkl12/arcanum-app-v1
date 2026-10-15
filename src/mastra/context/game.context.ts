@@ -13,6 +13,7 @@ import { ROLL_MODES, type RollMode } from '../../main/constant/roll-mode.constan
 import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
 import type { ICampaignRegistry } from './campaign.context'
 import type { ICoinRegistry } from './coin.context'
+import type { IDocumentRegistry } from './document.context'
 import type { IItemRegistry } from './item.context'
 import type { ITradeRegistry } from './trade.context'
 import { liveContextSchema } from './live-context.context'
@@ -376,6 +377,13 @@ export const gameContextSchema = z.object({
       value !== null &&
       typeof (value as IMemoryRegistry).remember === 'function',
     'memoryRegistry must implement IMemoryRegistry'
+  ),
+  documentRegistry: z.custom<IDocumentRegistry>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as IDocumentRegistry).recall === 'function',
+    'documentRegistry must implement IDocumentRegistry'
   ),
   npcSceneRegistry: z.custom<INpcSceneRegistry>(
     (value) =>

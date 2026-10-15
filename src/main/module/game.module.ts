@@ -1,8 +1,7 @@
 import { AiProbe } from '@lib/ai-probe.lib'
+import { CachedEmbedder } from '@lib/cached-embedder.lib'
 import { Embedder } from '@lib/embedder.lib'
-import { LanceMemoryVectorStore } from '@lib/memory-vector.lib'
 import { NarratorGateway } from '@lib/narrator.lib'
-import { resolveMemoryVectorFolder } from '@lib/paths.lib'
 import { SecretCipher } from '@lib/secret-cipher.lib'
 import { database } from '@module/database.module'
 import { diceRoller } from '@module/dice.module'
@@ -12,6 +11,7 @@ import { ActorRepository } from '@repository/actor.repository'
 import { AiSettingRepository } from '@repository/ai-setting.repository'
 import { CultureRepository } from '@repository/culture.repository'
 import { ItemRepository } from '@repository/item.repository'
+import { MemoryRepository } from '@repository/memory.repository'
 import { MessageRatingRepository } from '@repository/message-rating.repository'
 import { LanguageRepository } from '@repository/language.repository'
 import { DocumentRepository } from '@repository/document.repository'
@@ -37,6 +37,8 @@ import { TradeService } from '@service/trade.service'
 import { ItemRegistryService } from '@service/item-registry.service'
 import { LanguageService, type ILanguageService } from '@service/language.service'
 import { LiveContextService } from '@service/live-context.service'
+import { DocumentContextService } from '@service/document-context.service'
+import { DocumentRegistryService } from '@service/document-registry.service'
 import { DocumentService, type IDocumentService } from '@service/document.service'
 import { MemoryContextService } from '@service/memory-context.service'
 import { MemoryRegistryService } from '@service/memory-registry.service'
@@ -69,9 +71,6 @@ export const worldCloneService: IWorldCloneService = new WorldCloneService(
 export const cultureService: ICultureService = new CultureService(new CultureRepository(database))
 export const languageService: ILanguageService = new LanguageService(
   new LanguageRepository(database)
-)
-export const documentService: IDocumentService = new DocumentService(
-  new DocumentRepository(database)
 )
 export const actorService: IActorService = new ActorService(actorRepository, itemRepository)
 export const diceCheckService: IDiceCheckService = new DiceCheckService(diceRoller, actorService)
@@ -116,13 +115,21 @@ export const aiConnectionService: IAiConnectionService = new AiConnectionService
 // Embeddings come from the provider the player picked: the key saved for them in the app (or the chat
 // key while the narrator is of the same provider), else that provider's environment variable. Without
 // any, memory is simply unavailable.
-const embedder = new Embedder(async () => {
-  const { embeddingProvider, embeddingApiKey } = await aiSettingService.resolve()
+// Wrapped so the player's message, searched by the memories and by the documents on every turn, is
+// embedded once.
+const embedder = new CachedEmbedder(
+  new Embedder(async () => {
+    const { embeddingProvider, embeddingApiKey } = await aiSettingService.resolve()
 
-  return { provider: embeddingProvider, apiKey: embeddingApiKey }
-})
+    return { provider: embeddingProvider, apiKey: embeddingApiKey }
+  })
+)
+export const documentService: IDocumentService = new DocumentService(
+  new DocumentRepository(database),
+  embedder
+)
 export const memoryService: IMemoryService = new MemoryService(
-  new LanceMemoryVectorStore(resolveMemoryVectorFolder()),
+  new MemoryRepository(database),
   embedder,
   actorService
 )
@@ -139,9 +146,12 @@ const npcSceneService = new NpcSceneService(
 )
 const contextWindowService = new ContextWindowService()
 const memoryContextService = new MemoryContextService(memoryService, contextWindowService)
+const documentContextService = new DocumentContextService(documentService, contextWindowService)
+const documentRegistry = new DocumentRegistryService(documentService, documentContextService)
 // The sources of dynamic context for the narrator's prompt; list a new source here to bring it in.
 const liveContextService = new LiveContextService(contextWindowService, [
   memoryContextService,
+  documentContextService,
   npcSceneService
 ])
 
@@ -161,6 +171,7 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   ),
   pointOfInterestRegistry,
   new MemoryRegistryService(memoryService, memoryContextService),
+  documentRegistry,
   memoryService,
   liveContextService,
   relationshipService,

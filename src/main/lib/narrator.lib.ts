@@ -19,6 +19,7 @@ import type { ICoinRegistry } from '../../mastra/context/coin.context'
 import type { ITradeRegistry } from '../../mastra/context/trade.context'
 import type { IItemRegistry } from '../../mastra/context/item.context'
 import type { LiveContextSection } from '../../mastra/context/live-context.context'
+import type { IDocumentRegistry } from '../../mastra/context/document.context'
 import type { IMemoryRegistry } from '../../mastra/context/memory.context'
 import type { INpcSceneRegistry } from '../../mastra/context/npc-scene.context'
 import type { IPointOfInterestRegistry } from '../../mastra/context/point-of-interest.context'
@@ -45,6 +46,7 @@ export interface NarratorTurn {
   tradeRegistry: ITradeRegistry
   pointOfInterestRegistry: IPointOfInterestRegistry
   memoryRegistry: IMemoryRegistry
+  documentRegistry: IDocumentRegistry
   npcSceneRegistry: INpcSceneRegistry
   relationshipRegistry: IRelationshipRegistry
   campaignRegistry: ICampaignRegistry
@@ -168,6 +170,7 @@ export class NarratorGateway implements INarratorGateway {
     tradeRegistry,
     pointOfInterestRegistry,
     memoryRegistry,
+    documentRegistry,
     npcSceneRegistry,
     relationshipRegistry,
     campaignRegistry,
@@ -189,6 +192,7 @@ export class NarratorGateway implements INarratorGateway {
     requestContext.set('tradeRegistry', tradeRegistry)
     requestContext.set('pointOfInterestRegistry', pointOfInterestRegistry)
     requestContext.set('memoryRegistry', memoryRegistry)
+    requestContext.set('documentRegistry', documentRegistry)
     requestContext.set('npcSceneRegistry', npcSceneRegistry)
     requestContext.set('relationshipRegistry', relationshipRegistry)
     requestContext.set('campaignRegistry', campaignRegistry)

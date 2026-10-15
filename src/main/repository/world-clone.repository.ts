@@ -5,7 +5,7 @@ import { actorTable } from '@database/entity/actor.entity'
 import { cultureTable } from '@database/entity/culture.entity'
 import { itemTable } from '@database/entity/item.entity'
 import { languageTable } from '@database/entity/language.entity'
-import { documentTable } from '@database/entity/document.entity'
+import { documentEmbeddingTables, documentTable } from '@database/entity/document.entity'
 import { partyTable } from '@database/entity/party.entity'
 import { pointOfInterestTable } from '@database/entity/point-of-interest.entity'
 import { kinshipTable } from '@database/entity/kinship.entity'
@@ -14,6 +14,7 @@ import { worldTable } from '@database/entity/world.entity'
 import { translateDatabaseError } from '@database/error.database'
 import type { World } from '@schema/world.schema'
 import { buildCopyImagePath } from '@util/image-path.util'
+import { inArray } from 'drizzle-orm'
 
 /** An image file the copy of a world needs: the rows already point to `to`, but the file is not there yet. */
 export interface ImageCopy {
@@ -146,7 +147,25 @@ export class WorldCloneRepository implements IWorldCloneRepository {
 
         // Documents have no links to the other entities, so it only needs new ids in the new world.
         const documents = copyInto(world.id, await tx.query.document.findMany({ where }))
-        if (documents.rows.length > 0) await tx.insert(documentTable).values(documents.rows)
+        if (documents.rows.length > 0) {
+          await tx.insert(documentTable).values(documents.rows)
+
+          // The embeddings are copied as they are, so a clone costs no call to the embedding provider.
+          for (const embeddings of Object.values(documentEmbeddingTables)) {
+            const stored = await tx
+              .select()
+              .from(embeddings)
+              .where(inArray(embeddings.documentId, [...documents.newIds.keys()]))
+            if (stored.length > 0) {
+              await tx.insert(embeddings).values(
+                stored.map((row) => ({
+                  documentId: documents.newIds.get(row.documentId)!,
+                  embedding: row.embedding
+                }))
+              )
+            }
+          }
+        }
 
         return { world, imageCopies }
       })

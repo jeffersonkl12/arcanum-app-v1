@@ -14,7 +14,7 @@ export interface EmbeddingModelOption {
 
 /**
  * The embedding model of each provider. The vectors of two models are never comparable, so each
- * provider keeps its own memory index (see `LanceMemoryVectorStore`). Gemini's model answers with
+ * provider keeps its own embeddings table (see `memoryEmbeddingTables`). Gemini's model answers with
  * 3072 numbers unless asked for fewer, so `Embedder` asks for exactly `dimensions`.
  */
 export const EMBEDDING_MODELS: Readonly<Record<EmbeddingProvider, EmbeddingModelOption>> = {

@@ -56,6 +56,9 @@ export const narratorAgent = new Agent({
   instructions: layeredInstructions(layers),
   // Chosen by the player for each world and read from the database by the main process.
   model: ({ requestContext }) => requestContext.get('narratorModel'),
+  // `recallDocumentsTool` and `listDocumentsTool` exist and are registered in `src/mastra/index.ts`, but
+  // are not given to the narrator: the world's documents reach the prompt on their own every turn
+  // (`DocumentContextService`). Add them here to let the narrator look documents up as well.
   tools: {
     rollCheckTool,
     adjustRelationshipsTool,

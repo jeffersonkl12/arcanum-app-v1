@@ -43,7 +43,7 @@ export class Embedder implements IEmbedder {
     const { provider, apiKey } = await this.setting()
     if (!(await this.isAvailable())) {
       throw new ConflictError(
-        `Memory needs a ${AI_MODEL_CATALOG[provider].label} API key for its embeddings, and there is none`
+        `Embeddings need a ${AI_MODEL_CATALOG[provider].label} API key, and there is none`
       )
     }
     if (values.length === 0) return []

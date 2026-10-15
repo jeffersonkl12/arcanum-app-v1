@@ -1,5 +1,6 @@
 export * from '@util/attribute-level.util'
 export * from '@util/campaign.util'
+export * from '@util/document.util'
 export * from '@util/image-format.util'
 export * from '@util/image-path.util'
 export * from '@util/inventory.util'

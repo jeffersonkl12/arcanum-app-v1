@@ -45,6 +45,7 @@ import type {
   RollCheckResult
 } from '../../mastra/context/game.context'
 import type { IItemRegistry } from '../../mastra/context/item.context'
+import type { IDocumentRegistry } from '../../mastra/context/document.context'
 import type { IMemoryRegistry } from '../../mastra/context/memory.context'
 import type { INpcSceneRegistry } from '../../mastra/context/npc-scene.context'
 import type { IPointOfInterestRegistry } from '../../mastra/context/point-of-interest.context'
@@ -114,6 +115,7 @@ export class GameMasterService implements IGameMasterService {
     private readonly tradeRegistry: ITradeRegistry,
     private readonly pointOfInterestRegistry: IPointOfInterestRegistry,
     private readonly memoryRegistry: IMemoryRegistry,
+    private readonly documentRegistry: IDocumentRegistry,
     private readonly memoryService: IMemoryService,
     private readonly liveContext: ILiveContextService,
     private readonly relationshipService: IRelationshipService,
@@ -277,6 +279,7 @@ export class GameMasterService implements IGameMasterService {
       tradeRegistry: this.tradeRegistry,
       pointOfInterestRegistry: this.pointOfInterestRegistry,
       memoryRegistry: this.memoryRegistry,
+      documentRegistry: this.documentRegistry,
       npcSceneRegistry: this.npcSceneRegistry,
       relationshipRegistry: this.relationshipRegistry,
       campaignRegistry: this.campaignRegistry,

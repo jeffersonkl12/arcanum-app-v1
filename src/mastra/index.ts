@@ -21,6 +21,8 @@ import { equipItemsTool } from './tools/equip-items.tool'
 import { engageNpcsTool } from './tools/engage-npcs.tool'
 import { releaseNpcsTool } from './tools/release-npcs.tool'
 import { findItemsTool } from './tools/find-items.tool'
+import { listDocumentsTool } from './tools/list-documents.tool'
+import { recallDocumentsTool } from './tools/recall-documents.tool'
 import { getInventoryTool } from './tools/get-inventory.tool'
 import { findPlacesTool } from './tools/find-places.tool'
 import { moveActorsTool } from './tools/move-actors.tool'
@@ -62,6 +64,8 @@ export const mastra = new Mastra({
     movePartyTool,
     rememberEventsTool,
     recallMemoriesTool,
+    recallDocumentsTool,
+    listDocumentsTool,
     engageNpcsTool,
     releaseNpcsTool
   },

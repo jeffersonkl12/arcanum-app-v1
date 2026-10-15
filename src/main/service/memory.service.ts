@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { MEMORY_IMPORTANCE, MEMORY_LIMITS, MEMORY_SEARCH, type EmbeddingProvider } from '@constant'
 import { ConflictError } from '@error'
 import type { IEmbedder } from '@lib/embedder.lib'
-import type { IMemoryVectorStore } from '@lib/memory-vector.lib'
+import type { IMemoryRepository } from '@repository/memory.repository'
 import type { Actor } from '@schema/actor.schema'
 import type { CreateMemory, Memory, MemoryWithActors } from '@schema/memory.schema'
 import type { IActorService } from '@service/actor.service'
@@ -50,7 +50,7 @@ export interface IMemoryService {
  */
 export class MemoryService implements IMemoryService {
   constructor(
-    private readonly store: IMemoryVectorStore,
+    private readonly repository: IMemoryRepository,
     private readonly embedder: IEmbedder,
     private readonly actorService: IActorService
   ) {}
@@ -69,7 +69,7 @@ export class MemoryService implements IMemoryService {
     if (repeated) return { status: 'duplicate', memory: await this.withActor(repeated) }
 
     const memory: Memory = { ...input, actorIds, id: randomUUID(), createdAt: new Date() }
-    await this.store.add(provider, memory, vector)
+    await this.repository.add(provider, memory, vector)
 
     return { status: 'saved', memory: await this.withActor(memory) }
   }
@@ -81,7 +81,7 @@ export class MemoryService implements IMemoryService {
   ): Promise<MemoryWithActors[]> {
     const provider = await this.embedder.provider()
     const [vector] = await this.embedder.embed([query])
-    const hits = await this.store.search(provider, {
+    const hits = await this.repository.search(provider, {
       worldId,
       vector,
       actorId,
@@ -96,36 +96,26 @@ export class MemoryService implements IMemoryService {
   }
 
   async listRecent(worldId: string, limit: number): Promise<MemoryWithActors[]> {
-    const newest = await this.store.listRecent(await this.embedder.provider(), worldId, limit)
+    const newest = await this.repository.listRecent(worldId, limit)
 
     return this.resolveActors(worldId, newest.reverse())
   }
 
   async listPinned(worldId: string, limit: number): Promise<MemoryWithActors[]> {
-    const newest = await this.store.listByImportance(
-      await this.embedder.provider(),
-      worldId,
-      MEMORY_IMPORTANCE.pinned,
-      limit
-    )
+    const newest = await this.repository.listByImportance(worldId, MEMORY_IMPORTANCE.pinned, limit)
 
     return this.resolveActors(worldId, newest.reverse())
   }
 
   async listByActor(actorId: string): Promise<MemoryWithActors[]> {
     const { worldId } = await this.actorService.get(actorId)
-    const memories = await this.store.listByActor(
-      await this.embedder.provider(),
-      worldId,
-      actorId,
-      MEMORY_LIMITS.sheetMax
-    )
+    const memories = await this.repository.listByActor(worldId, actorId, MEMORY_LIMITS.sheetMax)
 
     return this.resolveActors(worldId, memories)
   }
 
   deleteByWorld(worldId: string): Promise<void> {
-    return this.store.deleteByWorld(worldId)
+    return this.repository.deleteByWorld(worldId)
   }
 
   private async requireActors(worldId: string, actorIds: string[]): Promise<void> {
@@ -142,7 +132,7 @@ export class MemoryService implements IMemoryService {
     actorIds: string[],
     vector: number[]
   ): Promise<Memory | undefined> {
-    const hits = await this.store.search(provider, { worldId, vector, limit: 3 })
+    const hits = await this.repository.search(provider, { worldId, vector, limit: 3 })
 
     return hits.find(
       (hit) =>
