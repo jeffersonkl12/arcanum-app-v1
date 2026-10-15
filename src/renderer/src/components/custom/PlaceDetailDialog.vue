@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Pencil, Trash2, X } from '@lucide/vue'
+import { Pencil, Plus, Trash2, X } from '@lucide/vue'
 import { DialogContent, DialogPortal } from 'reka-ui'
 import { computed } from 'vue'
 import { toImageUrl } from '@shared'
@@ -28,6 +28,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   edit: []
   delete: []
+  addChild: []
 }>()
 
 const locationLabel = computed(() => props.place?.path.join(' › ') ?? '')
@@ -110,6 +111,17 @@ const locationLabel = computed(() => props.place?.path.join(' › ') ?? '')
           </template>
 
           <Separator />
+
+          <Button
+            type="button"
+            variant="outline"
+            class="h-auto gap-2 self-start rounded-full bg-transparent px-4 py-2.5 text-sm font-semibold"
+            :disabled="deleting"
+            @click="emit('addChild')"
+          >
+            <Plus class="size-4" />
+            Adicionar lugar dentro
+          </Button>
 
           <div class="flex items-center justify-between">
             <Button

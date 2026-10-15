@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { Search } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import {
@@ -70,6 +70,7 @@ const itemDetailOpen = ref(false)
 const viewingItem = ref<ItemSummary | null>(null)
 const placeOpen = ref(false)
 const editingPlace = ref<PlaceSummary | null>(null)
+const newPlaceParentId = ref<string | null>(null)
 const placeDetailOpen = ref(false)
 const viewingPlaceId = ref<string | null>(null)
 const deleteConfirmOpen = ref(false)
@@ -126,6 +127,16 @@ function openEditItem(item: ItemSummary): void {
 
 function openEditPlace(place: PlaceSummary): void {
   editingPlace.value = place
+  placeOpen.value = true
+}
+
+// The dialog clears its own state as it closes, so the new one opens only after that has happened.
+async function openCreateChildPlace(parentId: string): Promise<void> {
+  placeDetailOpen.value = false
+  placeOpen.value = false
+  editingPlace.value = null
+  await nextTick()
+  newPlaceParentId.value = parentId
   placeOpen.value = true
 }
 
@@ -247,6 +258,8 @@ const tabTriggerClass = cn(
           v-else-if="entityTab === 'places'"
           v-model:open="placeOpen"
           v-model:entity="editingPlace"
+          v-model:parent-id="newPlaceParentId"
+          @add-child="openCreateChildPlace"
         />
         <CreateNamedEntityDialog
           v-else
@@ -336,6 +349,7 @@ const tabTriggerClass = cn(
       :inside="placesInsideViewing"
       :deleting="isDeleting"
       @edit="editPlaceFromDetail"
+      @add-child="viewingPlaceId && openCreateChildPlace(viewingPlaceId)"
       @delete="deletePlaceFromDetail"
     />
 

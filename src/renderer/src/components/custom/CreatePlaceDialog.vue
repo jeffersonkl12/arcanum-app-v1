@@ -11,6 +11,7 @@ import { toImageUrl } from '@shared'
 import { placeTopValue, placeTypeSuggestions } from '@renderer/constant/place.constant'
 import { useWorld } from '@renderer/composable/world.composable'
 import type { PlaceSummary } from '@renderer/composable/world.type'
+import { searchRank } from '@renderer/util/text.util'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -30,16 +31,20 @@ import {
 } from '@renderer/components/ui/form'
 import { Input } from '@renderer/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@renderer/components/ui/select'
+  Combobox,
+  ComboboxAnchor,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxViewport
+} from '@renderer/components/ui/combobox'
 import { Textarea } from '@renderer/components/ui/textarea'
 
 const open = defineModel<boolean>('open', { default: false })
 const entity = defineModel<PlaceSummary | null>('entity', { default: null })
+/** For a new place: the place it starts inside of, so the player does not have to pick it. */
+const presetParentId = defineModel<string | null>('parentId', { default: null })
 
 withDefaults(
   defineProps<{
@@ -51,6 +56,8 @@ withDefaults(
 
 const emit = defineEmits<{
   saved: [place: PlaceSummary]
+  /** The player wants a new place inside the one being edited; the form is not saved. */
+  addChild: [parentId: string]
 }>()
 
 const formFields = ['name', 'type', 'description', 'parentId'] as const
@@ -89,7 +96,7 @@ const imageData = ref<Uint8Array>()
 const existingImagePath = ref<string | null>()
 
 const { places, createPlace, updatePlace, isSavingPlace, savePlaceError } = useWorld()
-const { handleSubmit, resetForm, setErrors } = useForm({
+const { handleSubmit, resetForm, setErrors, setFieldValue, meta } = useForm({
   validationSchema: placeFormSchema,
   initialValues: emptyForm
 })
@@ -112,6 +119,59 @@ const parentOptions = computed(() => {
   }
   return places.value.filter((place) => !excluded.has(place.id))
 })
+
+const topLabel = 'Nenhum (topo do mundo)'
+
+interface ParentChoice {
+  value: string
+  label: string
+  /** Where the place is, to tell apart places that sound alike. */
+  hint: string
+}
+
+const parentSearch = ref('')
+
+/**
+ * What the parent field offers: the top of the world and the places that can hold this one. With
+ * nothing typed it is the tree; with a search it is a flat list by closeness of the name.
+ */
+const parentChoices = computed<ParentChoice[]>(() => {
+  const term = parentSearch.value
+  const choices: ParentChoice[] = [
+    { value: placeTopValue, label: topLabel, hint: '' },
+    ...parentOptions.value.map((place) => ({
+      value: place.id,
+      label: `${term.trim() ? '' : '– '.repeat(place.depth)}${place.name}`,
+      hint: place.path.join(' › ')
+    }))
+  ]
+  if (!term.trim()) return choices
+
+  return choices
+    .map((choice) => ({ choice, rank: searchRank(choice.label, term) }))
+    .filter(({ rank }) => rank >= 0)
+    .sort((a, b) => a.rank - b.rank)
+    .map(({ choice }) => choice)
+})
+
+/** What the field shows for the chosen value, when nothing is being typed. */
+function parentLabel(value: string): string {
+  if (value === placeTopValue) return topLabel
+  return places.value.find((place) => place.id === value)?.name ?? ''
+}
+
+function onParentSelected(value: unknown): void {
+  parentSearch.value = ''
+  if (typeof value === 'string') setFieldValue('parentId', value)
+}
+
+function onParentOpenChange(isOpen: boolean): void {
+  if (isOpen) parentSearch.value = ''
+}
+
+function selectInputText(event: FocusEvent): void {
+  ;(event.target as HTMLInputElement).select()
+}
 
 const onSubmit = handleSubmit(async (formValues) => {
   const payload = {
@@ -144,6 +204,7 @@ watch(open, (isOpen) => {
   resetForm({ values: emptyForm })
   clearImage()
   entity.value = null
+  presetParentId.value = null
 })
 
 onBeforeUnmount(() => {
@@ -152,12 +213,13 @@ onBeforeUnmount(() => {
 
 function startCreate(): void {
   entity.value = null
+  presetParentId.value = null
 }
 
 function fillForm(place: PlaceSummary | null): void {
   clearImage()
   if (!place) {
-    resetForm({ values: emptyForm })
+    resetForm({ values: { ...emptyForm, parentId: presetParentId.value ?? placeTopValue } })
     return
   }
 
@@ -211,8 +273,6 @@ async function onImageSelected(event: Event): Promise<void> {
 const fieldLabelClass = 'text-meta font-medium text-muted-foreground'
 const fieldControlClass =
   'h-auto rounded-lg border-border bg-background px-3.5 py-2.5 text-sm shadow-none placeholder:text-tertiary'
-const selectTriggerClass =
-  'h-auto w-full rounded-lg border-border bg-background px-3.5 py-2.5 text-sm data-placeholder:text-tertiary'
 const textareaClass =
   'field-sizing-fixed h-24 resize-none rounded-lg border-border bg-background px-3.5 py-2.5 text-sm shadow-none placeholder:text-tertiary'
 </script>
@@ -324,19 +384,40 @@ const textareaClass =
               <FormField v-slot="{ componentField }" name="parentId" keep-value>
                 <FormItem class="gap-1.5">
                   <FormLabel :class="fieldLabelClass">Fica dentro de</FormLabel>
-                  <Select v-bind="componentField" :disabled="isSavingPlace">
-                    <FormControl>
-                      <SelectTrigger :class="selectTriggerClass">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent position="popper" class="bg-card">
-                      <SelectItem :value="placeTopValue">Nenhum (topo do mundo)</SelectItem>
-                      <SelectItem v-for="place in parentOptions" :key="place.id" :value="place.id">
-                        {{ '– '.repeat(place.depth) }}{{ place.name }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Combobox
+                    ignore-filter
+                    open-on-focus
+                    open-on-click
+                    :disabled="isSavingPlace"
+                    :model-value="componentField.modelValue"
+                    @update:model-value="onParentSelected"
+                    @update:open="onParentOpenChange"
+                  >
+                    <ComboboxAnchor>
+                      <ComboboxInput
+                        placeholder="Digite para buscar..."
+                        autocomplete="off"
+                        :display-value="parentLabel"
+                        @focus="selectInputText"
+                        @input="parentSearch = ($event.target as HTMLInputElement).value"
+                      />
+                    </ComboboxAnchor>
+                    <ComboboxList class="bg-card">
+                      <ComboboxViewport>
+                        <ComboboxEmpty>Nenhum lugar encontrado</ComboboxEmpty>
+                        <ComboboxItem
+                          v-for="option in parentChoices"
+                          :key="option.value"
+                          :value="option.value"
+                        >
+                          <span class="truncate">{{ option.label }}</span>
+                          <span v-if="option.hint" class="truncate text-xs text-muted-foreground">
+                            {{ option.hint }}
+                          </span>
+                        </ComboboxItem>
+                      </ComboboxViewport>
+                    </ComboboxList>
+                  </Combobox>
                   <FormDescription class="text-badge">
                     Uma cidade guarda a igreja; uma casa guarda o quarto.
                   </FormDescription>
@@ -361,24 +442,41 @@ const textareaClass =
             </FormField>
           </div>
 
-          <div class="flex justify-end gap-4">
-            <DialogClose as-child>
+          <div
+            class="flex items-center gap-4"
+            :class="isEditing ? 'justify-between' : 'justify-end'"
+          >
+            <Button
+              v-if="entity"
+              type="button"
+              variant="outline"
+              class="h-auto gap-2 rounded-full bg-transparent px-4 py-2.5 text-sm font-semibold"
+              :disabled="isSavingPlace || meta.dirty"
+              :title="meta.dirty ? 'Salve ou descarte as alterações antes' : undefined"
+              @click="emit('addChild', entity.id)"
+            >
+              <Plus class="size-4" />
+              Adicionar lugar dentro
+            </Button>
+            <div class="flex gap-4">
+              <DialogClose as-child>
+                <Button
+                  type="button"
+                  variant="outline"
+                  class="h-auto rounded-full bg-transparent px-4 py-2.5 text-sm font-semibold"
+                  :disabled="isSavingPlace"
+                >
+                  Cancelar
+                </Button>
+              </DialogClose>
               <Button
-                type="button"
-                variant="outline"
-                class="h-auto rounded-full bg-transparent px-4 py-2.5 text-sm font-semibold"
+                type="submit"
+                class="h-auto rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-primary-hover"
                 :disabled="isSavingPlace"
               >
-                Cancelar
+                {{ isEditing ? 'Salvar Alterações' : 'Salvar Lugar' }}
               </Button>
-            </DialogClose>
-            <Button
-              type="submit"
-              class="h-auto rounded-full px-5 py-2.5 text-sm font-semibold hover:bg-primary-hover"
-              :disabled="isSavingPlace"
-            >
-              {{ isEditing ? 'Salvar Alterações' : 'Salvar Lugar' }}
-            </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
