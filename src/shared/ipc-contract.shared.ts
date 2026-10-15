@@ -184,6 +184,12 @@ export const ipcContract = {
    * Removes a reply of the narrator from the conversation (the player's message stays). The game
    * is not touched. `not_found` if it is not a reply of this campaign, `conflict` while a turn runs.
    */
+  /**
+   * Rewrites a reply of the narrator in the conversation, which reads the edited text from then on.
+   * The game is not touched. `not_found` if it is not a reply of this campaign, `conflict` while a
+   * turn runs.
+   */
+  'gameMaster:editMessage': channel<{ worldId: string; messageId: string; text: string }, void>(),
   'gameMaster:deleteMessage': channel<{ worldId: string; messageId: string }, void>(),
   'gameMaster:listHistory': channel<string, CampaignMessage[]>(),
   /** Deletes a campaign (a world that is not a template) with all its data and conversation. */

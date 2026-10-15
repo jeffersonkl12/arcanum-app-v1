@@ -13,6 +13,9 @@ const turnSchema = z.object({
   message: z.string().trim().min(1).max(TEXT_LIMITS.longText)
 })
 
+/** A narrator reply can be longer than any free-text field, since it may hold UI blocks. */
+const EDITED_REPLY_MAX_LENGTH = TEXT_LIMITS.longText * 4
+
 const streamTurnSchema = turnSchema.extend({ turnId: z.uuid() })
 
 const regenerateTurnSchema = z.object({ turnId: z.uuid(), worldId: idSchema })
@@ -39,6 +42,14 @@ export function createGameMasterRoutes(
     }),
     'gameMaster:rateMessage': route(rateMessageSchema, ({ worldId, messageId, rating }) =>
       gameMasterService.rateMessage(worldId, messageId, rating)
+    ),
+    'gameMaster:editMessage': route(
+      z.object({
+        worldId: idSchema,
+        messageId: z.string().min(1).max(200),
+        text: z.string().trim().min(1).max(EDITED_REPLY_MAX_LENGTH)
+      }),
+      ({ worldId, messageId, text }) => gameMasterService.editMessage(worldId, messageId, text)
     ),
     'gameMaster:deleteMessage': route(
       z.object({ worldId: idSchema, messageId: z.string().min(1).max(200) }),

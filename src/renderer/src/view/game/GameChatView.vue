@@ -17,6 +17,7 @@ const {
   sendMessage,
   regenerateLast,
   rateMessage,
+  editMessage,
   deleteMessage
 } = useGame()
 const deletingId = ref<string>()
@@ -100,6 +101,7 @@ onMounted(async () => {
         :message="message"
         :interactive="!isSending && message.id === lastMasterId"
         :busy="isSending"
+        :save-edit="(text) => editMessage(message.id, text)"
         @choose="void sendMessage($event)"
         @rate="void rateMessage(message.id, $event)"
         @regenerate="void regenerateLast()"

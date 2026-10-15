@@ -22,6 +22,8 @@ export interface GameChatMessage {
   timeLabel: string
   imagePath?: string
   segments: ChatSegment[]
+  /** The reply as stored (with its UI blocks), what the player edits. Not known while it streams. */
+  text?: string
   /** The narrator is still writing this message. */
   isStreaming?: boolean
   /** What the player thought of this reply: `1` up, `-1` down. */

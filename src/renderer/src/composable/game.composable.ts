@@ -50,6 +50,7 @@ export function useGame(): {
   sendMessage: (text?: string) => Promise<void>
   regenerateLast: () => Promise<void>
   rateMessage: (messageId: string, rating: 1 | -1) => Promise<void>
+  editMessage: (messageId: string, text: string) => Promise<boolean>
   deleteMessage: (messageId: string) => Promise<void>
   playPendingOpening: () => Promise<void>
   openCharacterSheet: (actorId: string) => void
@@ -222,6 +223,7 @@ export function useGame(): {
         if (counterpart) message.id = counterpart.id
       }
       const match = stored.get(message.id)
+      message.text = match && match.role === 'assistant' ? match.text : message.text
       message.rating = match?.rating
       // Only the last reply can be written again.
       message.canRegenerate = match?.canRegenerate === true
@@ -331,6 +333,21 @@ export function useGame(): {
   }
 
   /**
+   * Rewrites a reply of the narrator; the narrator reads the edited text from then on. Resolves to
+   * whether it was saved. The game keeps whatever that turn did.
+   */
+  async function editMessage(messageId: string, text: string): Promise<boolean> {
+    const worldId = session.value?.worldId
+    if (!worldId || isSending.value || messageId.startsWith('local-')) return false
+
+    if (!(await execute('gameMaster:editMessage', { worldId, messageId, text }))) return false
+
+    await reloadMessages(worldId)
+    toast.success('Resposta atualizada')
+    return true
+  }
+
+  /**
    * Removes a reply of the narrator from the conversation. The game keeps whatever that turn did,
    * and a reply may be stored as several messages, so the chat is read again.
    */
@@ -425,6 +442,7 @@ export function useGame(): {
     sendMessage,
     regenerateLast,
     rateMessage,
+    editMessage,
     deleteMessage,
     playPendingOpening,
     openCharacterSheet,

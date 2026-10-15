@@ -1,5 +1,5 @@
 import type { Agent, AgentExecutionOptions } from '@mastra/core/agent'
-import type { MastraDBMessage } from '@mastra/core/agent/message-list'
+import type { MastraDBMessage, MastraMessagePart } from '@mastra/core/agent/message-list'
 import type { Mastra } from '@mastra/core/mastra'
 import { RequestContext } from '@mastra/core/request-context'
 import { READ_ONLY_NARRATOR_TOOLS, type MessageRating } from '@constant'
@@ -111,6 +111,12 @@ export interface INarratorGateway {
    * Returns the ids removed, none if `messageId` is not a reply of this campaign.
    */
   deleteReply(worldId: string, messageId: string): Promise<string[]>
+  /**
+   * Replaces the text of a reply of the narrator in the stored conversation, so the narrator reads
+   * the edited version from now on. Resolves to whether it was done: `false` if `messageId` is not
+   * a reply of this campaign.
+   */
+  editReply(worldId: string, messageId: string, text: string): Promise<boolean>
   /**
    * Attaches the player's rating of a reply to the trace that wrote it, for evaluation. Resolves to
    * whether it was recorded: a reply from a run with no trace has nowhere to attach it.
@@ -249,6 +255,35 @@ export class NarratorGateway implements INarratorGateway {
     await memory.deleteMessages(removedIds)
 
     return removedIds
+  }
+
+  async editReply(worldId: string, messageId: string, text: string): Promise<boolean> {
+    const memory = await this.campaignMemory()
+    const reply = (await this.recallCampaign(worldId)).find((message) => message.id === messageId)
+    if (!memory || reply?.role !== 'assistant') return false
+
+    // The text becomes a single part where the first one was; reasoning and tool calls stay.
+    const parts: MastraMessagePart[] = []
+    let placed = false
+    for (const part of reply.content.parts) {
+      if (part.type !== 'text') parts.push(part)
+      else if (!placed) {
+        placed = true
+        parts.push({ ...part, text })
+      }
+    }
+    if (!placed) return false
+
+    // The storage merges `content` field by field, so `parts` (what the history is read from) is
+    // replaced and the rest, `metadata` and its trace id included, stays.
+    const content = { ...reply.content, parts, content: text }
+    await (
+      await memory.storage.getStore('memory')
+    )?.updateMessages({
+      messages: [{ id: messageId, content }]
+    })
+
+    return true
   }
 
   async recordFeedback(

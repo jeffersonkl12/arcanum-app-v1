@@ -64,6 +64,7 @@ export function toGameChatMessage(
     timeLabel: formatMessageTime(message.createdAt),
     imagePath: isPlayer ? playerImagePath : undefined,
     segments: isPlayer ? proseToChatSegments(message.text) : toChatSegments(message.segments),
+    text: isPlayer ? undefined : message.text,
     rating: isPlayer ? undefined : message.rating,
     canRegenerate: !isPlayer && message.canRegenerate
   }

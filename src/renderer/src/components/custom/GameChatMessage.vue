@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { RefreshCw, ThumbsDown, ThumbsUp, Trash2 } from '@lucide/vue'
+import { Pencil, RefreshCw, ThumbsDown, ThumbsUp, Trash2 } from '@lucide/vue'
 import { toImageUrl } from '@shared'
+import { ref } from 'vue'
 import type { GameChatMessage } from '@renderer/composable/game.type'
 import NarratorMarkdown from '@renderer/components/custom/NarratorMarkdown.vue'
 import NarratorUi from '@renderer/components/custom/NarratorUi.vue'
@@ -14,6 +15,7 @@ import {
   MessageHeader
 } from '@renderer/components/ui/message'
 import { Spinner } from '@renderer/components/ui/spinner'
+import { Textarea } from '@renderer/components/ui/textarea'
 import { cn } from '@renderer/lib/utils'
 
 const props = defineProps<{
@@ -22,6 +24,8 @@ const props = defineProps<{
   interactive?: boolean
   /** A turn is being played, so the reply cannot be rated or written again now. */
   busy?: boolean
+  /** Saves the edited text and resolves to whether it worked; the editor stays open if not. */
+  saveEdit?: (text: string) => Promise<boolean>
 }>()
 
 const emit = defineEmits<{
@@ -30,6 +34,27 @@ const emit = defineEmits<{
   regenerate: []
   delete: []
 }>()
+
+const editing = ref(false)
+const editText = ref('')
+const saving = ref(false)
+
+function startEdit(): void {
+  editText.value = props.message.text ?? ''
+  editing.value = true
+}
+
+async function confirmEdit(): Promise<void> {
+  const text = editText.value.trim()
+  if (!props.saveEdit || text.length === 0 || saving.value) return
+
+  saving.value = true
+  try {
+    if (text === props.message.text?.trim() || (await props.saveEdit(text))) editing.value = false
+  } finally {
+    saving.value = false
+  }
+}
 
 function initials(value: string): string {
   return value
@@ -81,21 +106,44 @@ function initials(value: string): string {
         <BubbleContent
           class="flex w-full flex-col gap-3 rounded-2xl border-border px-7 py-6 font-body text-xl leading-relaxed text-foreground"
         >
-          <template
-            v-for="(segment, index) in props.message.segments"
-            :key="`${props.message.key}-${index}`"
-          >
-            <NarratorUi
-              v-if="segment.kind === 'ui'"
-              :source="segment.source"
-              :streaming="props.message.isStreaming"
-              :interactive="props.interactive"
-              @choose="emit('choose', $event)"
+          <div v-if="editing" class="flex flex-col gap-3">
+            <Textarea
+              v-model="editText"
+              class="min-h-48 font-body text-base"
+              aria-label="Editar resposta do Mestre"
+              :disabled="saving"
             />
-            <NarratorMarkdown v-else-if="segment.kind === 'markdown'" :source="segment.text" />
-            <p v-else :class="cn(segment.kind === 'dialogue' && 'font-bold italic')">
-              {{ segment.text }}
-            </p>
+            <div class="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" :disabled="saving" @click="editing = false">
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                :disabled="saving || editText.trim().length === 0"
+                @click="void confirmEdit()"
+              >
+                <Spinner v-if="saving" class="size-4" />
+                Salvar
+              </Button>
+            </div>
+          </div>
+          <template v-else>
+            <template
+              v-for="(segment, index) in props.message.segments"
+              :key="`${props.message.key}-${index}`"
+            >
+              <NarratorUi
+                v-if="segment.kind === 'ui'"
+                :source="segment.source"
+                :streaming="props.message.isStreaming"
+                :interactive="props.interactive"
+                @choose="emit('choose', $event)"
+              />
+              <NarratorMarkdown v-else-if="segment.kind === 'markdown'" :source="segment.text" />
+              <p v-else :class="cn(segment.kind === 'dialogue' && 'font-bold italic')">
+                {{ segment.text }}
+              </p>
+            </template>
           </template>
           <p
             v-if="props.message.isStreaming && props.message.segments.length === 0"
@@ -140,6 +188,17 @@ function initials(value: string): string {
         >
           <RefreshCw />
           Gerar novamente
+        </Button>
+        <Button
+          v-if="props.message.text"
+          variant="ghost"
+          size="icon-sm"
+          class="text-muted-foreground"
+          aria-label="Editar resposta"
+          :disabled="props.busy || editing"
+          @click="startEdit"
+        >
+          <Pencil />
         </Button>
         <Button
           variant="ghost"
