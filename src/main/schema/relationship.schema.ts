@@ -1,4 +1,4 @@
-import { RELATIONSHIP_LIMITS } from '@constant'
+import { RELATIONSHIP_LIMITS, type RelationshipLevel } from '@constant'
 import { relationshipTable } from '@database/entity/relationship.entity'
 import { z } from 'zod'
 
@@ -29,3 +29,20 @@ export const shiftRelationshipSchema = z.object({
 export type Relationship = typeof relationshipTable.$inferSelect
 export type SetRelationship = z.infer<typeof setRelationshipSchema>
 export type ShiftRelationship = z.infer<typeof shiftRelationshipSchema>
+
+/** What one actor feels about another: the stored value and the band it falls into. */
+export interface Feeling {
+  value: number
+  level: RelationshipLevel
+}
+
+/** The bond between an actor and one other, in both directions. */
+export interface ActorRelationship {
+  actorId: string
+  name: string
+  imagePath: string | null
+  /** What the actor feels about the other. */
+  feels: Feeling
+  /** What the other feels about the actor. */
+  feltBy: Feeling
+}

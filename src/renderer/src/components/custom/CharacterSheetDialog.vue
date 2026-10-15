@@ -4,6 +4,8 @@ import { DialogContent, DialogPortal } from 'reka-ui'
 import { computed, ref, watch } from 'vue'
 import { toImageUrl } from '@shared'
 import ActorInventoryList from '@renderer/components/custom/ActorInventoryList.vue'
+import ActorMemoryList from '@renderer/components/custom/ActorMemoryList.vue'
+import ActorRelationshipList from '@renderer/components/custom/ActorRelationshipList.vue'
 import AttributeStats from '@renderer/components/custom/AttributeStats.vue'
 import HealthBar from '@renderer/components/custom/HealthBar.vue'
 import type { CharacterSheet } from '@renderer/composable/game.type'
@@ -140,6 +142,8 @@ const narrativeFields = computed(() => {
             >
               <TabsTrigger value="sheet" :class="tabTriggerClass">Ficha</TabsTrigger>
               <TabsTrigger value="inventory" :class="tabTriggerClass">Inventário</TabsTrigger>
+              <TabsTrigger value="relationships" :class="tabTriggerClass">Relações</TabsTrigger>
+              <TabsTrigger value="memories" :class="tabTriggerClass">Memórias</TabsTrigger>
             </TabsList>
 
             <TabsContent value="sheet" class="flex flex-col gap-3.5 outline-none">
@@ -169,6 +173,14 @@ const narrativeFields = computed(() => {
 
             <TabsContent value="inventory" class="outline-none">
               <ActorInventoryList :key="sheet.id" :actor-id="sheet.id" :coins="sheet.coins" />
+            </TabsContent>
+
+            <TabsContent value="relationships" class="outline-none">
+              <ActorRelationshipList :key="sheet.id" :actor-id="sheet.id" />
+            </TabsContent>
+
+            <TabsContent value="memories" class="outline-none">
+              <ActorMemoryList :key="sheet.id" :actor-id="sheet.id" />
             </TabsContent>
           </Tabs>
 

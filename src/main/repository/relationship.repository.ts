@@ -3,11 +3,13 @@ import type { Database } from '@database/client.database'
 import { relationshipTable } from '@database/entity/relationship.entity'
 import { translateDatabaseError } from '@database/error.database'
 import type { Relationship } from '@schema/relationship.schema'
-import { and, inArray, sql, type SQL } from 'drizzle-orm'
+import { and, inArray, or, eq, sql, type SQL } from 'drizzle-orm'
 
 export interface IRelationshipRepository {
   /** The stored values among `actorIds` (both ends inside the list); pairs with no row are absent. */
   listAmong(actorIds: string[]): Promise<Relationship[]>
+  /** The stored values with `actorId` at either end. */
+  listOfActor(actorId: string): Promise<Relationship[]>
   /** Stores the value, replacing the previous one. Both actors must belong to `worldId`. */
   upsert(
     worldId: string,
@@ -42,6 +44,15 @@ export class RelationshipRepository implements IRelationshipRepository {
           inArray(relationshipTable.fromActorId, actorIds),
           inArray(relationshipTable.toActorId, actorIds)
         )
+      )
+  }
+
+  listOfActor(actorId: string): Promise<Relationship[]> {
+    return this.database
+      .select()
+      .from(relationshipTable)
+      .where(
+        or(eq(relationshipTable.fromActorId, actorId), eq(relationshipTable.toActorId, actorId))
       )
   }
 

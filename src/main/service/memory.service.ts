@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { MEMORY_IMPORTANCE, MEMORY_SEARCH, type EmbeddingProvider } from '@constant'
+import { MEMORY_IMPORTANCE, MEMORY_LIMITS, MEMORY_SEARCH, type EmbeddingProvider } from '@constant'
 import { ConflictError } from '@error'
 import type { IEmbedder } from '@lib/embedder.lib'
 import type { IMemoryVectorStore } from '@lib/memory-vector.lib'
@@ -36,6 +36,8 @@ export interface IMemoryService {
   listRecent(worldId: string, limit: number): Promise<MemoryWithActors[]>
   /** The newest defining memories (maximum importance), oldest first. */
   listPinned(worldId: string, limit: number): Promise<MemoryWithActors[]>
+  /** Every memory the actor shares (up to a cap), newest first. Works without embeddings. */
+  listByActor(actorId: string): Promise<MemoryWithActors[]>
   /** Forgets every memory of the world. */
   deleteByWorld(worldId: string): Promise<void>
 }
@@ -108,6 +110,18 @@ export class MemoryService implements IMemoryService {
     )
 
     return this.resolveActors(worldId, newest.reverse())
+  }
+
+  async listByActor(actorId: string): Promise<MemoryWithActors[]> {
+    const { worldId } = await this.actorService.get(actorId)
+    const memories = await this.store.listByActor(
+      await this.embedder.provider(),
+      worldId,
+      actorId,
+      MEMORY_LIMITS.sheetMax
+    )
+
+    return this.resolveActors(worldId, memories)
   }
 
   deleteByWorld(worldId: string): Promise<void> {

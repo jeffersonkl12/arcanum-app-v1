@@ -36,6 +36,13 @@ export interface IMemoryVectorStore {
     minImportance: number,
     limit: number
   ): Promise<Memory[]>
+  /** The newest memories the actor shares, newest first. */
+  listByActor(
+    provider: EmbeddingProvider,
+    worldId: string,
+    actorId: string,
+    limit: number
+  ): Promise<Memory[]>
   /** Forgets every memory of the world, whichever provider embedded it. */
   deleteByWorld(worldId: string): Promise<void>
 }
@@ -131,6 +138,19 @@ export class LanceMemoryVectorStore implements IMemoryVectorStore {
     return this.listNewest(
       provider,
       filter(worldId, `importance >= ${Number(minImportance)}`),
+      limit
+    )
+  }
+
+  async listByActor(
+    provider: EmbeddingProvider,
+    worldId: string,
+    actorId: string,
+    limit: number
+  ): Promise<Memory[]> {
+    return this.listNewest(
+      provider,
+      filter(worldId, `array_contains(actor_ids, '${id(actorId)}')`),
       limit
     )
   }

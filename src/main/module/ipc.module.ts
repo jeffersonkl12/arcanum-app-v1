@@ -9,8 +9,10 @@ import {
   createInventoryRoutes,
   createItemRoutes,
   createLanguageRoutes,
+  createMemoryRoutes,
   createPartyRoutes,
   createPointOfInterestRoutes,
+  createRelationshipRoutes,
   createWorldRoutes,
   isTrustedSender,
   registerIpcRoutes
@@ -32,8 +34,10 @@ import {
   gameMasterService,
   inventoryService,
   languageService,
+  memoryService,
   partyService,
   pointOfInterestService,
+  relationshipService,
   worldCloneService,
   worldService
 } from '@module/game.module'
@@ -53,6 +57,8 @@ export function registerIpc(): void {
       ...createInventoryRoutes(inventoryService),
       ...createItemRoutes(inventoryService, itemImageService),
       ...createPartyRoutes(partyService),
+      ...createRelationshipRoutes(relationshipService),
+      ...createMemoryRoutes(memoryService),
       ...createPointOfInterestRoutes(pointOfInterestService, pointOfInterestImageService),
       ...createCampaignRoutes(campaignService),
       ...createAiSettingRoutes(aiSettingService, aiConnectionService, masterImageService),

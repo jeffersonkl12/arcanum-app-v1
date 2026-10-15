@@ -1,6 +1,8 @@
 import type { CampaignMessage } from '@lib/narrator.lib'
 import type {
   Actor,
+  ActorRelationship,
+  MemoryWithActors,
   Campaign,
   CloneWorld,
   CreateCampaign,
@@ -100,6 +102,11 @@ export const ipcContract = {
   /** Sets or replaces the actor's image with the bytes of the file; returns the new `imagePath`. */
   'actor:setImage': channel<SetImage, string>(),
   'actor:removeImage': channel<string, void>(),
+
+  /** Everyone with a stored feeling toward or from the actor, in both directions. */
+  'relationship:listByActor': channel<string, ActorRelationship[]>(),
+  /** Every memory the actor shares, newest first. */
+  'memory:listByActor': channel<string, MemoryWithActors[]>(),
 
   /** The inventory of an actor: its items, free slots, armor bonus and what is equipped where. */
   'inventory:get': channel<string, Inventory>(),

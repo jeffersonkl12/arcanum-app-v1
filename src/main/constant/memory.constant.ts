@@ -41,7 +41,9 @@ export const MEMORY_LIMITS = {
   /** Memories the automatic search puts in the prompt for a player message. */
   recalled: 5,
   /** Most memories one `recall` call returns. */
-  recallMax: 10
+  recallMax: 10,
+  /** Most memories listed on a character's sheet. */
+  sheetMax: 500
 } as const
 
 /**
