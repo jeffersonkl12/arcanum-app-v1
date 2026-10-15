@@ -5,6 +5,7 @@ import {
   itemTable,
   kinshipTable,
   languageTable,
+  documentTable,
   partyTable,
   pointOfInterestTable,
   relationshipTable,
@@ -26,6 +27,7 @@ export const relations = defineRelations(
     item: itemTable,
     kinship: kinshipTable,
     language: languageTable,
+    document: documentTable,
     party: partyTable,
     pointOfInterest: pointOfInterestTable,
     relationship: relationshipTable
@@ -38,6 +40,7 @@ export const relations = defineRelations(
       items: r.many.item({ from: r.world.id, to: r.item.worldId }),
       kinships: r.many.kinship({ from: r.world.id, to: r.kinship.worldId }),
       languages: r.many.language({ from: r.world.id, to: r.language.worldId }),
+      documents: r.many.document({ from: r.world.id, to: r.document.worldId }),
       party: r.one.party({ from: r.world.id, to: r.party.worldId }),
       pointsOfInterest: r.many.pointOfInterest({
         from: r.world.id,
@@ -69,6 +72,9 @@ export const relations = defineRelations(
       world: r.one.world({ from: r.language.worldId, to: r.world.id, optional: false }),
       culture: r.one.culture({ from: r.language.cultureId, to: r.culture.id, optional: false }),
       actors: r.many.actor({ from: r.language.id, to: r.actor.languageId })
+    },
+    document: {
+      world: r.one.world({ from: r.document.worldId, to: r.world.id, optional: false })
     },
     campaign: {
       world: r.one.world({ from: r.campaign.worldId, to: r.world.id, optional: false })

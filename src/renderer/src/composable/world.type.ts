@@ -86,4 +86,12 @@ export interface PlaceSummary {
   childCount: number
 }
 
-export type WorldEntityTab = 'npcs' | 'languages' | 'cultures' | 'items' | 'places'
+/** A piece of the world's documentation: one aspect (`category`) of a subject, in markdown. */
+export interface DocumentSummary {
+  id: string
+  subject: string
+  category: string
+  content: string
+}
+
+export type WorldEntityTab = 'npcs' | 'languages' | 'cultures' | 'items' | 'places' | 'documents'

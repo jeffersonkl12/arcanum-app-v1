@@ -5,10 +5,12 @@ import { toast } from 'vue-sonner'
 import {
   ActorRow,
   ConfirmDialog,
+  CreateDocumentDialog,
   CreateItemDialog,
   CreateNamedEntityDialog,
   CreateNpcDialog,
   CreatePlaceDialog,
+  DocumentCard,
   EntityRow,
   ItemDetailDialog,
   ItemRow,
@@ -20,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/u
 import { useWorld } from '@renderer/composable/world.composable'
 import type {
   ActorSummary,
+  DocumentSummary,
   ItemSummary,
   LanguageSummary,
   NamedEntitySummary,
@@ -37,6 +40,8 @@ const {
   visibleItems,
   places,
   visiblePlaces,
+  visibleDocuments,
+  deleteDocument,
   deletePlace,
   deleteActor,
   deleteLanguage,
@@ -48,7 +53,7 @@ function cultureNameOf(cultureId: string): string {
   return cultures.value.find((culture) => culture.id === cultureId)?.name ?? ''
 }
 
-type DeletableKind = 'actor' | 'language' | 'culture' | 'item' | 'place'
+type DeletableKind = 'actor' | 'language' | 'culture' | 'item' | 'place' | 'document'
 
 interface PendingDelete {
   kind: DeletableKind
@@ -61,7 +66,8 @@ const deleteCopy: Record<DeletableKind, { title: string; success: string }> = {
   language: { title: 'Apagar idioma', success: 'Idioma removido' },
   culture: { title: 'Apagar cultura', success: 'Cultura removida' },
   item: { title: 'Apagar item', success: 'Item removido' },
-  place: { title: 'Apagar lugar', success: 'Lugar removido' }
+  place: { title: 'Apagar lugar', success: 'Lugar removido' },
+  document: { title: 'Apagar documento', success: 'Documento removido' }
 }
 
 const npcOpen = ref(false)
@@ -70,6 +76,8 @@ const languageOpen = ref(false)
 const editingLanguage = ref<LanguageSummary | null>(null)
 const cultureOpen = ref(false)
 const editingCulture = ref<NamedEntitySummary | null>(null)
+const documentOpen = ref(false)
+const editingDocument = ref<DocumentSummary | null>(null)
 const itemOpen = ref(false)
 const editingItem = ref<ItemSummary | null>(null)
 const itemDetailOpen = ref(false)
@@ -126,6 +134,7 @@ const searchPlaceholder = computed(() => {
   if (entityTab.value === 'cultures') return 'Buscar culturas...'
   if (entityTab.value === 'items') return 'Buscar itens...'
   if (entityTab.value === 'places') return 'Buscar lugares...'
+  if (entityTab.value === 'documents') return 'Buscar documentos...'
   return 'Buscar NPCs...'
 })
 
@@ -146,6 +155,11 @@ function openEditLanguage(language: LanguageSummary): void {
 function openEditCulture(culture: NamedEntitySummary): void {
   editingCulture.value = culture
   cultureOpen.value = true
+}
+
+function openEditDocument(entry: DocumentSummary): void {
+  editingDocument.value = entry
+  documentOpen.value = true
 }
 
 function openEditItem(item: ItemSummary): void {
@@ -219,7 +233,8 @@ async function confirmDelete(): Promise<void> {
       language: deleteLanguage,
       culture: deleteCulture,
       item: deleteItem,
-      place: deletePlace
+      place: deletePlace,
+      document: deleteDocument
     }
     // On failure (a language still in use, say) the engine's message was already shown.
     if (!(await deleters[target.kind](target.id))) return
@@ -252,6 +267,7 @@ const tabTriggerClass = cn(
         <TabsTrigger value="cultures" :class="tabTriggerClass">Cultura</TabsTrigger>
         <TabsTrigger value="items" :class="tabTriggerClass">Itens</TabsTrigger>
         <TabsTrigger value="places" :class="tabTriggerClass">Lugares</TabsTrigger>
+        <TabsTrigger value="documents" :class="tabTriggerClass">Documentos</TabsTrigger>
       </TabsList>
 
       <div class="flex w-full items-center justify-between gap-4">
@@ -288,6 +304,11 @@ const tabTriggerClass = cn(
           v-model:entity="editingPlace"
           v-model:parent-id="newPlaceParentId"
           @add-child="openCreateChildPlace"
+        />
+        <CreateDocumentDialog
+          v-else-if="entityTab === 'documents'"
+          v-model:open="documentOpen"
+          v-model:entity="editingDocument"
         />
         <CreateNamedEntityDialog
           v-else
@@ -370,6 +391,22 @@ const tabTriggerClass = cn(
         <p v-if="shownPlaces.length === 0" class="text-sm text-tertiary">
           Nenhum lugar encontrado.
         </p>
+      </TabsContent>
+
+      <TabsContent value="documents" class="mt-0 outline-none">
+        <div
+          v-if="visibleDocuments.length > 0"
+          class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+        >
+          <DocumentCard
+            v-for="entry in visibleDocuments"
+            :key="entry.id"
+            :document="entry"
+            @edit="openEditDocument(entry)"
+            @remove="requestDelete('document', { id: entry.id, name: entry.subject })"
+          />
+        </div>
+        <p v-else class="text-sm text-tertiary">Nenhum documento encontrado.</p>
       </TabsContent>
     </Tabs>
 

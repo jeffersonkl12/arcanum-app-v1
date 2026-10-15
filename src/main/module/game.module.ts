@@ -14,6 +14,7 @@ import { CultureRepository } from '@repository/culture.repository'
 import { ItemRepository } from '@repository/item.repository'
 import { MessageRatingRepository } from '@repository/message-rating.repository'
 import { LanguageRepository } from '@repository/language.repository'
+import { DocumentRepository } from '@repository/document.repository'
 import { CampaignRepository } from '@repository/campaign.repository'
 import { PartyRepository } from '@repository/party.repository'
 import { PointOfInterestRepository } from '@repository/point-of-interest.repository'
@@ -36,6 +37,7 @@ import { TradeService } from '@service/trade.service'
 import { ItemRegistryService } from '@service/item-registry.service'
 import { LanguageService, type ILanguageService } from '@service/language.service'
 import { LiveContextService } from '@service/live-context.service'
+import { DocumentService, type IDocumentService } from '@service/document.service'
 import { MemoryContextService } from '@service/memory-context.service'
 import { MemoryRegistryService } from '@service/memory-registry.service'
 import { MemoryService, type IMemoryService } from '@service/memory.service'
@@ -67,6 +69,9 @@ export const worldCloneService: IWorldCloneService = new WorldCloneService(
 export const cultureService: ICultureService = new CultureService(new CultureRepository(database))
 export const languageService: ILanguageService = new LanguageService(
   new LanguageRepository(database)
+)
+export const documentService: IDocumentService = new DocumentService(
+  new DocumentRepository(database)
 )
 export const actorService: IActorService = new ActorService(actorRepository, itemRepository)
 export const diceCheckService: IDiceCheckService = new DiceCheckService(diceRoller, actorService)

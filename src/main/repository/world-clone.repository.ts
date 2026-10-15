@@ -5,6 +5,7 @@ import { actorTable } from '@database/entity/actor.entity'
 import { cultureTable } from '@database/entity/culture.entity'
 import { itemTable } from '@database/entity/item.entity'
 import { languageTable } from '@database/entity/language.entity'
+import { documentTable } from '@database/entity/document.entity'
 import { partyTable } from '@database/entity/party.entity'
 import { pointOfInterestTable } from '@database/entity/point-of-interest.entity'
 import { kinshipTable } from '@database/entity/kinship.entity'
@@ -28,7 +29,7 @@ export interface WorldClone {
 export interface IWorldCloneRepository {
   /**
    * Copies a world and everything that belongs to it, (cultures, languages, party, actors, the relationships and the family bonds
-   * between them, places, with their links) into a new, non-template world, all or nothing. Returns `undefined` when the
+   * between them, places, documents, with their links) into a new, non-template world, all or nothing. Returns `undefined` when the
    * source world does not exist. The campaign is never copied: it only exists in a non-template world, and the copy starts without one. The database cannot copy files, so the images come back as
    * `imageCopies` for the caller to copy once the transaction has committed.
    */
@@ -142,6 +143,10 @@ export class WorldCloneRepository implements IWorldCloneRepository {
             }))
           )
         }
+
+        // Documents have no links to the other entities, so it only needs new ids in the new world.
+        const documents = copyInto(world.id, await tx.query.document.findMany({ where }))
+        if (documents.rows.length > 0) await tx.insert(documentTable).values(documents.rows)
 
         return { world, imageCopies }
       })

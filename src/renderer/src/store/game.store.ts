@@ -38,7 +38,7 @@ export const useGameStore = defineStore('game', () => {
       .filter((actor) => actor.isNpc && !actor.partyId && actor.pointOfInterestId === placeId)
       .map(toPartyMemberCard)
   })
-  const sidebarTab = ref<'party' | 'places' | 'npcs' | 'journal'>('party')
+  const sidebarTab = ref<'party' | 'places' | 'npcs' | 'documents' | 'journal'>('party')
 
   const sheetOpen = ref(false)
   const selectedSheet = ref<CharacterSheet>()

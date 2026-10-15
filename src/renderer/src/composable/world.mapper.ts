@@ -1,4 +1,4 @@
-import type { Actor, Culture, Item, Language, PointOfInterest, World } from '@schema'
+import type { Actor, Culture, Item, Language, PointOfInterest, World, WorldDocument } from '@schema'
 import {
   clothingClassOptions,
   itemTypeOptions,
@@ -8,6 +8,7 @@ import {
 import { worldGenreLabel } from '@renderer/constant/world-genre.constant'
 import type {
   ActorSummary,
+  DocumentSummary,
   ItemSummary,
   LanguageSummary,
   NamedEntitySummary,
@@ -95,6 +96,15 @@ export function toNamedEntitySummary(entity: Culture | Language): NamedEntitySum
   return {
     id: entity.id,
     name: entity.name
+  }
+}
+
+export function toDocumentSummary(entry: WorldDocument): DocumentSummary {
+  return {
+    id: entry.id,
+    subject: entry.subject,
+    category: entry.category,
+    content: entry.content
   }
 }
 

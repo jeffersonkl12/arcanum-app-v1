@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import GameDocumentsTab from '@renderer/view/game/GameDocumentsTab.vue'
 import GameNpcsTab from '@renderer/view/game/GameNpcsTab.vue'
 import GamePlacesTab from '@renderer/view/game/GamePlacesTab.vue'
 import PartyMemberCard from '@renderer/components/custom/PartyMemberCard.vue'
@@ -14,7 +15,7 @@ const { session, currentPlace, placeNpcs, player, npcs, sidebarTab, openCharacte
     <Tabs v-model="sidebarTab" class="flex min-h-0 flex-1 flex-col gap-0">
       <TabsList
         variant="line"
-        class="h-auto w-full justify-start gap-4 rounded-none border-b border-border bg-transparent px-4 pt-5"
+        class="h-auto w-full justify-start gap-3 overflow-x-auto rounded-none border-b border-border bg-transparent px-4 pt-5"
       >
         <TabsTrigger
           value="party"
@@ -33,6 +34,12 @@ const { session, currentPlace, placeNpcs, player, npcs, sidebarTab, openCharacte
           class="rounded-none px-0 pb-3 text-sm font-medium data-active:text-primary after:bg-primary"
         >
           NPCs
+        </TabsTrigger>
+        <TabsTrigger
+          value="documents"
+          class="rounded-none px-0 pb-3 text-sm font-medium data-active:text-primary after:bg-primary"
+        >
+          Documentos
         </TabsTrigger>
         <TabsTrigger
           value="journal"
@@ -102,6 +109,10 @@ const { session, currentPlace, placeNpcs, player, npcs, sidebarTab, openCharacte
 
       <TabsContent value="npcs" class="mt-0 min-h-0 flex-1 overflow-hidden">
         <GameNpcsTab />
+      </TabsContent>
+
+      <TabsContent value="documents" class="mt-0 min-h-0 flex-1 overflow-hidden">
+        <GameDocumentsTab />
       </TabsContent>
 
       <TabsContent value="journal" class="mt-0 min-h-0 flex-1 overflow-hidden p-6">

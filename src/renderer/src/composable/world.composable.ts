@@ -16,6 +16,7 @@ import {
 import { useRequest } from './request.composable'
 import {
   toActorSummary,
+  toDocumentSummary,
   toItemSummary,
   toLanguageSummary,
   toNamedEntitySummary,
@@ -25,6 +26,7 @@ import {
 } from './world.mapper'
 import type {
   ActorSummary,
+  DocumentSummary,
   ItemSummary,
   LanguageSummary,
   NamedEntitySummary,
@@ -76,6 +78,13 @@ type PlaceInput = {
   imageData?: Uint8Array
 }
 
+/** What the document form sends. */
+type DocumentInput = {
+  subject: string
+  category: string
+  content: string
+}
+
 // The engine caps the filter at 120 characters (TEXT_LIMITS.name).
 const MAX_SEARCH_LENGTH = 120
 
@@ -120,6 +129,14 @@ export function useWorld(): {
   updatePlace: (placeId: string, input: PlaceInput) => Promise<PlaceSummary | undefined>
   /** `conflict` while the place still has places or actors inside; the engine's message is toasted. */
   deletePlace: (placeId: string) => Promise<boolean>
+  documents: Ref<DocumentSummary[]>
+  /** The documents whose subject, category or text match the search. */
+  visibleDocuments: ComputedRef<DocumentSummary[]>
+  isSavingDocument: Ref<boolean>
+  saveDocumentError: Ref<IpcError | undefined>
+  createDocument: (input: DocumentInput) => Promise<DocumentSummary | undefined>
+  updateDocument: (documentId: string, input: DocumentInput) => Promise<DocumentSummary | undefined>
+  deleteDocument: (documentId: string) => Promise<boolean>
   isSavingItem: Ref<boolean>
   saveItemError: Ref<IpcError | undefined>
   createItem: (input: ItemInput) => Promise<ItemSummary | undefined>
@@ -158,6 +175,7 @@ export function useWorld(): {
     cultures,
     items,
     places,
+    documents,
     entityTab,
     entitySearch,
     isNotFound
@@ -192,6 +210,13 @@ export function useWorld(): {
   } = useRequest()
 
   const {
+    isLoading: isSavingDocument,
+    error: saveDocumentError,
+    request: documentRequest,
+    execute: documentExecute
+  } = useRequest()
+
+  const {
     isLoading: isSavingPlace,
     error: savePlaceError,
     request: placeRequest,
@@ -214,6 +239,15 @@ export function useWorld(): {
   const visibleLanguages = computed(() => filterByName(languages.value, entitySearch.value))
   const visibleCultures = computed(() => filterByName(cultures.value, entitySearch.value))
   const visibleItems = computed(() => filterByName(items.value, entitySearch.value))
+  const visibleDocuments = computed(() => {
+    const term = entitySearch.value.trim().toLocaleLowerCase()
+    if (term.length === 0) return documents.value
+    return documents.value.filter((entry) =>
+      [entry.subject, entry.category, entry.content].some((field) =>
+        field.toLocaleLowerCase().includes(term)
+      )
+    )
+  })
   const visiblePlaces = computed(() => {
     const term = entitySearch.value.trim().toLocaleLowerCase()
     if (term.length === 0) return places.value
@@ -276,6 +310,7 @@ export function useWorld(): {
     cultures.value = []
     items.value = []
     places.value = []
+    documents.value = []
   }
 
   async function loadWorld(worldId: string): Promise<void> {
@@ -291,13 +326,16 @@ export function useWorld(): {
     }
 
     currentWorld.value = toWorldDetail(world)
-    const [actorList, languageList, cultureList, itemList, placeList] = await Promise.all([
-      detailRequest('actor:listByWorld', worldId),
-      detailRequest('language:listByWorld', worldId),
-      detailRequest('culture:listByWorld', worldId),
-      detailRequest('item:listByWorld', worldId),
-      detailRequest('pointOfInterest:listByWorld', worldId)
-    ])
+    const [actorList, languageList, cultureList, itemList, placeList, documentList] =
+      await Promise.all([
+        detailRequest('actor:listByWorld', worldId),
+        detailRequest('language:listByWorld', worldId),
+        detailRequest('culture:listByWorld', worldId),
+        detailRequest('item:listByWorld', worldId),
+        detailRequest('pointOfInterest:listByWorld', worldId),
+        detailRequest('document:listByWorld', worldId)
+      ])
+    documents.value = (documentList ?? []).map(toDocumentSummary)
     places.value = toPlaceSummaries(placeList ?? [])
     items.value = (itemList ?? []).map(toItemSummary)
     languages.value = (languageList ?? []).map(toLanguageSummary)
@@ -356,6 +394,36 @@ export function useWorld(): {
 
     if (!(await placeExecute('pointOfInterest:delete', placeId))) return false
     await reloadPlaces(worldId)
+    return true
+  }
+
+  async function createDocument(input: DocumentInput): Promise<DocumentSummary | undefined> {
+    const worldId = currentWorld.value?.id
+    if (!worldId) return undefined
+
+    const created = await documentRequest('document:create', { worldId, ...input })
+    if (!created) return undefined
+
+    const summary = toDocumentSummary(created)
+    documents.value = [summary, ...documents.value]
+    return summary
+  }
+
+  async function updateDocument(
+    documentId: string,
+    input: DocumentInput
+  ): Promise<DocumentSummary | undefined> {
+    const updated = await documentRequest('document:update', { id: documentId, patch: input })
+    if (!updated) return undefined
+
+    const summary = toDocumentSummary(updated)
+    documents.value = documents.value.map((item) => (item.id === documentId ? summary : item))
+    return summary
+  }
+
+  async function deleteDocument(documentId: string): Promise<boolean> {
+    if (!(await documentExecute('document:delete', documentId))) return false
+    documents.value = documents.value.filter((item) => item.id !== documentId)
     return true
   }
 
@@ -616,6 +684,13 @@ export function useWorld(): {
     createPlace,
     updatePlace,
     deletePlace,
+    documents,
+    visibleDocuments,
+    isSavingDocument,
+    saveDocumentError,
+    createDocument,
+    updateDocument,
+    deleteDocument,
     isSavingItem,
     saveItemError,
     createItem,

@@ -41,7 +41,7 @@ export function useGame(): {
   currentPlace: Ref<PointOfInterest | undefined>
   placeNpcs: Ref<PartyMemberCardModel[]>
   draft: Ref<string>
-  sidebarTab: Ref<'party' | 'places' | 'npcs' | 'journal'>
+  sidebarTab: Ref<'party' | 'places' | 'npcs' | 'documents' | 'journal'>
   sheetOpen: Ref<boolean>
   selectedSheet: Ref<CharacterSheet | undefined>
   editOpen: Ref<boolean>
