@@ -143,9 +143,12 @@ export const currentPlaceSchema = z.object({
   hasParent: z.boolean(),
   /**
    * Everything inside it, at any depth, as indented outline lines (`- Name (type)`, two spaces per
-   * level), cut at a limit with a last line saying how many were left out. Empty when it holds nothing.
+   * level, followed by the NPCs standing there when there are any), cut at a limit with a last line
+   * saying how many were left out. Empty when it holds nothing.
    */
-  inside: z.array(z.string())
+  inside: z.array(z.string()),
+  /** The NPCs standing in this very place, whether or not they are doing anything. The party is not one. */
+  npcs: z.array(z.object({ id: z.string(), name: z.string() }))
 })
 
 export type CurrentPlace = z.infer<typeof currentPlaceSchema>

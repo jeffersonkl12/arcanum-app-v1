@@ -20,6 +20,14 @@ Route, from the largest place down to here: {{#each currentPlace.path}}{{#unless
 
 {{currentPlace.description}}
 {{/if}}
+{{#if currentPlace.npcs.length}}
+
+NPCs here right now, whether or not they are taking part in the scene (they are in the room; keep them present and consistent, let them react, and never forget one):
+
+{{#each currentPlace.npcs}}
+- {{name}} (id: {{id}})
+{{/each}}
+{{/if}}
 {{#if currentPlace.inside.length}}
 
 Already registered inside it, at any depth:

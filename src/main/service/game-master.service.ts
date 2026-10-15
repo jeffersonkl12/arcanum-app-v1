@@ -304,11 +304,14 @@ export class GameMasterService implements IGameMasterService {
     )?.pointOfInterestId
     if (!placeId) return null
 
-    const [path, places] = await Promise.all([
+    const [path, places, actors] = await Promise.all([
       this.pointOfInterestService.getPath(placeId),
-      this.pointOfInterestService.listByWorld(worldId)
+      this.pointOfInterestService.listByWorld(worldId),
+      this.actorService.listByWorld(worldId)
     ])
     const place = path[path.length - 1]
+    // The party is already in the party section; what is listed here is everyone else.
+    const npcs = actors.filter((actor) => actor.isNpc && !actor.partyId && actor.pointOfInterestId)
 
     return {
       name: place.name,
@@ -316,7 +319,10 @@ export class GameMasterService implements IGameMasterService {
       description: place.description,
       path: path.map(({ name, type }) => ({ name, type })),
       hasParent: place.parentId !== null,
-      inside: outlineInside(place.id, places)
+      inside: outlineInside(place.id, places, npcs),
+      npcs: npcs
+        .filter((npc) => npc.pointOfInterestId === place.id)
+        .map(({ id, name }) => ({ id, name }))
     }
   }
 
@@ -431,10 +437,10 @@ export class GameMasterService implements IGameMasterService {
 const MAX_PLACES_INSIDE = 40
 
 /**
- * Everything inside `rootId` as outline lines, depth first. The `seen` set keeps a loop in the data
+ * Everything inside `rootId` as outline lines, depth first, with the NPCs standing in each place. The `seen` set keeps a loop in the data
  * from hanging it.
  */
-function outlineInside(rootId: string, places: PointOfInterest[]): string[] {
+function outlineInside(rootId: string, places: PointOfInterest[], npcs: Actor[]): string[] {
   const childrenOf = new Map<string, PointOfInterest[]>()
 
   for (const place of places) {
@@ -454,7 +460,11 @@ function outlineInside(rootId: string, places: PointOfInterest[]): string[] {
       if (lines.length >= MAX_PLACES_INSIDE) {
         omitted++
       } else {
-        lines.push(`${'  '.repeat(depth)}- ${child.name} (${child.type})`)
+        const present = npcs.filter((npc) => npc.pointOfInterestId === child.id)
+        const who =
+          present.length > 0 ? ` - NPCs: ${present.map((npc) => npc.name).join(', ')}` : ''
+
+        lines.push(`${'  '.repeat(depth)}- ${child.name} (${child.type})${who}`)
       }
       visit(child.id, depth + 1)
     }
