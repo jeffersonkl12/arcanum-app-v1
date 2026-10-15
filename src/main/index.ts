@@ -10,6 +10,8 @@ import {
   registerIpc,
   serveDiceAssets,
   serveImages,
+  startStudioServer,
+  stopStudioServer,
   sweepOrphanImages
 } from '@module'
 
@@ -68,6 +70,7 @@ app.whenReady().then(async () => {
   serveImages()
   serveDiceAssets()
   registerIpc()
+  startStudioServer()
 
   createWindow()
 
@@ -96,5 +99,5 @@ app.on('before-quit', (event) => {
   if (databaseClosed) return
   event.preventDefault()
   databaseClosed = true
-  closeDatabase().finally(() => app.quit())
+  Promise.allSettled([closeDatabase(), stopStudioServer()]).finally(() => app.quit())
 })

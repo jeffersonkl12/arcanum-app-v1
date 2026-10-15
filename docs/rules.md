@@ -36,7 +36,7 @@ Always use the `package.json` scripts (`dev`, `build`, `lint`, `format`, `typech
 | Preload  | `src/preload`      | The only bridge: exposes `window.api` with `contextBridge`          |
 | Renderer | `src/renderer/src` | Vue UI (alias `@renderer`)                                          |
 
-- The renderer talks to the main process only through IPC (`ipcMain.handle` / `ipcRenderer.invoke`, exposed by the preload as `window.api` and typed in `src/preload/index.d.ts`). There is no local HTTP server.
+- The renderer talks to the main process only through IPC (`ipcMain.handle` / `ipcRenderer.invoke`, exposed by the preload as `window.api` and typed in `src/preload/index.d.ts`). There is no local HTTP server for the app itself; the only port ever opened is the dev-only Mastra server for Studio (see [Mastra](#mastra)).
 - The renderer never imports from `src/main` at runtime and has no Node access. The only exception is `import type` (schemas, `@shared`), which is erased at build time.
 - Secrets (API keys) stay in main and are never sent to the renderer.
 - `.env` is excluded from the packaged app (`electron-builder.yml`), so a production build needs another source for keys.
@@ -124,7 +124,8 @@ Exempt: config and infra files (`*.config.ts`, `tsconfig*.json`, `electron-build
   - `layers/static/<name>.md`: content that never changes, emitted verbatim. Keep static layers first; an unchanging prefix lets the provider cache the prompt.
   - `layers/dynamic/<name>.md`: Handlebars template rendered on every run from the request context (game state read from the database by the main process). Dynamic layers follow the static ones, from the state that changes least to the one that changes most. Templates run in strict mode: a missing field throws.
   - The `.md` files are read from disk at runtime, not bundled: main sets `ARCANUM_AGENTS_DIR` (`resolveAgentsFolder` in `@lib`), and packaged builds ship them as an extra resource (`electron-builder.yml`).
-- Open item: `dev` and `build` run `electron-vite`, and there is no script for Mastra Studio yet. Add one before relying on Studio.
+- **Studio (development only):** `npm run dev` also starts a Mastra server inside the app (`StudioServer` in `@lib`, started by `@module/studio.module.ts` only when `is.dev`), on `127.0.0.1:4111` (`STUDIO` in `@constant`), with the same `mastra` instance and storage the narrator writes to. `npm run studio` starts the Studio UI on `localhost:3000`, pointed at it, to watch traces, logs and threads of the running app live. Studio has full access to agents and tools, so the server binds to loopback only, never exists in a packaged build, and answers only the Studio origin: Mastra's Hono adapter sets no CORS headers, so `hono/cors` is registered before it, with `credentials: true` because Studio calls the API with `credentials: "include"` and the browser refuses the answer otherwise ("Failed to load studio ... Failed to fetch"). Studio also probes the server by fetching its root and wants a successful answer, and the adapter has no route there, so `StudioServer` serves a `200` at `/`: without it Studio shows its "Mastra instance URL" form instead of connecting. A taken port is logged, never fatal. Do not point `mastra dev` or a second process at the app's data folder.
+- Studio shows what the app recorded; it cannot run the narrator. The agent needs the engine's registries and the game state in its request context, which only the main process builds on a turn, so the agent's instructions and model look empty in Studio's agent page and chatting with it there fails. The prompt of a real turn is in the trace of that turn.
 
 ## Framework and library documentation
 
