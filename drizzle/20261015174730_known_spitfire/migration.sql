@@ -1,0 +1,1 @@
+ALTER TABLE "document" DROP CONSTRAINT "document_content_length", ADD CONSTRAINT "document_content_length" CHECK (char_length("content") <= 800);

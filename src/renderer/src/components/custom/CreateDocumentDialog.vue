@@ -6,6 +6,7 @@ import { useForm } from 'vee-validate'
 import { computed, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { z } from 'zod'
+import { documentCategorySuggestions } from '@renderer/constant/document.constant'
 import { documentLimits } from '@renderer/constant/text-limit.constant'
 import { useWorld } from '@renderer/composable/world.composable'
 import type { DocumentSummary } from '@renderer/composable/world.type'
@@ -26,6 +27,15 @@ import {
   FormLabel,
   FormMessage
 } from '@renderer/components/ui/form'
+import {
+  Combobox,
+  ComboboxAnchor,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxViewport
+} from '@renderer/components/ui/combobox'
 import { Input } from '@renderer/components/ui/input'
 import { Textarea } from '@renderer/components/ui/textarea'
 import type { IpcError } from '@shared'
@@ -80,15 +90,26 @@ const isEditing = computed(() => entity.value != null)
 
 const { documents, createDocument, updateDocument, isSavingDocument, saveDocumentError } =
   useWorld()
-const { handleSubmit, resetForm, setErrors, values } = useForm({
+const { handleSubmit, resetForm, setErrors, setFieldValue, values } = useForm({
   validationSchema: documentFormSchema,
   initialValues: emptyForm
 })
 
-// Categories already used in the world, offered as suggestions so the same one is spelled alike.
-const categorySuggestions = computed(() => [
-  ...new Set(documents.value.map((item) => item.category))
-])
+// Default categories plus the ones already used in the world, offered as suggestions so the same
+// one is spelled alike. The field stays free text: whatever is typed is the value.
+const categoryOptions = computed(() => {
+  const used = documents.value.map((item) => item.category)
+  const unique = new Map<string, string>()
+  for (const name of [...documentCategorySuggestions, ...used]) {
+    const key = name.toLocaleLowerCase()
+    if (!unique.has(key)) unique.set(key, name)
+  }
+  return [...unique.values()]
+})
+const filteredCategories = computed(() => {
+  const term = (values.category ?? '').trim().toLocaleLowerCase()
+  return categoryOptions.value.filter((name) => name.toLocaleLowerCase().includes(term))
+})
 const contentLength = computed(() => (values.content ?? '').length)
 
 const onSubmit = handleSubmit(async (formValues) => {
@@ -112,6 +133,14 @@ watch(open, (isOpen) => {
   resetForm({ values: emptyForm })
   entity.value = null
 })
+
+function onCategorySelected(value: unknown): void {
+  if (typeof value === 'string') setFieldValue('category', value)
+}
+
+function onCategoryTyped(event: Event): void {
+  setFieldValue('category', (event.target as HTMLInputElement).value)
+}
 
 function startCreate(): void {
   entity.value = null
@@ -199,24 +228,33 @@ const textareaClass =
               <FormField v-slot="{ componentField }" name="category" keep-value>
                 <FormItem class="gap-1.5">
                   <FormLabel :class="fieldLabelClass">Categoria</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="text"
-                      list="document-categories"
-                      placeholder="Ex: economia"
-                      autocomplete="off"
-                      :disabled="isSavingDocument"
-                      :class="fieldControlClass"
-                      v-bind="componentField"
-                    />
-                  </FormControl>
-                  <datalist id="document-categories">
-                    <option
-                      v-for="category in categorySuggestions"
-                      :key="category"
-                      :value="category"
-                    />
-                  </datalist>
+                  <Combobox
+                    ignore-filter
+                    open-on-focus
+                    open-on-click
+                    :disabled="isSavingDocument"
+                    :model-value="componentField.modelValue"
+                    @update:model-value="onCategorySelected"
+                  >
+                    <ComboboxAnchor>
+                      <ComboboxInput
+                        group-class="h-auto rounded-lg border-border bg-background"
+                        class="h-auto bg-transparent px-1 py-2.5 text-sm placeholder:text-tertiary"
+                        placeholder="Ex: Economia"
+                        autocomplete="off"
+                        :display-value="(value) => String(value ?? '')"
+                        @input="onCategoryTyped"
+                      />
+                    </ComboboxAnchor>
+                    <ComboboxList class="bg-card">
+                      <ComboboxViewport>
+                        <ComboboxEmpty>Nenhuma sugestão: o texto digitado será usado</ComboboxEmpty>
+                        <ComboboxItem v-for="name in filteredCategories" :key="name" :value="name">
+                          <span class="truncate">{{ name }}</span>
+                        </ComboboxItem>
+                      </ComboboxViewport>
+                    </ComboboxList>
+                  </Combobox>
                   <FormMessage />
                 </FormItem>
               </FormField>

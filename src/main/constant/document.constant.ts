@@ -4,8 +4,8 @@ export const DOCUMENT_LIMITS = {
   subject: 120,
   /** The aspect of the subject ("economia", "política"). */
   category: 60,
-  /** Characters of the plain-text content: one fact-sized piece, short enough to embed on its own. */
-  content: 500
+  /** Characters of the plain-text content: one subject-sized piece, short enough to embed on its own. */
+  content: 1000
 } as const
 
 /** How the embeddings of the documents are made. */

@@ -12,5 +12,8 @@ const html = computed(() => renderMarkdown(props.source))
 
 <template>
   <!-- eslint-disable-next-line vue/no-v-html -- sanitized by renderMarkdown (allow-list, no attributes) -->
-  <div class="flex flex-col gap-3 *:m-0 [&_li]:ml-5 [&_ol]:list-decimal [&_ul]:list-disc" v-html="html" />
+  <div
+    class="flex flex-col gap-3 *:m-0 [&_li]:ml-5 [&_ol]:list-decimal [&_ul]:list-disc"
+    v-html="html"
+  />
 </template>

@@ -12,6 +12,7 @@ export { default as CreateWorldDialog } from '@renderer/components/custom/Create
 export { default as DiceFaces } from '@renderer/components/custom/DiceFaces.vue'
 export { default as DicePips } from '@renderer/components/custom/DicePips.vue'
 export { default as DocumentCard } from '@renderer/components/custom/DocumentCard.vue'
+export { default as DocumentDetailDialog } from '@renderer/components/custom/DocumentDetailDialog.vue'
 export { default as EntityRow } from '@renderer/components/custom/EntityRow.vue'
 export { default as GameChatComposer } from '@renderer/components/custom/GameChatComposer.vue'
 export { default as GameChatMessage } from '@renderer/components/custom/GameChatMessage.vue'

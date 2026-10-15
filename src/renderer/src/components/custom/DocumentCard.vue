@@ -8,13 +8,17 @@ defineProps<{
 }>()
 
 defineEmits<{
+  view: []
   edit: []
   remove: []
 }>()
 </script>
 
 <template>
-  <article class="flex h-full flex-col gap-3 rounded-lg border border-border bg-card p-4">
+  <article
+    class="flex h-48 cursor-pointer flex-col gap-3 overflow-hidden rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/50"
+    @click="$emit('view')"
+  >
     <header class="flex items-start justify-between gap-3">
       <div class="flex min-w-0 flex-col gap-1.5">
         <p class="truncate font-body text-base font-bold text-foreground">
@@ -32,7 +36,7 @@ defineEmits<{
           variant="ghost"
           size="icon-sm"
           class="size-auto rounded-lg p-2 text-tertiary hover:text-foreground"
-          @click="$emit('edit')"
+          @click.stop="$emit('edit')"
         >
           <Pencil class="size-4.5" />
           <span class="sr-only">Editar {{ document.subject }}</span>
@@ -42,13 +46,15 @@ defineEmits<{
           variant="ghost"
           size="icon-sm"
           class="size-auto rounded-lg p-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          @click="$emit('remove')"
+          @click.stop="$emit('remove')"
         >
           <Trash2 class="size-4.5" />
           <span class="sr-only">Excluir {{ document.subject }}</span>
         </Button>
       </div>
     </header>
-    <p class="text-sm whitespace-pre-line text-muted-foreground">{{ document.content }}</p>
+    <p class="line-clamp-4 text-sm break-words whitespace-pre-line text-muted-foreground">
+      {{ document.content }}
+    </p>
   </article>
 </template>

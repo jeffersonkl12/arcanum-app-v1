@@ -2,4 +2,4 @@
 export const descriptionMaxLength = 500
 
 /** Mirrors DOCUMENT_LIMITS in the engine: the fields of a world document. */
-export const documentLimits = { subject: 120, category: 60, content: 500 } as const
+export const documentLimits = { subject: 120, category: 60, content: 1000 } as const

@@ -11,6 +11,7 @@ import {
   CreateNpcDialog,
   CreatePlaceDialog,
   DocumentCard,
+  DocumentDetailDialog,
   EntityRow,
   ItemDetailDialog,
   ItemRow,
@@ -78,6 +79,8 @@ const cultureOpen = ref(false)
 const editingCulture = ref<NamedEntitySummary | null>(null)
 const documentOpen = ref(false)
 const editingDocument = ref<DocumentSummary | null>(null)
+const documentDetailOpen = ref(false)
+const viewingDocument = ref<DocumentSummary | null>(null)
 const itemOpen = ref(false)
 const editingItem = ref<ItemSummary | null>(null)
 const itemDetailOpen = ref(false)
@@ -155,6 +158,22 @@ function openEditLanguage(language: LanguageSummary): void {
 function openEditCulture(culture: NamedEntitySummary): void {
   editingCulture.value = culture
   cultureOpen.value = true
+}
+
+function openDocumentDetail(entry: DocumentSummary): void {
+  viewingDocument.value = entry
+  documentDetailOpen.value = true
+}
+
+function editDocumentFromDetail(): void {
+  documentDetailOpen.value = false
+  if (viewingDocument.value) openEditDocument(viewingDocument.value)
+}
+
+function deleteDocumentFromDetail(): void {
+  documentDetailOpen.value = false
+  const target = viewingDocument.value
+  if (target) requestDelete('document', { id: target.id, name: target.subject })
 }
 
 function openEditDocument(entry: DocumentSummary): void {
@@ -402,6 +421,7 @@ const tabTriggerClass = cn(
             v-for="entry in visibleDocuments"
             :key="entry.id"
             :document="entry"
+            @view="openDocumentDetail(entry)"
             @edit="openEditDocument(entry)"
             @remove="requestDelete('document', { id: entry.id, name: entry.subject })"
           />
@@ -418,6 +438,13 @@ const tabTriggerClass = cn(
       @edit="editPlaceFromDetail"
       @add-child="viewingPlaceId && openCreateChildPlace(viewingPlaceId)"
       @delete="deletePlaceFromDetail"
+    />
+
+    <DocumentDetailDialog
+      v-model:open="documentDetailOpen"
+      :document="viewingDocument"
+      @edit="editDocumentFromDetail"
+      @delete="deleteDocumentFromDetail"
     />
 
     <ItemDetailDialog

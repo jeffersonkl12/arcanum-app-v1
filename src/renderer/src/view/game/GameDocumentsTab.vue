@@ -5,6 +5,7 @@ import { toast } from 'vue-sonner'
 import ConfirmDialog from '@renderer/components/custom/ConfirmDialog.vue'
 import CreateDocumentDialog from '@renderer/components/custom/CreateDocumentDialog.vue'
 import DocumentCard from '@renderer/components/custom/DocumentCard.vue'
+import DocumentDetailDialog from '@renderer/components/custom/DocumentDetailDialog.vue'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { NativeSelect } from '@renderer/components/ui/native-select'
@@ -21,6 +22,8 @@ const collator = new Intl.Collator('pt-BR', { sensitivity: 'base' })
 const search = ref('')
 const categoryFilter = ref('')
 const formOpen = ref(false)
+const detailOpen = ref(false)
+const viewingDocument = ref<DocumentSummary | null>(null)
 const editingDocument = ref<DocumentSummary | null>(null)
 const pendingDelete = ref<DocumentSummary | null>(null)
 const deleteConfirmOpen = ref(false)
@@ -42,6 +45,21 @@ const categories = computed(() =>
 function openCreate(): void {
   editingDocument.value = null
   formOpen.value = true
+}
+
+function openDetail(entry: DocumentSummary): void {
+  viewingDocument.value = entry
+  detailOpen.value = true
+}
+
+function editFromDetail(): void {
+  detailOpen.value = false
+  if (viewingDocument.value) openEdit(viewingDocument.value)
+}
+
+function deleteFromDetail(): void {
+  detailOpen.value = false
+  if (viewingDocument.value) requestDelete(viewingDocument.value)
 }
 
 function openEdit(entry: DocumentSummary): void {
@@ -120,6 +138,7 @@ const shown = computed(() => {
             v-for="entry in shown"
             :key="entry.id"
             :document="entry"
+            @view="openDetail(entry)"
             @edit="openEdit(entry)"
             @remove="requestDelete(entry)"
           />
@@ -129,6 +148,12 @@ const shown = computed(() => {
         </template>
       </div>
     </ScrollArea>
+    <DocumentDetailDialog
+      v-model:open="detailOpen"
+      :document="viewingDocument"
+      @edit="editFromDetail"
+      @delete="deleteFromDetail"
+    />
     <CreateDocumentDialog
       v-model:open="formOpen"
       v-model:entity="editingDocument"
