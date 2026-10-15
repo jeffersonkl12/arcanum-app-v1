@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { MEMORY_IMPORTANCE, MEMORY_SEARCH } from '@constant'
+import { MEMORY_IMPORTANCE, MEMORY_SEARCH, type EmbeddingProvider } from '@constant'
 import { ConflictError } from '@error'
 import type { IEmbedder } from '@lib/embedder.lib'
 import type { IMemoryVectorStore } from '@lib/memory-vector.lib'
@@ -61,12 +61,13 @@ export class MemoryService implements IMemoryService {
     const actorIds = [...new Set(input.actorIds)]
     await this.requireActors(input.worldId, actorIds)
 
+    const provider = await this.embedder.provider()
     const [vector] = await this.embedder.embed([input.summary])
-    const repeated = await this.findRepeated(input.worldId, actorIds, vector)
+    const repeated = await this.findRepeated(provider, input.worldId, actorIds, vector)
     if (repeated) return { status: 'duplicate', memory: await this.withActor(repeated) }
 
     const memory: Memory = { ...input, actorIds, id: randomUUID(), createdAt: new Date() }
-    await this.store.add(memory, vector)
+    await this.store.add(provider, memory, vector)
 
     return { status: 'saved', memory: await this.withActor(memory) }
   }
@@ -76,8 +77,9 @@ export class MemoryService implements IMemoryService {
     query: string,
     { limit, minSimilarity, actorId }: MemorySearchOptions
   ): Promise<MemoryWithActors[]> {
+    const provider = await this.embedder.provider()
     const [vector] = await this.embedder.embed([query])
-    const hits = await this.store.search({
+    const hits = await this.store.search(provider, {
       worldId,
       vector,
       actorId,
@@ -92,13 +94,18 @@ export class MemoryService implements IMemoryService {
   }
 
   async listRecent(worldId: string, limit: number): Promise<MemoryWithActors[]> {
-    const newest = await this.store.listRecent(worldId, limit)
+    const newest = await this.store.listRecent(await this.embedder.provider(), worldId, limit)
 
     return this.resolveActors(worldId, newest.reverse())
   }
 
   async listPinned(worldId: string, limit: number): Promise<MemoryWithActors[]> {
-    const newest = await this.store.listByImportance(worldId, MEMORY_IMPORTANCE.pinned, limit)
+    const newest = await this.store.listByImportance(
+      await this.embedder.provider(),
+      worldId,
+      MEMORY_IMPORTANCE.pinned,
+      limit
+    )
 
     return this.resolveActors(worldId, newest.reverse())
   }
@@ -116,11 +123,12 @@ export class MemoryService implements IMemoryService {
 
   /** The stored memory the new one repeats: nearly the same meaning and at least one actor in common. */
   private async findRepeated(
+    provider: EmbeddingProvider,
     worldId: string,
     actorIds: string[],
     vector: number[]
   ): Promise<Memory | undefined> {
-    const hits = await this.store.search({ worldId, vector, limit: 3 })
+    const hits = await this.store.search(provider, { worldId, vector, limit: 3 })
 
     return hits.find(
       (hit) =>

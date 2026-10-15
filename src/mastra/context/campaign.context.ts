@@ -40,6 +40,42 @@ export const campaignSummaryChangeSchema = z.discriminatedUnion('action', [
 
 export type CampaignSummaryChange = z.infer<typeof campaignSummaryChangeSchema>
 
+/**
+ * The shape the model sees. Providers such as DeepSeek and OpenAI reject a tool schema whose root is
+ * not `type: "object"`, which a discriminated union (`oneOf`) is, so the tool takes a flat object and
+ * `parseCampaignSummaryChange` turns it into the strict union.
+ */
+export const campaignSummaryToolInputSchema = z.object({
+  action: z.enum(['append', 'rewrite']),
+  events: z
+    .array(z.string())
+    .optional()
+    .describe(
+      `Only with action "append": 1 to ${CAMPAIGN_SUMMARY_LIMITS.perCall} major events, each a short ` +
+        `fact (who did what and what it changed), up to ${CAMPAIGN_SUMMARY_LIMITS.event} characters.`
+    ),
+  summary: z
+    .string()
+    .optional()
+    .describe(
+      `Only with action "rewrite": the whole summary, condensed, one event per line, oldest first ` +
+        `(up to ${CAMPAIGN_SUMMARY_LIMITS.max} characters).`
+    )
+})
+
+export type CampaignSummaryToolInput = z.infer<typeof campaignSummaryToolInputSchema>
+
+export function parseCampaignSummaryChange(
+  input: CampaignSummaryToolInput
+): { ok: true; change: CampaignSummaryChange } | { ok: false; reason: string } {
+  const parsed = campaignSummaryChangeSchema.safeParse(input)
+  if (parsed.success) return { ok: true, change: parsed.data }
+  return {
+    ok: false,
+    reason: `Invalid input: ${parsed.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`
+  }
+}
+
 export const campaignSummaryOutcomeSchema = z.object({
   ok: z.boolean(),
   /** Characters the summary has now. */

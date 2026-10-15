@@ -1,8 +1,9 @@
-import { AI_PROVIDERS } from '@constant'
+import { AI_PROVIDERS, EMBEDDING_PROVIDERS } from '@constant'
 import { sql } from 'drizzle-orm'
 import { boolean, check, pgEnum, pgTable, real, text } from 'drizzle-orm/pg-core'
 
 export const aiProviderEnum = pgEnum('ai_provider', AI_PROVIDERS)
+export const embeddingProviderEnum = pgEnum('embedding_provider', EMBEDDING_PROVIDERS)
 
 /**
  * Which LLM narrates the campaigns, how freely, and the API key to reach it. It is global: the
@@ -14,8 +15,9 @@ export const aiProviderEnum = pgEnum('ai_provider', AI_PROVIDERS)
  * The key belongs to `provider` and is stored encrypted (see `ISecretCipher`); `keyHint` is its last
  * characters, so the UI can show which key is saved without decrypting it.
  *
- * The embedding key is a second key, always OpenAI's (the characters' memory is searched with its
- * embeddings), and it does not depend on the provider: it stays when the provider changes.
+ * The embedding key is a second key, the one of `embeddingProvider` (the characters' memory is
+ * searched with that provider's embeddings). It does not depend on the narrator's provider: it stays
+ * when that changes, and only goes when the embedding provider does.
  */
 export const aiSettingTable = pgTable(
   'ai_setting',
@@ -26,6 +28,7 @@ export const aiSettingTable = pgTable(
     temperature: real('temperature').notNull(),
     encryptedKey: text('encrypted_key'),
     keyHint: text('key_hint'),
+    embeddingProvider: embeddingProviderEnum('embedding_provider').notNull().default('openai'),
     embeddingEncryptedKey: text('embedding_encrypted_key'),
     embeddingKeyHint: text('embedding_key_hint')
   },

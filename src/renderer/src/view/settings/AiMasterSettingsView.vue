@@ -30,7 +30,14 @@ import {
 } from '@renderer/components/ui/select'
 import { Slider } from '@renderer/components/ui/slider'
 
-const formFields = ['provider', 'model', 'temperature', 'apiKey', 'embeddingApiKey'] as const
+const formFields = [
+  'provider',
+  'model',
+  'temperature',
+  'apiKey',
+  'embeddingProvider',
+  'embeddingApiKey'
+] as const
 
 type FormFieldName = (typeof formFields)[number]
 
@@ -40,6 +47,7 @@ const settingsFormSchema = toTypedSchema(
     model: z.string().min(1, 'Selecione um modelo'),
     temperature: z.number().min(0, 'A temperatura deve ser no mínimo 0'),
     apiKey: z.string().max(512, 'A chave pode ter no máximo 512 caracteres').optional(),
+    embeddingProvider: z.string().min(1, 'Selecione um provedor de embeddings'),
     embeddingApiKey: z.string().max(512, 'A chave pode ter no máximo 512 caracteres').optional()
   })
 )
@@ -64,11 +72,18 @@ const { handleSubmit, resetForm, setFieldValue, setErrors, values } = useForm({
     model: '',
     temperature: 0.7,
     apiKey: '',
+    embeddingProvider: '',
     embeddingApiKey: ''
   }
 })
 
 const selectedCatalog = computed(() => catalog.value.find((entry) => entry.id === values.provider))
+
+const embeddingProviders = computed(() => catalog.value.filter((entry) => entry.supportsEmbeddings))
+
+const embeddingProviderLabel = computed(
+  () => embeddingProviders.value.find((entry) => entry.id === values.embeddingProvider)?.label
+)
 
 const models = computed(() => selectedCatalog.value?.models ?? [])
 
@@ -89,9 +104,9 @@ const hasStoredApiKey = computed(() => setting.value?.apiKey.source === 'stored'
 const embeddingApiKeyPlaceholder = computed(() => {
   const status = setting.value?.embeddingApiKey
   if (status?.source === 'stored' && status.hint) return `Chave salva terminando em ${status.hint}`
-  if (status?.source === 'chat') return 'Usando a chave da OpenAI do Mestre IA'
+  if (status?.source === 'chat') return 'Usando a chave do Mestre IA'
   if (status?.source === 'environment') return 'Usando chave do ambiente'
-  return 'Cole a chave de API da OpenAI'
+  return `Cole a chave de API ${embeddingProviderLabel.value ? `(${embeddingProviderLabel.value})` : ''}`.trim()
 })
 
 const hasStoredEmbeddingApiKey = computed(() => setting.value?.embeddingApiKey.source === 'stored')
@@ -129,6 +144,7 @@ function syncFormFromSetting(): void {
       model: setting.value.model,
       temperature: setting.value.temperature,
       apiKey: '',
+      embeddingProvider: setting.value.embeddingProvider,
       embeddingApiKey: ''
     }
   })
@@ -141,6 +157,7 @@ const onSubmit = handleSubmit(async (formValues) => {
     provider: formValues.provider as UpdateAiSetting['provider'],
     model: formValues.model,
     temperature: formValues.temperature,
+    embeddingProvider: formValues.embeddingProvider as UpdateAiSetting['embeddingProvider'],
     ...(apiKey ? { apiKey } : {}),
     ...(embeddingApiKey ? { embeddingApiKey } : {})
   }
@@ -297,10 +314,41 @@ function onTemperatureChange(value: number[] | undefined): void {
           </FormItem>
         </FormField>
 
+        <FormField v-slot="{ componentField }" name="embeddingProvider">
+          <FormItem class="flex flex-col gap-2">
+            <FormLabel class="text-sm font-medium text-foreground">
+              Provedor da memória (Embeddings)
+            </FormLabel>
+            <Select
+              :model-value="componentField.modelValue"
+              :disabled="isLoading"
+              @update:model-value="componentField['onUpdate:modelValue']"
+            >
+              <FormControl>
+                <SelectTrigger
+                  class="h-auto w-full rounded-lg border-border bg-background px-4 py-3 text-sm"
+                >
+                  <SelectValue placeholder="Selecione um provedor" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem v-for="entry in embeddingProviders" :key="entry.id" :value="entry.id">
+                  {{ entry.label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p class="text-xs text-tertiary">
+              Trocar de provedor não apaga as memórias: cada um guarda as suas, e elas voltam a ser
+              lidas quando você escolher o provedor de novo.
+            </p>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
         <FormField v-slot="{ componentField }" name="embeddingApiKey">
           <FormItem class="flex flex-col gap-2">
             <FormLabel class="text-sm font-medium text-foreground">
-              Chave de API da OpenAI para a memória (Embeddings)
+              Chave de API para a memória (Embeddings)
             </FormLabel>
             <FormControl>
               <InputGroup class="h-auto rounded-lg border-border bg-background">
@@ -328,8 +376,8 @@ function onTemperatureChange(value: number[] | undefined): void {
               </InputGroup>
             </FormControl>
             <p class="text-xs text-tertiary">
-              Usada só para a memória dos personagens (busca por significado). Sempre da OpenAI,
-              qualquer que seja o provedor do Mestre IA.
+              Usada só para a memória dos personagens (busca por significado). É a chave do provedor
+              de embeddings acima, qualquer que seja o provedor do Mestre IA.
             </p>
             <p v-if="memoryUnavailable" class="text-xs text-destructive">
               Sem esta chave a memória dos personagens fica desativada: nada é gravado nem buscado.

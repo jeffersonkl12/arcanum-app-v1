@@ -1,7 +1,8 @@
 import { createTool } from '@mastra/core/tools'
 import { gameContextSchema } from '../context/game.context'
 import {
-  campaignSummaryChangeSchema,
+  campaignSummaryToolInputSchema,
+  parseCampaignSummaryChange,
   campaignSummaryOutcomeSchema
 } from '../context/campaign.context'
 
@@ -18,9 +19,14 @@ export const updateCampaignSummaryTool = createTool({
     'Only when the engine answers that the summary is full, call again with action "rewrite" and ' +
     'the whole summary condensed, keeping every major event. Returns whether it worked, the length ' +
     'now and the room left.',
-  inputSchema: campaignSummaryChangeSchema,
+  inputSchema: campaignSummaryToolInputSchema,
   outputSchema: campaignSummaryOutcomeSchema,
   requestContextSchema: gameContextSchema,
-  execute: async (change, { requestContext }) =>
-    requestContext.get('campaignRegistry').updateSummary(requestContext.get('worldId'), change)
+  execute: async (input, { requestContext }) => {
+    const parsed = parseCampaignSummaryChange(input)
+    if (!parsed.ok) return { ok: false, reason: parsed.reason }
+    return requestContext
+      .get('campaignRegistry')
+      .updateSummary(requestContext.get('worldId'), parsed.change)
+  }
 })

@@ -1,4 +1,4 @@
-import { OpenAiEmbedder } from '@lib/embedder.lib'
+import { Embedder } from '@lib/embedder.lib'
 import { LanceMemoryVectorStore } from '@lib/memory-vector.lib'
 import { NarratorGateway } from '@lib/narrator.lib'
 import { resolveMemoryVectorFolder } from '@lib/paths.lib'
@@ -76,9 +76,14 @@ export const aiSettingService: IAiSettingService = new AiSettingService(
   new AiSettingRepository(database),
   new SecretCipher()
 )
-// Embeddings come from OpenAI: the key saved for them in the app (or the chat key while OpenAI is the
-// provider), else the OPENAI_API_KEY environment variable. Without any, memory is simply unavailable.
-const embedder = new OpenAiEmbedder(async () => (await aiSettingService.resolve()).embeddingApiKey)
+// Embeddings come from the provider the player picked: the key saved for them in the app (or the chat
+// key while the narrator is of the same provider), else that provider's environment variable. Without
+// any, memory is simply unavailable.
+const embedder = new Embedder(async () => {
+  const { embeddingProvider, embeddingApiKey } = await aiSettingService.resolve()
+
+  return { provider: embeddingProvider, apiKey: embeddingApiKey }
+})
 export const memoryService: IMemoryService = new MemoryService(
   new LanceMemoryVectorStore(resolveMemoryVectorFolder()),
   embedder,

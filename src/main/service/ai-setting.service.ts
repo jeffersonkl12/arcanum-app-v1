@@ -2,6 +2,9 @@ import {
   AI_MODEL_CATALOG,
   AI_PROVIDERS,
   DEFAULT_AI_SETTING,
+  DEFAULT_EMBEDDING_PROVIDER,
+  isEmbeddingProvider,
+  type EmbeddingProvider,
   isAiModelOf,
   type AiProvider,
   type AiProviderOption
@@ -23,15 +26,18 @@ export interface AiProviderCatalogEntry extends AiProviderOption {
   id: AiProvider
   /** Whether the process environment already provides this provider's key. */
   hasEnvironmentKey: boolean
+  /** Whether its embeddings can search the characters' memory. */
+  supportsEmbeddings: boolean
 }
 
 /** The effective setting for a turn, key included. For the main process only. */
 export interface ResolvedAiSetting extends AiSetting {
   /** `undefined` when no key is saved, which leaves Mastra to read the provider's environment variable. */
   apiKey?: string
+  embeddingProvider: EmbeddingProvider
   /**
-   * The OpenAI key for the memory's embeddings: the one saved for them, else the chat key while
-   * OpenAI is the provider. `undefined` leaves the embedder to read the environment.
+   * The key for the memory's embeddings: the one saved for them, else the chat key while the
+   * narrator is of the same provider. `undefined` leaves the embedder to read the environment.
    */
   embeddingApiKey?: string
 }
@@ -78,11 +84,14 @@ export class AiSettingService implements IAiSettingService {
         ? { encryptedKey: keyToKeep?.encryptedKey ?? null, keyHint: keyToKeep?.keyHint ?? null }
         : { encryptedKey: this.cipher.encrypt(apiKey), keyHint: apiKey.slice(-HINT_LENGTH) }
 
+    // Same for the embeddings key and the embedding provider.
+    const embeddingKeyToKeep =
+      stored?.embeddingProvider === choice.embeddingProvider ? stored : undefined
     const embeddingKey =
       embeddingApiKey === undefined
         ? {
-            embeddingEncryptedKey: stored?.embeddingEncryptedKey ?? null,
-            embeddingKeyHint: stored?.embeddingKeyHint ?? null
+            embeddingEncryptedKey: embeddingKeyToKeep?.embeddingEncryptedKey ?? null,
+            embeddingKeyHint: embeddingKeyToKeep?.embeddingKeyHint ?? null
           }
         : {
             embeddingEncryptedKey: this.cipher.encrypt(embeddingApiKey),
@@ -118,7 +127,8 @@ export class AiSettingService implements IAiSettingService {
     return AI_PROVIDERS.map((id) => ({
       id,
       ...AI_MODEL_CATALOG[id],
-      hasEnvironmentKey: this.hasEnvironmentKey(id)
+      hasEnvironmentKey: this.hasEnvironmentKey(id),
+      supportsEmbeddings: isEmbeddingProvider(id)
     }))
   }
 
@@ -128,14 +138,17 @@ export class AiSettingService implements IAiSettingService {
 
     const apiKey = stored.encryptedKey ? this.cipher.decrypt(stored.encryptedKey) : undefined
 
+    const { embeddingProvider } = stored
+
     return {
       provider,
       model,
       temperature,
       apiKey,
+      embeddingProvider,
       embeddingApiKey: stored.embeddingEncryptedKey
         ? this.cipher.decrypt(stored.embeddingEncryptedKey)
-        : provider === 'openai'
+        : provider === embeddingProvider
           ? apiKey
           : undefined
     }
@@ -149,6 +162,7 @@ export class AiSettingService implements IAiSettingService {
       : {
           id: true,
           ...DEFAULT_AI_SETTING,
+          embeddingProvider: DEFAULT_EMBEDDING_PROVIDER,
           encryptedKey: null,
           keyHint: null,
           embeddingEncryptedKey: null,
@@ -163,6 +177,7 @@ export class AiSettingService implements IAiSettingService {
       provider,
       model,
       temperature,
+      embeddingProvider: stored.embeddingProvider,
       apiKey: this.keyStatus(stored),
       embeddingApiKey: this.embeddingKeyStatus(stored)
     }
@@ -180,11 +195,11 @@ export class AiSettingService implements IAiSettingService {
     if (stored.embeddingEncryptedKey) {
       return { configured: true, source: 'stored', hint: stored.embeddingKeyHint }
     }
-    if (stored.provider === 'openai' && stored.encryptedKey) {
+    if (stored.provider === stored.embeddingProvider && stored.encryptedKey) {
       return { configured: true, source: 'chat', hint: stored.keyHint }
     }
 
-    return this.hasEnvironmentKey('openai')
+    return this.hasEnvironmentKey(stored.embeddingProvider)
       ? { configured: true, source: 'environment', hint: null }
       : { configured: false, source: 'none', hint: null }
   }

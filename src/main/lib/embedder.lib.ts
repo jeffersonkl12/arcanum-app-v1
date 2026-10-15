@@ -1,52 +1,60 @@
 import { ModelRouterEmbeddingModel } from '@mastra/core/llm'
-import { AI_MODEL_CATALOG } from '@constant'
+import { AI_MODEL_CATALOG, EMBEDDING_MODELS, type EmbeddingProvider } from '@constant'
 import { ConflictError } from '@error'
 
+/** The embedding provider the player picked and the key saved for it, if any. */
+export interface EmbedderSetting {
+  provider: EmbeddingProvider
+  apiKey?: string
+}
+
 export interface IEmbedder {
-  /** Length of every vector it returns. Vectors of different lengths cannot share an index. */
-  readonly dimensions: number
+  /** Whose model embeds right now. Vectors of different providers are never comparable. */
+  provider(): Promise<EmbeddingProvider>
   /** Whether it can embed right now (for a hosted model: whether a key is configured). */
   isAvailable(): Promise<boolean>
   /** One vector per value, in order. Throws `ConflictError` when it is not available. */
   embed(values: string[]): Promise<number[][]>
 }
 
-const OPENAI_EMBEDDING_MODEL = 'openai/text-embedding-3-small'
-const OPENAI_EMBEDDING_DIMENSIONS = 1536
-
 /**
- * Embeddings from OpenAI's `text-embedding-3-small`, through Mastra's model router. The key is
- * asked for on every call, because the player can change it while the app runs: the one saved in
- * the app when OpenAI is also the chat provider, or else the `OPENAI_API_KEY` environment variable
- * (which the router reads on its own when no key is given).
+ * Embeddings from the provider the player picked (OpenAI or Google), through Mastra's model router.
+ * The setting is asked for on every call, because the player can change it while the app runs: the
+ * key saved in the app, or else the provider's environment variable (which the router reads on its
+ * own when no key is given).
  */
-export class OpenAiEmbedder implements IEmbedder {
-  readonly dimensions = OPENAI_EMBEDDING_DIMENSIONS
-
+export class Embedder implements IEmbedder {
   constructor(
-    private readonly savedKey: () => Promise<string | undefined>,
+    private readonly setting: () => Promise<EmbedderSetting>,
     private readonly environment: NodeJS.ProcessEnv = process.env
   ) {}
 
+  async provider(): Promise<EmbeddingProvider> {
+    return (await this.setting()).provider
+  }
+
   async isAvailable(): Promise<boolean> {
-    return Boolean(
-      (await this.savedKey()) ?? this.environment[AI_MODEL_CATALOG.openai.apiKeyEnvVar]
-    )
+    const { provider, apiKey } = await this.setting()
+
+    return Boolean(apiKey ?? this.environment[AI_MODEL_CATALOG[provider].apiKeyEnvVar])
   }
 
   async embed(values: string[]): Promise<number[][]> {
+    const { provider, apiKey } = await this.setting()
     if (!(await this.isAvailable())) {
       throw new ConflictError(
-        'Memory needs an OpenAI API key for its embeddings, and there is none'
+        `Memory needs a ${AI_MODEL_CATALOG[provider].label} API key for its embeddings, and there is none`
       )
     }
     if (values.length === 0) return []
 
-    const model = new ModelRouterEmbeddingModel({
-      id: OPENAI_EMBEDDING_MODEL,
-      apiKey: await this.savedKey()
+    const { id, dimensions } = EMBEDDING_MODELS[provider]
+    const model = new ModelRouterEmbeddingModel({ id, apiKey })
+    const { embeddings } = await model.doEmbed({
+      values,
+      // Only Google reads this; OpenAI's model has a single size and the key is ignored there.
+      providerOptions: { google: { outputDimensionality: dimensions } }
     })
-    const { embeddings } = await model.doEmbed({ values })
 
     return embeddings
   }

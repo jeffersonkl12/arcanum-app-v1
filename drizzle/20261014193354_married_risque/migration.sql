@@ -1,0 +1,2 @@
+CREATE TYPE "embedding_provider" AS ENUM('openai', 'google');--> statement-breakpoint
+ALTER TABLE "ai_setting" ADD COLUMN "embedding_provider" "embedding_provider" DEFAULT 'openai'::"embedding_provider" NOT NULL;

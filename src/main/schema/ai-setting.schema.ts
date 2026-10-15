@@ -1,4 +1,10 @@
-import { AI_MODEL_CATALOG, AI_PROVIDERS, isAiModelOf } from '@constant'
+import {
+  AI_MODEL_CATALOG,
+  AI_PROVIDERS,
+  EMBEDDING_PROVIDERS,
+  isAiModelOf,
+  type EmbeddingProvider
+} from '@constant'
 import type { aiSettingTable } from '@database/entity/ai-setting.entity'
 import { z } from 'zod'
 
@@ -24,8 +30,9 @@ export interface ApiKeyStatus {
 }
 
 /**
- * Same for the key of the memory's embeddings (always OpenAI's). Without a saved one it can still
- * work: `chat` is the OpenAI key already saved for the narrator, used while OpenAI is the provider.
+ * Same for the key of the memory's embeddings, which is the one of the embedding provider. Without a
+ * saved one it can still work: `chat` is the key already saved for the narrator, used while the
+ * narrator and the embeddings share a provider.
  */
 export interface EmbeddingApiKeyStatus {
   configured: boolean
@@ -35,6 +42,8 @@ export interface EmbeddingApiKeyStatus {
 
 /** The setting as the renderer sees it. */
 export interface AiSettingView extends AiSetting {
+  /** Whose embeddings search the characters' memory. */
+  embeddingProvider: EmbeddingProvider
   apiKey: ApiKeyStatus
   embeddingApiKey: EmbeddingApiKeyStatus
 }
@@ -66,9 +75,11 @@ function checkAiSetting(setting: AiSetting, context: z.RefinementCtx): void {
  * Replaces the whole choice: changing the provider means changing the model too. `apiKey` is the
  * key of the chosen provider; omit it to keep the saved one. A saved key only follows the provider
  * it was saved for, so changing provider without sending a key drops it (a blank key is rejected,
- * not a way to clear it; use `aiSetting:clearApiKey`). `embeddingApiKey` is the OpenAI key of the
- * memory's embeddings: it belongs to no provider, so it is kept when the provider changes and
- * omitting it keeps the saved one (`aiSetting:clearEmbeddingApiKey` removes it).
+ * not a way to clear it; use `aiSetting:clearApiKey`). `embeddingProvider` is whose embeddings
+ * search the memory and `embeddingApiKey` its key: it follows the embedding provider, not the
+ * narrator's, so it is kept when the narrator changes, omitting it keeps the saved one while the
+ * embedding provider stays, and changing that provider without a key drops it
+ * (`aiSetting:clearEmbeddingApiKey` removes it).
  */
 export const updateAiSettingSchema = z
   .object({
@@ -76,6 +87,7 @@ export const updateAiSettingSchema = z
     model: z.string().trim().min(1),
     temperature: z.number().min(0),
     apiKey: apiKeySchema.optional(),
+    embeddingProvider: z.enum(EMBEDDING_PROVIDERS),
     embeddingApiKey: apiKeySchema.optional()
   })
   .superRefine(checkAiSetting)

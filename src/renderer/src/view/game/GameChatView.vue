@@ -7,7 +7,6 @@ import GameChatMessage from '@renderer/components/custom/GameChatMessage.vue'
 import { Alert, AlertDescription, AlertTitle } from '@renderer/components/ui/alert'
 import { Separator } from '@renderer/components/ui/separator'
 import { useGame } from '@renderer/composable/game.composable'
-import { useSmoothScroll } from '@renderer/composable/smooth-scroll.composable'
 
 const { messages, draft, isSending, isAiKeyMissing, sendMessage } = useGame()
 const scrollRef = useTemplateRef<HTMLElement>('scrollRef')
@@ -17,28 +16,42 @@ const lastMasterId = computed(
   () => messages.value.findLast((message) => message.role === 'master')?.id
 )
 
-useSmoothScroll(scrollRef)
+// The chat uses the native scroll: Lenis caches the scroll limit and, with the container as its own
+// content, never learns that streamed messages made it taller, so the bottom became unreachable.
+const STICK_THRESHOLD = 120
+let stickToBottom = true
 
-async function scrollToLatest(): Promise<void> {
-  await nextTick()
+function onScroll(): void {
   const el = scrollRef.value
   if (!el) return
+  stickToBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= STICK_THRESHOLD
+}
+
+async function scrollToLatest(force = false): Promise<void> {
+  await nextTick()
+  const el = scrollRef.value
+  if (!el || !(force || stickToBottom)) return
   el.scrollTop = el.scrollHeight
 }
 
-watch(messages, scrollToLatest, { deep: true })
+// Follow new content only while the player is at the bottom; reading older messages is not interrupted.
+watch(messages, () => void scrollToLatest(), { deep: true })
 
 // A campaign with history opens with the chat already full, so the watcher above never fires for it.
 // Markdown and UI blocks settle their height a frame later, hence the second pass.
 onMounted(async () => {
-  await scrollToLatest()
-  requestAnimationFrame(() => void scrollToLatest())
+  await scrollToLatest(true)
+  requestAnimationFrame(() => void scrollToLatest(true))
 })
 </script>
 
 <template>
   <section class="flex min-h-0 min-w-0 flex-1 flex-col">
-    <div ref="scrollRef" class="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-8 pb-4 pt-8">
+    <div
+      ref="scrollRef"
+      class="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-8 pb-4 pt-8"
+      @scroll.passive="onScroll"
+    >
       <Alert v-if="isAiKeyMissing">
         <KeyRound />
         <AlertTitle>Nenhuma chave de API configurada</AlertTitle>

@@ -1,5 +1,10 @@
 import { connect, type Connection, type Table } from '@lancedb/lancedb'
-import { MEMORY_KINDS, type MemoryKind } from '@constant'
+import {
+  EMBEDDING_PROVIDERS,
+  MEMORY_KINDS,
+  type EmbeddingProvider,
+  type MemoryKind
+} from '@constant'
 import type { Memory } from '@schema/memory.schema'
 import type { MemoryHit } from '@util/memory.util'
 import { z } from 'zod'
@@ -12,20 +17,33 @@ export interface MemorySearch {
   actorId?: string
 }
 
+/**
+ * Every call but `deleteByWorld` names the provider whose embeddings the vectors come from: each
+ * one has its own index, because the vectors of two models cannot be compared. The memories of the
+ * other providers stay where they are, out of reach until the player switches back.
+ */
 export interface IMemoryVectorStore {
   /** Stores a memory with the embedding of its summary. */
-  add(memory: Memory, vector: number[]): Promise<void>
+  add(provider: EmbeddingProvider, memory: Memory, vector: number[]): Promise<void>
   /** The memories closest to the vector, most similar first. */
-  search(query: MemorySearch): Promise<MemoryHit<Memory>[]>
+  search(provider: EmbeddingProvider, query: MemorySearch): Promise<MemoryHit<Memory>[]>
   /** The newest memories of the world, newest first. */
-  listRecent(worldId: string, limit: number): Promise<Memory[]>
+  listRecent(provider: EmbeddingProvider, worldId: string, limit: number): Promise<Memory[]>
   /** The newest memories of the world at or above `minImportance`, newest first. */
-  listByImportance(worldId: string, minImportance: number, limit: number): Promise<Memory[]>
-  /** Forgets every memory of the world. */
+  listByImportance(
+    provider: EmbeddingProvider,
+    worldId: string,
+    minImportance: number,
+    limit: number
+  ): Promise<Memory[]>
+  /** Forgets every memory of the world, whichever provider embedded it. */
   deleteByWorld(worldId: string): Promise<void>
 }
 
-const TABLE = 'memory'
+/** OpenAI keeps the table the app had before the choice existed; the others get their own. */
+function tableOf(provider: EmbeddingProvider): string {
+  return provider === 'openai' ? 'memory' : `memory_${provider}`
+}
 const uuid = z.uuid()
 
 /** One row of the table; LanceDB gives a list column back as an Arrow vector, hence `Iterable`. */
@@ -45,8 +63,8 @@ interface MemoryRow {
  * memory and the embedding of its summary, so it is one source of truth, and a memory with several
  * actors is one row with a list of ids.
  *
- * The table is created by the first memory, which fixes the dimension of the embeddings: vectors
- * from a model of another size are refused by LanceDB. There is no ANN index on purpose: a
+ * One table per embedding provider, created by its first memory, which fixes the dimension of the
+ * embeddings: vectors from a model of another size are refused by LanceDB. There is no ANN index on purpose: a
  * campaign holds hundreds of memories, where an exact scan is fast and never misses a match.
  *
  * Ids end up inside the filter expressions and some come from the model, so each is checked as a
@@ -59,7 +77,7 @@ export class LanceMemoryVectorStore implements IMemoryVectorStore {
 
   constructor(private readonly folder: string) {}
 
-  async add(memory: Memory, vector: number[]): Promise<void> {
+  async add(provider: EmbeddingProvider, memory: Memory, vector: number[]): Promise<void> {
     const row = {
       id: memory.id,
       world_id: memory.worldId,
@@ -72,9 +90,9 @@ export class LanceMemoryVectorStore implements IMemoryVectorStore {
     }
 
     const write = this.writes.then(async () => {
-      const table = await this.openTable()
+      const table = await this.openTable(provider)
       if (table) await table.add([row])
-      else await (await this.connect()).createTable(TABLE, [row])
+      else await (await this.connect()).createTable(tableOf(provider), [row])
     })
     // A failed write must not poison the ones queued behind it.
     this.writes = write.catch(() => undefined)
@@ -82,8 +100,11 @@ export class LanceMemoryVectorStore implements IMemoryVectorStore {
     return write
   }
 
-  async search({ worldId, vector, limit, actorId }: MemorySearch): Promise<MemoryHit<Memory>[]> {
-    const table = await this.openTable()
+  async search(
+    provider: EmbeddingProvider,
+    { worldId, vector, limit, actorId }: MemorySearch
+  ): Promise<MemoryHit<Memory>[]> {
+    const table = await this.openTable(provider)
     if (!table) return []
 
     const rows: MemoryRow[] = await table
@@ -97,22 +118,37 @@ export class LanceMemoryVectorStore implements IMemoryVectorStore {
     return rows.map((row) => ({ memory: toMemory(row), similarity: 1 - (row._distance ?? 1) }))
   }
 
-  async listRecent(worldId: string, limit: number): Promise<Memory[]> {
-    return this.listNewest(filter(worldId), limit)
+  async listRecent(provider: EmbeddingProvider, worldId: string, limit: number): Promise<Memory[]> {
+    return this.listNewest(provider, filter(worldId), limit)
   }
 
-  async listByImportance(worldId: string, minImportance: number, limit: number): Promise<Memory[]> {
-    return this.listNewest(filter(worldId, `importance >= ${Number(minImportance)}`), limit)
+  async listByImportance(
+    provider: EmbeddingProvider,
+    worldId: string,
+    minImportance: number,
+    limit: number
+  ): Promise<Memory[]> {
+    return this.listNewest(
+      provider,
+      filter(worldId, `importance >= ${Number(minImportance)}`),
+      limit
+    )
   }
 
   async deleteByWorld(worldId: string): Promise<void> {
-    const table = await this.openTable()
+    for (const provider of EMBEDDING_PROVIDERS) {
+      const table = await this.openTable(provider)
 
-    await table?.delete(filter(worldId))
+      await table?.delete(filter(worldId))
+    }
   }
 
-  private async listNewest(predicate: string, limit: number): Promise<Memory[]> {
-    const table = await this.openTable()
+  private async listNewest(
+    provider: EmbeddingProvider,
+    predicate: string,
+    limit: number
+  ): Promise<Memory[]> {
+    const table = await this.openTable(provider)
     if (!table) return []
 
     const rows: MemoryRow[] = await table
@@ -131,12 +167,13 @@ export class LanceMemoryVectorStore implements IMemoryVectorStore {
     return this.connection
   }
 
-  /** The table, or `undefined` while no memory was ever stored. */
-  private async openTable(): Promise<Table | undefined> {
+  /** The provider's table, or `undefined` while no memory was ever stored with it. */
+  private async openTable(provider: EmbeddingProvider): Promise<Table | undefined> {
     const connection = await this.connect()
-    if (!(await connection.tableNames()).includes(TABLE)) return undefined
+    const name = tableOf(provider)
+    if (!(await connection.tableNames()).includes(name)) return undefined
 
-    return connection.openTable(TABLE)
+    return connection.openTable(name)
   }
 }
 

@@ -65,6 +65,9 @@ export function useWorld(): {
   isCreating: Ref<boolean>
   createError: Ref<IpcError | undefined>
   loadWorlds: () => Promise<void>
+  isDeletingWorld: Ref<boolean>
+  /** Deletes a world template; its campaigns are kept. `false` if the engine refused. */
+  deleteWorld: (worldId: string) => Promise<boolean>
   createWorld: (
     input: UpdateWorldInput & { isTemplate: boolean }
   ) => Promise<WorldSummary | undefined>
@@ -127,6 +130,7 @@ export function useWorld(): {
 
   const { isLoading: isLoadingWorlds, request: listRequest } = useRequest()
   const { isLoading: isCreating, error: createError, request } = useRequest()
+  const { isLoading: isDeletingWorld, execute: deleteWorldExecute } = useRequest()
   const {
     isLoading: isLoadingDetail,
     request: detailRequest,
@@ -178,6 +182,16 @@ export function useWorld(): {
     }
     const list = await listRequest('world:list', filter)
     if (list) templates.value = list
+  }
+
+  async function deleteWorld(worldId: string): Promise<boolean> {
+    if (!(await deleteWorldExecute('world:delete', worldId))) return false
+    templates.value = templates.value.filter((world) => world.id !== worldId)
+    // The campaigns cloned from it stay, but forget their source.
+    campaigns.value = campaigns.value.map((campaign) =>
+      campaign.sourceWorldId === worldId ? { ...campaign, sourceWorldId: null } : campaign
+    )
+    return true
   }
 
   async function createWorld(
@@ -472,6 +486,8 @@ export function useWorld(): {
     isCreating,
     createError,
     loadWorlds,
+    isDeletingWorld,
+    deleteWorld,
     createWorld,
     updateWorld,
     currentWorld,

@@ -136,11 +136,11 @@ export const ipcContract = {
   'aiSetting:catalog': channel<undefined, AiProviderCatalogEntry[]>(),
   /** The global AI setting (the default until one is saved); the API key is reported, never sent. */
   'aiSetting:get': channel<undefined, AiSettingView>(),
-  /** Saves provider, model, temperature and, if sent, the API key and the embeddings key; all kept across restarts. */
+  /** Saves provider, model, temperature, the embedding provider and, if sent, the API key and the embeddings key; all kept across restarts. */
   'aiSetting:update': channel<UpdateAiSetting, AiSettingView>(),
   /** Forgets the saved API key. */
   'aiSetting:clearApiKey': channel<undefined, AiSettingView>(),
-  /** Forgets the saved OpenAI key of the memory's embeddings. */
+  /** Forgets the saved key of the memory's embeddings. */
   'aiSetting:clearEmbeddingApiKey': channel<undefined, AiSettingView>(),
 
   /**
