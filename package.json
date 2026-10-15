@@ -54,7 +54,6 @@
     "drizzle-orm": "^1.0.0-rc.4",
     "embla-carousel-vue": "^8.6.0",
     "handlebars": "^4.7.10",
-    "lenis": "^1.3.26",
     "marked": "^18.1.0",
     "mastra": "^1.33.0",
     "pinia": "^4.0.3",

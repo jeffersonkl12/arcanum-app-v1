@@ -1,3 +1,4 @@
+export * from '@lib/ai-probe.lib'
 export * from '@lib/dice-assets-protocol.lib'
 export * from '@lib/dice.lib'
 export * from '@lib/embedder.lib'

@@ -17,6 +17,7 @@ import {
 import { actorImageService, itemImageService, worldImageService } from '@module/image.module'
 import {
   actorService,
+  aiConnectionService,
   aiSettingService,
   campaignService,
   cultureService,
@@ -45,7 +46,7 @@ export function registerIpc(): void {
       ...createItemRoutes(inventoryService, itemImageService),
       ...createPartyRoutes(partyService),
       ...createCampaignRoutes(campaignService),
-      ...createAiSettingRoutes(aiSettingService),
+      ...createAiSettingRoutes(aiSettingService, aiConnectionService),
       ...createGameMasterRoutes(gameMasterService, new RendererEvents())
     },
     {

@@ -1,3 +1,4 @@
+export * from '@renderer/util/ai-connection.util'
 export * from '@renderer/util/attribute.util'
 export * from '@renderer/util/character-roll.util'
 export * from '@renderer/util/clone-mapping.util'

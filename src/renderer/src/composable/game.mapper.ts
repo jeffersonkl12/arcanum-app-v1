@@ -44,7 +44,8 @@ export function proseToChatSegments(text: string): ChatSegment[] {
  */
 export function toChatSegments(segments: NarrationSegment[]): ChatSegment[] {
   return segments.flatMap((segment): ChatSegment[] => {
-    if (segment.type === 'ui') return [{ kind: 'ui', source: segment.source, issues: segment.issues }]
+    if (segment.type === 'ui')
+      return [{ kind: 'ui', source: segment.source, issues: segment.issues }]
     return segment.text.trim() ? [{ kind: 'markdown', text: segment.text }] : []
   })
 }
@@ -57,11 +58,14 @@ export function toGameChatMessage(
   const isPlayer = message.role === 'user'
   return {
     id: message.id,
+    key: message.id,
     role: isPlayer ? 'player' : 'master',
     senderName: isPlayer ? playerName : 'Mestre',
     timeLabel: formatMessageTime(message.createdAt),
     imagePath: isPlayer ? playerImagePath : undefined,
-    segments: isPlayer ? proseToChatSegments(message.text) : toChatSegments(message.segments)
+    segments: isPlayer ? proseToChatSegments(message.text) : toChatSegments(message.segments),
+    rating: isPlayer ? undefined : message.rating,
+    canRegenerate: !isPlayer && message.canRegenerate
   }
 }
 

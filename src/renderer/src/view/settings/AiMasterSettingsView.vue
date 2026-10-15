@@ -1,11 +1,21 @@
 <script setup lang="ts">
 import { toTypedSchema } from '@vee-validate/zod'
-import { Eye, EyeOff, KeyRound, Save, ShieldAlert } from '@lucide/vue'
+import {
+  CircleCheck,
+  CircleX,
+  Eye,
+  EyeOff,
+  KeyRound,
+  PlugZap,
+  Save,
+  ShieldAlert
+} from '@lucide/vue'
 import { useForm } from 'vee-validate'
 import { computed, onMounted, ref, watch } from 'vue'
 import { z } from 'zod'
-import type { UpdateAiSetting } from '@schema'
+import type { AiConnectionResult, TestAiConnection, UpdateAiSetting } from '@schema'
 import type { IpcError } from '@shared'
+import { translateConnectionFailure } from '@renderer/util/ai-connection.util'
 import { useAiSetting } from '@renderer/composable/ai-setting.composable'
 import { Button } from '@renderer/components/ui/button'
 import {
@@ -29,6 +39,7 @@ import {
   SelectValue
 } from '@renderer/components/ui/select'
 import { Slider } from '@renderer/components/ui/slider'
+import { Spinner } from '@renderer/components/ui/spinner'
 
 const formFields = [
   'provider',
@@ -62,7 +73,9 @@ const {
   loadAiSetting,
   saveAiSetting,
   clearApiKey,
-  clearEmbeddingApiKey
+  clearEmbeddingApiKey,
+  isTesting,
+  testConnection
 } = useAiSetting()
 
 const { handleSubmit, resetForm, setFieldValue, setErrors, values } = useForm({
@@ -112,6 +125,62 @@ const embeddingApiKeyPlaceholder = computed(() => {
 const hasStoredEmbeddingApiKey = computed(() => setting.value?.embeddingApiKey.source === 'stored')
 
 const memoryUnavailable = computed(() => setting.value?.embeddingApiKey.configured === false)
+
+type TestTarget = TestAiConnection['target']
+
+const testResults = ref<Partial<Record<TestTarget, AiConnectionResult>>>({})
+const testing = ref<TestTarget>()
+
+// A result describes the key and model it was run with, so any change to them invalidates it.
+watch(
+  () => [values.provider, values.model, values.apiKey],
+  () => delete testResults.value.chat
+)
+watch(
+  () => [values.embeddingProvider, values.embeddingApiKey, values.provider, values.apiKey],
+  () => delete testResults.value.embedding
+)
+
+function buildTest(target: TestTarget): TestAiConnection | undefined {
+  const apiKey = values.apiKey?.trim() || undefined
+
+  if (target === 'chat') {
+    if (!values.provider || !values.model) return undefined
+    return {
+      target,
+      provider: values.provider as Extract<TestAiConnection, { target: 'chat' }>['provider'],
+      model: values.model,
+      ...(apiKey ? { apiKey } : {})
+    }
+  }
+
+  if (!values.embeddingProvider) return undefined
+  // With no key of its own, the embeddings use the narrator's while both share a provider.
+  const embeddingApiKey =
+    values.embeddingApiKey?.trim() ||
+    (values.embeddingProvider === values.provider ? apiKey : undefined)
+  return {
+    target,
+    provider: values.embeddingProvider as Extract<
+      TestAiConnection,
+      { target: 'embedding' }
+    >['provider'],
+    ...(embeddingApiKey ? { apiKey: embeddingApiKey } : {})
+  }
+}
+
+async function runTest(target: TestTarget): Promise<void> {
+  const input = buildTest(target)
+  if (!input) return
+  testing.value = target
+  delete testResults.value[target]
+  try {
+    const result = await testConnection(input)
+    if (result) testResults.value[target] = result
+  } finally {
+    testing.value = undefined
+  }
+}
 
 const temperatureLabel = computed(() => Number(values.temperature ?? 0).toFixed(1))
 
@@ -310,6 +379,31 @@ function onTemperatureChange(value: number[] | undefined): void {
                 </InputGroupAddon>
               </InputGroup>
             </FormControl>
+            <div class="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                class="gap-2 rounded-full bg-transparent"
+                :disabled="isLoading || isTesting"
+                @click="runTest('chat')"
+              >
+                <Spinner v-if="testing === 'chat'" class="size-4" />
+                <PlugZap v-else class="size-4" />
+                Testar chave do Mestre IA
+              </Button>
+              <p v-if="testResults.chat?.ok" class="flex items-center gap-1 text-xs text-primary">
+                <CircleCheck class="size-4" />
+                Funcionando ({{ testResults.chat.latencyMs }} ms)
+              </p>
+              <p
+                v-else-if="testResults.chat"
+                class="flex items-center gap-1 text-xs text-destructive"
+              >
+                <CircleX class="size-4 shrink-0" />
+                {{ translateConnectionFailure(testResults.chat.reason) }}
+              </p>
+            </div>
             <FormMessage />
           </FormItem>
         </FormField>
@@ -382,6 +476,34 @@ function onTemperatureChange(value: number[] | undefined): void {
             <p v-if="memoryUnavailable" class="text-xs text-destructive">
               Sem esta chave a memória dos personagens fica desativada: nada é gravado nem buscado.
             </p>
+            <div class="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                class="gap-2 rounded-full bg-transparent"
+                :disabled="isLoading || isTesting"
+                @click="runTest('embedding')"
+              >
+                <Spinner v-if="testing === 'embedding'" class="size-4" />
+                <PlugZap v-else class="size-4" />
+                Testar embeddings
+              </Button>
+              <p
+                v-if="testResults.embedding?.ok"
+                class="flex items-center gap-1 text-xs text-primary"
+              >
+                <CircleCheck class="size-4" />
+                Funcionando ({{ testResults.embedding.latencyMs }} ms)
+              </p>
+              <p
+                v-else-if="testResults.embedding"
+                class="flex items-center gap-1 text-xs text-destructive"
+              >
+                <CircleX class="size-4 shrink-0" />
+                {{ translateConnectionFailure(testResults.embedding.reason) }}
+              </p>
+            </div>
             <FormMessage />
           </FormItem>
         </FormField>

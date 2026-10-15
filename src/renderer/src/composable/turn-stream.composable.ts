@@ -12,15 +12,34 @@ export interface TurnHandlers {
 }
 
 /**
- * Plays one turn through `gameMaster:streamTurn` and resolves when it is over (`done` or `error`).
- * The id that ties the events to the turn is picked here, and the listener is on before the call,
- * because the first event can arrive before the call resolves.
+ * Plays one turn, a new one through `gameMaster:streamTurn` or the last one again through
+ * `gameMaster:regenerateTurn`, and resolves when it is over (`done` or `error`). The id that ties
+ * the events to the turn is picked here, and the listener is on before the call, because the first
+ * event can arrive before the call resolves.
  */
 export function useTurnStream(): {
   streamTurn: (input: { worldId: string; message: string }, handlers: TurnHandlers) => Promise<void>
+  regenerateTurn: (input: { worldId: string }, handlers: TurnHandlers) => Promise<void>
 } {
-  async function streamTurn(
+  function streamTurn(
     input: { worldId: string; message: string },
+    handlers: TurnHandlers
+  ): Promise<void> {
+    return playTurn(
+      (turnId) => window.api.invoke('gameMaster:streamTurn', { turnId, ...input }),
+      handlers
+    )
+  }
+
+  function regenerateTurn(input: { worldId: string }, handlers: TurnHandlers): Promise<void> {
+    return playTurn(
+      (turnId) => window.api.invoke('gameMaster:regenerateTurn', { turnId, ...input }),
+      handlers
+    )
+  }
+
+  async function playTurn(
+    start: (turnId: string) => Promise<{ ok: true } | { ok: false; error: IpcError }>,
     handlers: TurnHandlers
   ): Promise<void> {
     const turnId = crypto.randomUUID()
@@ -53,7 +72,7 @@ export function useTurnStream(): {
       finish()
     })
 
-    const response = await window.api.invoke('gameMaster:streamTurn', { turnId, ...input })
+    const response = await start(turnId)
     if (!response.ok) {
       // Refused before it began (`conflict` if the world already has a turn running).
       stop()
@@ -64,5 +83,5 @@ export function useTurnStream(): {
     await finished
   }
 
-  return { streamTurn }
+  return { streamTurn, regenerateTurn }
 }

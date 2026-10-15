@@ -2,7 +2,7 @@ import type { Ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { toast } from 'vue-sonner'
 import type { Actor, Party } from '@schema'
-import type { NarrationSegment } from '@shared'
+import type { IpcOutput, NarrationSegment } from '@shared'
 import { appendNarrationDelta } from '@renderer/util/narration.util'
 import { useCampaign } from './campaign.composable'
 import {
@@ -20,13 +20,15 @@ import type {
   PartyMemberCardModel
 } from './game.type'
 import { useRequest } from './request.composable'
-import { useTurnStream } from './turn-stream.composable'
+import { useTurnStream, type TurnHandlers } from './turn-stream.composable'
 import { toActorSummary, toNamedEntitySummary } from './world.mapper'
 import { useWorld } from './world.composable'
 import type { ActorSummary } from './world.type'
 import { useGameStore } from '@renderer/store/game.store'
 
 const DEFAULT_PLAYER_NAME = 'Jogador'
+
+type StoredMessage = IpcOutput<'gameMaster:listHistory'>[number]
 
 export function useGame(): {
   session: Ref<GameSession | undefined>
@@ -46,6 +48,8 @@ export function useGame(): {
   isAiKeyMissing: Ref<boolean>
   loadGame: (worldId: string) => Promise<void>
   sendMessage: (text?: string) => Promise<void>
+  regenerateLast: () => Promise<void>
+  rateMessage: (messageId: string, rating: 1 | -1) => Promise<void>
   playPendingOpening: () => Promise<void>
   openCharacterSheet: (actorId: string) => void
   closeCharacterSheet: () => void
@@ -76,7 +80,7 @@ export function useGame(): {
   } = storeToRefs(store)
 
   const { isLoading, request, execute } = useRequest()
-  const { streamTurn } = useTurnStream()
+  const { streamTurn, regenerateTurn } = useTurnStream()
   const { loadWorld } = useWorld()
   const { rememberCampaign } = useCampaign()
 
@@ -153,10 +157,90 @@ export function useGame(): {
     rememberCampaign(worldId)
   }
 
+  function newMasterMessage(): GameChatMessage {
+    const now = new Date()
+    return {
+      id: `local-master-${now.getTime()}`,
+      key: `local-master-${now.getTime()}`,
+      role: 'master',
+      senderName: 'Mestre',
+      timeLabel: formatMessageTime(now),
+      segments: [],
+      isStreaming: true
+    }
+  }
+
+  /**
+   * Shows a turn that is being written into `master` and resolves to whether it finished. `start`
+   * plays the turn with the handlers it is given. The engine rolls the dice and decides what
+   * happens; this only shows it.
+   */
+  async function showTurn(
+    master: GameChatMessage,
+    start: (handlers: TurnHandlers) => Promise<void>
+  ): Promise<boolean> {
+    function updateMaster(patch: Partial<GameChatMessage>): void {
+      const target = messages.value.find((item) => item.key === master.key)
+      if (target) Object.assign(target, patch)
+    }
+
+    const written: NarrationSegment[] = []
+    let failed = false
+    await start({
+      onDelta: (event) => {
+        appendNarrationDelta(written, event)
+        updateMaster({ segments: toChatSegments(written) })
+      },
+      // Final segments replace the accumulated ones: they are trimmed and validated.
+      onDone: (event) =>
+        updateMaster({ segments: toChatSegments(event.segments), isStreaming: false }),
+      onError: () => {
+        failed = true
+      }
+    })
+
+    return !failed
+  }
+
+  /**
+   * The messages just played have a local id. Once the turn is stored they get the ones of the
+   * campaign, which is what rating and playing again need; `key` stays, so nothing is redrawn.
+   */
+  async function adoptStoredIds(worldId: string): Promise<void> {
+    const history = await request('gameMaster:listHistory', worldId)
+    if (!history || session.value?.worldId !== worldId) return
+
+    function lastStored(role: 'user' | 'assistant'): StoredMessage | undefined {
+      return history?.findLast((message) => message.role === role)
+    }
+    const stored = new Map(history.map((message) => [message.id, message]))
+
+    for (const message of messages.value) {
+      if (message.id.startsWith('local-')) {
+        const counterpart = lastStored(message.role === 'player' ? 'user' : 'assistant')
+        if (counterpart) message.id = counterpart.id
+      }
+      const match = stored.get(message.id)
+      message.rating = match?.rating
+      // Only the last reply can be written again.
+      message.canRegenerate = match?.canRegenerate === true
+    }
+  }
+
+  /** Reads the conversation again, e.g. when a turn that was taken back never started again. */
+  async function reloadMessages(worldId: string): Promise<void> {
+    const current = session.value
+    const history = await request('gameMaster:listHistory', worldId)
+    if (!history || !current || current.worldId !== worldId) return
+
+    messages.value = history.map((message) =>
+      toGameChatMessage(message, current.playerName, current.playerImagePath)
+    )
+  }
+
   /**
    * Plays a turn: the player's text goes to the narrator and its reply is shown as it is written.
-   * Without `text`, the draft of the composer is sent. The engine rolls the dice and decides what
-   * happens; this only shows it.
+   * Without `text`, the draft of the composer is sent.
    */
   async function sendMessage(text?: string): Promise<void> {
     const current = session.value
@@ -169,57 +253,79 @@ export function useGame(): {
     const now = new Date()
     const playerMessage: GameChatMessage = {
       id: `local-player-${now.getTime()}`,
+      key: `local-player-${now.getTime()}`,
       role: 'player',
       senderName: current.playerName,
       timeLabel: formatMessageTime(now),
       imagePath: current.playerImagePath,
       segments: proseToChatSegments(message)
     }
-    const masterMessage: GameChatMessage = {
-      id: `local-master-${now.getTime()}`,
-      role: 'master',
-      senderName: 'Mestre',
-      timeLabel: formatMessageTime(now),
-      segments: [],
-      isStreaming: true
-    }
+    const masterMessage = newMasterMessage()
     messages.value = [...messages.value, playerMessage, masterMessage]
 
-    function updateMaster(patch: Partial<GameChatMessage>): void {
-      const target = messages.value.find((item) => item.id === masterMessage.id)
-      if (target) Object.assign(target, patch)
-    }
-
-    const written: NarrationSegment[] = []
-    let failed = false
     try {
-      await streamTurn(
-        { worldId: current.worldId, message },
-        {
-          onDelta: (event) => {
-            appendNarrationDelta(written, event)
-            updateMaster({ segments: toChatSegments(written) })
-          },
-          // Final segments replace the accumulated ones: they are trimmed and validated.
-          onDone: (event) =>
-            updateMaster({ segments: toChatSegments(event.segments), isStreaming: false }),
-          onError: () => {
-            failed = true
-          }
-        }
+      const finished = await showTurn(masterMessage, (handlers) =>
+        streamTurn({ worldId: current.worldId, message }, handlers)
       )
 
-      if (failed) {
+      if (!finished) {
         // The turn is not in the campaign memory, so it is not in the chat either.
         messages.value = messages.value.filter(
-          (item) => item.id !== playerMessage.id && item.id !== masterMessage.id
+          (item) => item.key !== playerMessage.key && item.key !== masterMessage.key
         )
         if (draft.value.length === 0) draft.value = message
         return
       }
-      await refreshParty(current.worldId)
+      await Promise.all([adoptStoredIds(current.worldId), refreshParty(current.worldId)])
     } finally {
       isSending.value = false
+    }
+  }
+
+  /**
+   * Asks the narrator to answer the last message again. The old reply is replaced as soon as the new
+   * one starts; if the turn does not start, the conversation is read again to show what is left.
+   */
+  async function regenerateLast(): Promise<void> {
+    const current = session.value
+    if (!current || isSending.value) return
+
+    const lastPlayerIndex = messages.value.findLastIndex((item) => item.role === 'player')
+    if (lastPlayerIndex === -1 || !messages.value.at(-1)?.canRegenerate) return
+
+    isSending.value = true
+    const previous = messages.value
+    const masterMessage = newMasterMessage()
+    messages.value = [...previous.slice(0, lastPlayerIndex + 1), masterMessage]
+
+    try {
+      const finished = await showTurn(masterMessage, (handlers) =>
+        regenerateTurn({ worldId: current.worldId }, handlers)
+      )
+
+      if (finished) {
+        await Promise.all([adoptStoredIds(current.worldId), refreshParty(current.worldId)])
+      } else {
+        // Refused, the conversation stays as it was; failed later, the turn was already taken back.
+        await reloadMessages(current.worldId)
+      }
+    } finally {
+      isSending.value = false
+    }
+  }
+
+  /** Rates a reply of the narrator; choosing the rating it already has takes it back. */
+  async function rateMessage(messageId: string, rating: 1 | -1): Promise<void> {
+    const worldId = session.value?.worldId
+    const target = messages.value.find((item) => item.id === messageId)
+    if (!worldId || !target || target.id.startsWith('local-')) return
+
+    const previous = target.rating ?? null
+    const next = previous === rating ? null : rating
+    target.rating = next
+
+    if (!(await execute('gameMaster:rateMessage', { worldId, messageId, rating: next }))) {
+      target.rating = previous
     }
   }
 
@@ -302,6 +408,8 @@ export function useGame(): {
     isAiKeyMissing,
     loadGame,
     sendMessage,
+    regenerateLast,
+    rateMessage,
     playPendingOpening,
     openCharacterSheet,
     closeCharacterSheet,

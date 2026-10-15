@@ -1,4 +1,4 @@
-import { AI_HELPER_MODELS, toMastraModelId } from '@constant'
+import { AI_HELPER_MODELS, toMastraModelId, type MessageRating } from '@constant'
 import { ConflictError, NotFoundError } from '@error'
 import type {
   CampaignMessage,
@@ -13,6 +13,7 @@ import type { IAiSettingService } from '@service/ai-setting.service'
 import type { IDiceCheckService } from '@service/dice-check.service'
 import type { ILiveContextService } from '@service/live-context.service'
 import type { IMemoryService } from '@service/memory.service'
+import type { IMessageRatingService } from '@service/message-rating.service'
 import type { IPartyService } from '@service/party.service'
 import type { IRelationshipService } from '@service/relationship.service'
 import type { IWorldService } from '@service/world.service'
@@ -47,6 +48,18 @@ export interface IGameMasterService {
    * The caller must iterate the result to the end: that is what finishes the turn and frees the world.
    */
   streamTurn(worldId: string, playerMessage: string): Promise<AsyncIterable<NarratorStreamEvent>>
+  /**
+   * Plays the last turn again: takes it back from the conversation and streams a new narration for
+   * the same player message. If the new turn then fails to start, the old one is already gone and
+   * the caller has to read the history again. Throws `NotFoundError` for a missing world and `ConflictError` if a turn is
+   * running or the last turn cannot be redone (see `CampaignMessage.canRegenerate`).
+   */
+  regenerateTurn(worldId: string): Promise<AsyncIterable<NarratorStreamEvent>>
+  /**
+   * Rates a reply of the narrator; `null` takes the rating back. Throws `NotFoundError` if the
+   * world or the reply does not exist.
+   */
+  rateMessage(worldId: string, messageId: string, rating: MessageRating | null): Promise<void>
   /** The stored conversation of the world's campaign. Throws `NotFoundError` for a missing world. */
   listHistory(worldId: string): Promise<CampaignMessage[]>
   /**
@@ -81,7 +94,8 @@ export class GameMasterService implements IGameMasterService {
     private readonly relationshipService: IRelationshipService,
     private readonly relationshipRegistry: IRelationshipRegistry,
     private readonly campaignService: ICampaignService,
-    private readonly campaignRegistry: ICampaignRegistry
+    private readonly campaignRegistry: ICampaignRegistry,
+    private readonly messageRatingService: IMessageRatingService
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
@@ -92,26 +106,79 @@ export class GameMasterService implements IGameMasterService {
     worldId: string,
     playerMessage: string
   ): Promise<AsyncIterable<NarratorStreamEvent>> {
-    // Checked and taken before any await, so two calls cannot both pass.
-    if (this.streaming.has(worldId)) {
-      throw new ConflictError('The narrator is already answering in this world')
+    return this.startStream(worldId, async () => playerMessage)
+  }
+
+  async regenerateTurn(worldId: string): Promise<AsyncIterable<NarratorStreamEvent>> {
+    return this.startStream(worldId, async () => {
+      await this.worldService.get(worldId)
+
+      const rewound = await this.narrator.rewindLastTurn(worldId)
+      if (!rewound) throw new ConflictError('The last turn cannot be played again')
+
+      await this.messageRatingService.forget(worldId, rewound.removedIds)
+
+      return rewound.playerMessage
+    })
+  }
+
+  async rateMessage(
+    worldId: string,
+    messageId: string,
+    rating: MessageRating | null
+  ): Promise<void> {
+    await this.worldService.get(worldId)
+
+    const messages = await this.narrator.listMessages(worldId)
+    if (!messages.some((message) => message.id === messageId && message.role === 'assistant')) {
+      throw new NotFoundError('Message', messageId)
     }
-    this.streaming.add(worldId)
 
+    await this.messageRatingService.rate(worldId, messageId, rating)
+
+    // Evaluation data only: the rating above is what the player sees, so a trace that is missing or
+    // an observability that fails must not undo it. Taking a rating back leaves the record as it was.
+    if (rating === null) return
     try {
-      const turn = await this.prepareTurn(worldId, playerMessage)
-
-      return this.releaseWhenDone(worldId, await this.narrator.narrateStream(turn))
+      await this.narrator.recordFeedback(worldId, messageId, rating)
     } catch (error) {
-      this.streaming.delete(worldId)
-      throw error
+      console.warn('The rating could not be recorded as feedback of the narrator:', error)
     }
   }
 
   async listHistory(worldId: string): Promise<CampaignMessage[]> {
     await this.worldService.get(worldId)
 
-    return this.narrator.listMessages(worldId)
+    const [messages, ratings] = await Promise.all([
+      this.narrator.listMessages(worldId),
+      this.messageRatingService.listByWorld(worldId)
+    ])
+
+    return messages.map((message) => ({ ...message, rating: ratings.get(message.id) ?? null }))
+  }
+
+  /**
+   * Takes the world for a turn and starts it with the message `chooseMessage` returns. The world is
+   * taken before any await, so two calls cannot both pass, and it is freed if the turn does not
+   * start or when the iteration ends.
+   */
+  private async startStream(
+    worldId: string,
+    chooseMessage: () => Promise<string>
+  ): Promise<AsyncIterable<NarratorStreamEvent>> {
+    if (this.streaming.has(worldId)) {
+      throw new ConflictError('The narrator is already answering in this world')
+    }
+    this.streaming.add(worldId)
+
+    try {
+      const turn = await this.prepareTurn(worldId, await chooseMessage())
+
+      return this.releaseWhenDone(worldId, await this.narrator.narrateStream(turn))
+    } catch (error) {
+      this.streaming.delete(worldId)
+      throw error
+    }
   }
 
   async deleteCampaign(worldId: string): Promise<void> {

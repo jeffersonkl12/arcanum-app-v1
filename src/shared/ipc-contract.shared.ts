@@ -24,8 +24,11 @@ import type {
   UpdateWorld,
   UpdateAiSetting,
   World,
+  AiConnectionResult,
+  TestAiConnection,
   AiSettingView,
-  WorldFilter
+  WorldFilter,
+  RateMessage
 } from '@schema'
 import type { AiProviderCatalogEntry } from '@service/ai-setting.service'
 import type { CheckResult } from '@service/dice-check.service'
@@ -142,6 +145,11 @@ export const ipcContract = {
   'aiSetting:clearApiKey': channel<undefined, AiSettingView>(),
   /** Forgets the saved key of the memory's embeddings. */
   'aiSetting:clearEmbeddingApiKey': channel<undefined, AiSettingView>(),
+  /**
+   * Calls the provider with a key (the one sent, else the one in use) to see that it works. A failure
+   * resolves as `{ ok: false, reason }`, not as an IPC error.
+   */
+  'aiSetting:testConnection': channel<TestAiConnection, AiConnectionResult>(),
 
   /**
    * Resolves a check whose dice the player rolled on screen: the faces are only the entropy, the
@@ -163,6 +171,15 @@ export const ipcContract = {
    * already has a turn running.
    */
   'gameMaster:streamTurn': channel<{ turnId: string; worldId: string; message: string }, void>(),
+  /**
+   * Plays the last turn again: it is taken back from the conversation and the narrator answers the
+   * same player message anew, through the same events as `gameMaster:streamTurn`. Fails with
+   * `conflict` if a turn is running or the last turn cannot be redone (`canRegenerate`: it rolled
+   * dice or changed the game, which the engine does not undo).
+   */
+  'gameMaster:regenerateTurn': channel<{ turnId: string; worldId: string }, void>(),
+  /** Rates a reply of the narrator (`1` up, `-1` down); `null` takes the rating back. */
+  'gameMaster:rateMessage': channel<RateMessage, void>(),
   'gameMaster:listHistory': channel<string, CampaignMessage[]>(),
   /** Deletes a campaign (a world that is not a template) with all its data and conversation. */
   'gameMaster:deleteCampaign': channel<string, void>()

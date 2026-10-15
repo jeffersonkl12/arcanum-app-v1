@@ -1,6 +1,8 @@
 import type { Agent, AgentExecutionOptions } from '@mastra/core/agent'
+import type { MastraDBMessage } from '@mastra/core/agent/message-list'
 import type { Mastra } from '@mastra/core/mastra'
 import { RequestContext } from '@mastra/core/request-context'
+import { READ_ONLY_NARRATOR_TOOLS, type MessageRating } from '@constant'
 import { validateNarratorUi } from '@lib/openui.lib'
 import type { NarrationDeltaEvent, NarrationDoneEvent, NarrationSegment } from '@shared'
 import { NarrationStreamSplitter, splitNarration } from '@util/narration.util'
@@ -54,6 +56,18 @@ export interface CampaignMessage {
   /** `text` split into prose and UI blocks, the same way a streamed turn ends. */
   segments: NarrationSegment[]
   createdAt: Date
+  /** What the player thought of the reply. The gateway does not know it; the service fills it in. */
+  rating: MessageRating | null
+  /** The last reply of the campaign, and the turn that wrote it changed nothing in the game. */
+  canRegenerate: boolean
+}
+
+/** A turn taken back from the conversation so it can be played again. */
+export interface RewoundTurn {
+  /** What the player said in it. */
+  playerMessage: string
+  /** The messages that were removed, the player's and the narrator's. */
+  removedIds: string[]
 }
 
 /**
@@ -62,6 +76,9 @@ export interface CampaignMessage {
  * what it accumulated.
  */
 export type NarratorStreamEvent = NarrationDeltaEvent | NarrationDoneEvent
+
+/** The memory of the narrator agent, where the campaign conversation is stored. */
+type NarratorMemory = NonNullable<Awaited<ReturnType<Agent['getMemory']>>>
 
 /** The agent and the options of one run, as `generate` and `stream` take them. */
 interface PreparedRun {
@@ -82,6 +99,17 @@ export interface INarratorGateway {
   listMessages(worldId: string): Promise<CampaignMessage[]>
   /** Forgets the campaign of a world: its messages and what Observational Memory distilled from them. */
   deleteCampaign(worldId: string): Promise<void>
+  /**
+   * Removes the last turn (the player's message and everything the narrator did after it) so it can
+   * be played again. Returns `undefined`, removing nothing, if the campaign has no turn or the turn
+   * rolled dice or changed the game: the engine does not undo that, so the turn cannot be redone.
+   */
+  rewindLastTurn(worldId: string): Promise<RewoundTurn | undefined>
+  /**
+   * Attaches the player's rating of a reply to the trace that wrote it, for evaluation. Resolves to
+   * whether it was recorded: a reply from a run with no trace has nowhere to attach it.
+   */
+  recordFeedback(worldId: string, messageId: string, rating: MessageRating): Promise<boolean>
 }
 
 /**
@@ -157,7 +185,86 @@ export class NarratorGateway implements INarratorGateway {
   }
 
   async listMessages(worldId: string): Promise<CampaignMessage[]> {
-    const memory = await (await this.loadMastra()).getAgent('narrator').getMemory()
+    const stored = await this.recallCampaign(worldId)
+    const lastTurn = lastTurnOf(stored)
+    const lastReply = lastTurn.findLast((message) => message.role === 'assistant')
+    const canRegenerate = lastTurn.length > 1 && isRepeatable(lastTurn)
+
+    // Tool calls and reports of specialists are plumbing; the player only sees the dialogue.
+    return stored.flatMap((message) => {
+      if (message.role !== 'user' && message.role !== 'assistant') return []
+
+      const text = textOf(message)
+      if (!text) return []
+
+      // Only what the narrator wrote can hold UI blocks; the player's text is never interpreted.
+      const segments: NarrationSegment[] =
+        message.role === 'assistant' ? toNarrationSegments(text) : [{ type: 'prose', text }]
+
+      return [
+        {
+          id: message.id,
+          role: message.role,
+          text,
+          segments,
+          createdAt: message.createdAt,
+          rating: null,
+          canRegenerate: canRegenerate && message.id === lastReply?.id
+        }
+      ]
+    })
+  }
+
+  async rewindLastTurn(worldId: string): Promise<RewoundTurn | undefined> {
+    const memory = await this.campaignMemory()
+    const lastTurn = lastTurnOf(await this.recallCampaign(worldId))
+    const [opening] = lastTurn
+    if (!memory || opening?.role !== 'user' || !isRepeatable(lastTurn)) return undefined
+
+    const removedIds = lastTurn.map((message) => message.id)
+    await memory.deleteMessages(removedIds)
+
+    return { playerMessage: textOf(opening), removedIds }
+  }
+
+  async recordFeedback(
+    worldId: string,
+    messageId: string,
+    rating: MessageRating
+  ): Promise<boolean> {
+    const message = (await this.recallCampaign(worldId)).find((item) => item.id === messageId)
+    const traceId = message?.content.metadata?.traceId
+    if (typeof traceId !== 'string') return false
+
+    const { observability } = await this.loadMastra()
+    // Optional on the interface: an observability that cannot take feedback is not an error.
+    if (!observability.addFeedback) return false
+
+    await observability.addFeedback({
+      traceId,
+      feedback: { feedbackSource: 'user', feedbackType: 'thumbs', value: rating }
+    })
+
+    return true
+  }
+
+  async deleteCampaign(worldId: string): Promise<void> {
+    const memory = await this.campaignMemory()
+    if (!memory) return
+
+    // The thread is created by the first turn, so a campaign never played has nothing to delete.
+    if (!(await memory.getThreadById({ threadId: campaignThreadId(worldId) }))) return
+
+    await memory.deleteThread(campaignThreadId(worldId))
+  }
+
+  private async campaignMemory(): Promise<NarratorMemory | undefined> {
+    return (await (await this.loadMastra()).getAgent('narrator').getMemory()) ?? undefined
+  }
+
+  /** Every message of the campaign, oldest first; empty for a campaign that was never played. */
+  private async recallCampaign(worldId: string): Promise<MastraDBMessage[]> {
+    const memory = await this.campaignMemory()
     if (!memory) return []
 
     // The thread is created by the first turn, so a new campaign has no history yet (and `recall`
@@ -170,34 +277,37 @@ export class NarratorGateway implements INarratorGateway {
       perPage: false
     })
 
-    // Tool calls and reports of specialists are plumbing; the player only sees the dialogue.
-    return messages.flatMap((stored) => {
-      if (stored.role !== 'user' && stored.role !== 'assistant') return []
-
-      const text = stored.content.parts
-        .flatMap((part) => (part.type === 'text' ? [part.text] : []))
-        .join('')
-        .trim()
-
-      if (!text) return []
-
-      // Only what the narrator wrote can hold UI blocks; the player's text is never interpreted.
-      const segments: NarrationSegment[] =
-        stored.role === 'assistant' ? toNarrationSegments(text) : [{ type: 'prose', text }]
-
-      return [{ id: stored.id, role: stored.role, text, segments, createdAt: stored.createdAt }]
-    })
+    return messages
   }
+}
 
-  async deleteCampaign(worldId: string): Promise<void> {
-    const memory = await (await this.loadMastra()).getAgent('narrator').getMemory()
-    if (!memory) return
+/** The text parts of a stored message, joined; tool calls and the like have none. */
+function textOf(message: MastraDBMessage): string {
+  return message.content.parts
+    .flatMap((part) => (part.type === 'text' ? [part.text] : []))
+    .join('')
+    .trim()
+}
 
-    // The thread is created by the first turn, so a campaign never played has nothing to delete.
-    if (!(await memory.getThreadById({ threadId: campaignThreadId(worldId) }))) return
+/**
+ * The last turn of a conversation: the player's message and everything stored after it (the
+ * narrator can write more than one message while it uses tools). Empty if the player never spoke.
+ */
+function lastTurnOf(messages: MastraDBMessage[]): MastraDBMessage[] {
+  const start = messages.findLastIndex((message) => message.role === 'user')
 
-    await memory.deleteThread(campaignThreadId(worldId))
-  }
+  return start === -1 ? [] : messages.slice(start)
+}
+
+/** Whether a turn can be played again: every tool it called only read the game. */
+function isRepeatable(turn: MastraDBMessage[]): boolean {
+  return turn.every((message) =>
+    message.content.parts.every(
+      (part) =>
+        part.type !== 'tool-invocation' ||
+        READ_ONLY_NARRATOR_TOOLS.includes(part.toolInvocation.toolName)
+    )
+  )
 }
 
 /** One campaign per world for now; a session-per-thread model only needs a new id scheme here. */

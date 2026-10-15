@@ -2,6 +2,7 @@ import { TEXT_LIMITS } from '@constant'
 import { idSchema } from '@ipc/common.ipc'
 import { toIpcError } from '@ipc/error.ipc'
 import { route, type RoutesOf } from '@ipc/route.ipc'
+import { rateMessageSchema } from '@schema'
 import type { IRendererEvents } from '@lib/renderer-events.lib'
 import type { NarratorStreamEvent } from '@lib/narrator.lib'
 import type { IGameMasterService } from '@service/game-master.service'
@@ -13,6 +14,8 @@ const turnSchema = z.object({
 })
 
 const streamTurnSchema = turnSchema.extend({ turnId: z.uuid() })
+
+const regenerateTurnSchema = z.object({ turnId: z.uuid(), worldId: idSchema })
 
 export function createGameMasterRoutes(
   gameMasterService: IGameMasterService,
@@ -29,6 +32,14 @@ export function createGameMasterRoutes(
       // From here on the turn runs on its own and reports through events, not through this reply.
       void forwardTurn(turnId, events, rendererEvents)
     }),
+    'gameMaster:regenerateTurn': route(regenerateTurnSchema, async ({ turnId, worldId }) => {
+      const events = await gameMasterService.regenerateTurn(worldId)
+
+      void forwardTurn(turnId, events, rendererEvents)
+    }),
+    'gameMaster:rateMessage': route(rateMessageSchema, ({ worldId, messageId, rating }) =>
+      gameMasterService.rateMessage(worldId, messageId, rating)
+    ),
     'gameMaster:listHistory': route(idSchema, (worldId) => gameMasterService.listHistory(worldId)),
     'gameMaster:deleteCampaign': route(idSchema, (worldId) =>
       gameMasterService.deleteCampaign(worldId)

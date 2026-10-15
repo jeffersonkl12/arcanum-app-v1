@@ -1,3 +1,4 @@
+import { AiProbe } from '@lib/ai-probe.lib'
 import { Embedder } from '@lib/embedder.lib'
 import { LanceMemoryVectorStore } from '@lib/memory-vector.lib'
 import { NarratorGateway } from '@lib/narrator.lib'
@@ -11,6 +12,7 @@ import { ActorRepository } from '@repository/actor.repository'
 import { AiSettingRepository } from '@repository/ai-setting.repository'
 import { CultureRepository } from '@repository/culture.repository'
 import { ItemRepository } from '@repository/item.repository'
+import { MessageRatingRepository } from '@repository/message-rating.repository'
 import { LanguageRepository } from '@repository/language.repository'
 import { CampaignRepository } from '@repository/campaign.repository'
 import { PartyRepository } from '@repository/party.repository'
@@ -18,6 +20,7 @@ import { RelationshipRepository } from '@repository/relationship.repository'
 import { WorldCloneRepository } from '@repository/world-clone.repository'
 import { WorldRepository } from '@repository/world.repository'
 import { ActorService, type IActorService } from '@service/actor.service'
+import { AiConnectionService, type IAiConnectionService } from '@service/ai-connection.service'
 import { AiSettingService, type IAiSettingService } from '@service/ai-setting.service'
 import { CoinRegistryService } from '@service/coin-registry.service'
 import { CoinService } from '@service/coin.service'
@@ -32,6 +35,7 @@ import { LiveContextService } from '@service/live-context.service'
 import { MemoryContextService } from '@service/memory-context.service'
 import { MemoryRegistryService } from '@service/memory-registry.service'
 import { MemoryService, type IMemoryService } from '@service/memory.service'
+import { MessageRatingService } from '@service/message-rating.service'
 import { CampaignRegistryService } from '@service/campaign-registry.service'
 import { CampaignService, type ICampaignService } from '@service/campaign.service'
 import { PartyService, type IPartyService } from '@service/party.service'
@@ -76,6 +80,10 @@ export const aiSettingService: IAiSettingService = new AiSettingService(
   new AiSettingRepository(database),
   new SecretCipher()
 )
+export const aiConnectionService: IAiConnectionService = new AiConnectionService(
+  aiSettingService,
+  new AiProbe()
+)
 // Embeddings come from the provider the player picked: the key saved for them in the app (or the chat
 // key while the narrator is of the same provider), else that provider's environment variable. Without
 // any, memory is simply unavailable.
@@ -109,5 +117,6 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   relationshipService,
   new RelationshipRegistryService(relationshipService, actorService),
   campaignService,
-  new CampaignRegistryService(campaignService)
+  new CampaignRegistryService(campaignService),
+  new MessageRatingService(new MessageRatingRepository(database))
 )

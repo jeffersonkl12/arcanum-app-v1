@@ -1,7 +1,7 @@
 import { computed, type ComputedRef, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { toast } from 'vue-sonner'
-import type { AiSettingView, UpdateAiSetting } from '@schema'
+import type { AiConnectionResult, AiSettingView, TestAiConnection, UpdateAiSetting } from '@schema'
 import type { IpcError } from '@shared'
 import type { AiProviderCatalogEntry } from './ai-setting.type'
 import { useRequest } from './request.composable'
@@ -17,9 +17,13 @@ export function useAiSetting(): {
   saveAiSetting: (input: UpdateAiSetting) => Promise<AiSettingView | undefined>
   clearApiKey: () => Promise<AiSettingView | undefined>
   clearEmbeddingApiKey: () => Promise<AiSettingView | undefined>
+  isTesting: Ref<boolean>
+  testConnection: (input: TestAiConnection) => Promise<AiConnectionResult | undefined>
 } {
   const { setting, catalog } = storeToRefs(useAiSettingStore())
   const { isLoading, error, request } = useRequest()
+  // Apart from `isLoading`, so a test in flight does not lock the whole form.
+  const { isLoading: isTesting, request: requestTest } = useRequest()
 
   const selectedProvider = computed(() =>
     catalog.value.find((entry) => entry.id === setting.value?.provider)
@@ -58,6 +62,10 @@ export function useAiSetting(): {
     return updated
   }
 
+  async function testConnection(input: TestAiConnection): Promise<AiConnectionResult | undefined> {
+    return requestTest('aiSetting:testConnection', input)
+  }
+
   return {
     setting,
     catalog,
@@ -67,6 +75,8 @@ export function useAiSetting(): {
     loadAiSetting,
     saveAiSetting,
     clearApiKey,
-    clearEmbeddingApiKey
+    clearEmbeddingApiKey,
+    isTesting,
+    testConnection
   }
 }

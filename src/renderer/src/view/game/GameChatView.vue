@@ -8,7 +8,8 @@ import { Alert, AlertDescription, AlertTitle } from '@renderer/components/ui/ale
 import { Separator } from '@renderer/components/ui/separator'
 import { useGame } from '@renderer/composable/game.composable'
 
-const { messages, draft, isSending, isAiKeyMissing, sendMessage } = useGame()
+const { messages, draft, isSending, isAiKeyMissing, sendMessage, regenerateLast, rateMessage } =
+  useGame()
 const scrollRef = useTemplateRef<HTMLElement>('scrollRef')
 
 // Only the last thing the narrator said can still be answered with its options.
@@ -16,8 +17,7 @@ const lastMasterId = computed(
   () => messages.value.findLast((message) => message.role === 'master')?.id
 )
 
-// The chat uses the native scroll: Lenis caches the scroll limit and, with the container as its own
-// content, never learns that streamed messages made it taller, so the bottom became unreachable.
+// The chat uses the native scroll and sticks to the bottom while streamed messages grow it.
 const STICK_THRESHOLD = 120
 let stickToBottom = true
 
@@ -73,10 +73,13 @@ onMounted(async () => {
 
       <GameChatMessage
         v-for="message in messages"
-        :key="message.id"
+        :key="message.key"
         :message="message"
         :interactive="!isSending && message.id === lastMasterId"
+        :busy="isSending"
         @choose="void sendMessage($event)"
+        @rate="void rateMessage(message.id, $event)"
+        @regenerate="void regenerateLast()"
       />
     </div>
 

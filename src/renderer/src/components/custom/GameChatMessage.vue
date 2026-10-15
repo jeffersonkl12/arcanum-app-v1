@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { RefreshCw, ThumbsDown, ThumbsUp } from '@lucide/vue'
 import { toImageUrl } from '@shared'
 import type { GameChatMessage } from '@renderer/composable/game.type'
 import NarratorMarkdown from '@renderer/components/custom/NarratorMarkdown.vue'
 import NarratorUi from '@renderer/components/custom/NarratorUi.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@renderer/components/ui/avatar'
 import { Bubble, BubbleContent } from '@renderer/components/ui/bubble'
+import { Button } from '@renderer/components/ui/button'
 import {
   Message,
   MessageAvatar,
@@ -18,10 +20,14 @@ const props = defineProps<{
   message: GameChatMessage
   /** The player may pick the options the narrator offers in this message. */
   interactive?: boolean
+  /** A turn is being played, so the reply cannot be rated or written again now. */
+  busy?: boolean
 }>()
 
 const emit = defineEmits<{
   choose: [text: string]
+  rate: [rating: 1 | -1]
+  regenerate: []
 }>()
 
 function initials(value: string): string {
@@ -76,7 +82,7 @@ function initials(value: string): string {
         >
           <template
             v-for="(segment, index) in props.message.segments"
-            :key="`${props.message.id}-${index}`"
+            :key="`${props.message.key}-${index}`"
           >
             <NarratorUi
               v-if="segment.kind === 'ui'"
@@ -99,6 +105,42 @@ function initials(value: string): string {
           </p>
         </BubbleContent>
       </Bubble>
+      <div
+        v-if="props.message.role === 'master' && !props.message.isStreaming"
+        class="flex items-center gap-1"
+      >
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Gostei da resposta"
+          :aria-pressed="props.message.rating === 1"
+          :class="cn('text-muted-foreground', props.message.rating === 1 && 'text-primary')"
+          @click="emit('rate', 1)"
+        >
+          <ThumbsUp :class="cn(props.message.rating === 1 && 'fill-current')" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Não gostei da resposta"
+          :aria-pressed="props.message.rating === -1"
+          :class="cn('text-muted-foreground', props.message.rating === -1 && 'text-destructive')"
+          @click="emit('rate', -1)"
+        >
+          <ThumbsDown :class="cn(props.message.rating === -1 && 'fill-current')" />
+        </Button>
+        <Button
+          v-if="props.message.canRegenerate"
+          variant="ghost"
+          size="sm"
+          class="text-muted-foreground"
+          :disabled="props.busy"
+          @click="emit('regenerate')"
+        >
+          <RefreshCw />
+          Gerar novamente
+        </Button>
+      </div>
     </MessageContent>
   </Message>
 </template>

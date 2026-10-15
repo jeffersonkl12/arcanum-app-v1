@@ -93,3 +93,42 @@ export const updateAiSettingSchema = z
   .superRefine(checkAiSetting)
 
 export type UpdateAiSetting = z.infer<typeof updateAiSettingSchema>
+
+/**
+ * Asks whether a provider answers with a key, before the player saves anything. `provider` (and
+ * `model` for the narrator) are what the form shows now, which may differ from what is saved. With
+ * no `apiKey` the key that would be used in a turn is tested instead: the saved one, else the
+ * environment's.
+ */
+export const testAiConnectionSchema = z.discriminatedUnion('target', [
+  z.object({
+    target: z.literal('chat'),
+    provider: z.enum(AI_PROVIDERS),
+    model: z.string().trim().min(1),
+    apiKey: apiKeySchema.optional()
+  }),
+  z.object({
+    target: z.literal('embedding'),
+    provider: z.enum(EMBEDDING_PROVIDERS),
+    apiKey: apiKeySchema.optional()
+  })
+])
+
+export type TestAiConnection = z.infer<typeof testAiConnectionSchema>
+
+/** Why a test failed, in terms the player can act on. The provider's own message stays in main. */
+export const AI_CONNECTION_FAILURES = [
+  'missing_key',
+  'invalid_key',
+  'quota',
+  'model_not_found',
+  'timeout',
+  'network',
+  'unknown'
+] as const
+
+export type AiConnectionFailure = (typeof AI_CONNECTION_FAILURES)[number]
+
+/** A test that fails is a normal answer, not an IPC error. */
+export type AiConnectionResult =
+  { ok: true; latencyMs: number } | { ok: false; reason: AiConnectionFailure; latencyMs: number }
