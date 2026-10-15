@@ -1,6 +1,11 @@
 import { computed, type ComputedRef, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import type { CreateActor, CreateItem, CreateWorld, WorldFilter } from '@schema'
+import type {
+  CreateActorInput as PlacedActorInput,
+  CreateItem,
+  CreateWorld,
+  WorldFilter
+} from '@schema'
 import type { IpcError } from '@shared'
 import {
   worldGenreFilters,
@@ -31,7 +36,7 @@ import { useWorldStore } from '@renderer/store/world.store'
 
 type UpdateWorldInput = Pick<CreateWorld, 'name' | 'genre' | 'description'>
 
-type CreateActorInput = Omit<CreateActor, 'worldId' | 'isNpc' | 'partyId'> & {
+type CreateActorInput = Omit<PlacedActorInput, 'worldId' | 'isNpc' | 'partyId'> & {
   imageData?: Uint8Array
 }
 

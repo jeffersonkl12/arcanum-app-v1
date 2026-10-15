@@ -29,6 +29,7 @@ export interface ActorSummary {
   gender: CreateActor['gender']
   languageId?: string | null
   cultureId?: string | null
+  pointOfInterestId?: string | null
   appearance: string
   personality: string
   background: string

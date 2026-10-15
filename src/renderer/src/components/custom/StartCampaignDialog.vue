@@ -58,6 +58,9 @@ const startCampaignFormSchema = toTypedSchema(
     gender: z.enum(actorGenderValues, 'Selecione o gênero'),
     languageId: z.string().optional(),
     cultureId: z.string().optional(),
+    pointOfInterestId: z
+      .string('Selecione o ponto de interesse')
+      .min(1, 'Selecione o ponto de interesse'),
     appearance: z.string().max(5000, 'A aparência pode ter no máximo 5000 caracteres'),
     personality: z.string().max(5000, 'A personalidade pode ter no máximo 5000 caracteres'),
     background: z.string().max(5000, 'O background pode ter no máximo 5000 caracteres'),
@@ -100,6 +103,7 @@ const {
   templateId,
   languages,
   cultures,
+  places,
   partyMemberIds,
   isLoadingOptions,
   isStarting,
@@ -142,11 +146,12 @@ onBeforeUnmount(() => {
   clearImage()
 })
 
-/** The culture and the language belong to a world, so the ones picked for another one are void. */
+/** The culture, the language and the place belong to a world, so the ones picked for another one are void. */
 async function pickTemplate(id: unknown): Promise<void> {
   if (typeof id !== 'string' || id === templateId.value) return
   setFieldValue('languageId', undefined)
   setFieldValue('cultureId', undefined)
+  setFieldValue('pointOfInterestId', undefined)
   await loadOptions(id)
 }
 
@@ -179,6 +184,7 @@ async function goNext(): Promise<void> {
       'gender',
       'languageId',
       'cultureId',
+      'pointOfInterestId',
       'appearance',
       'personality',
       'background',
@@ -218,6 +224,7 @@ const onStart = handleSubmit(async (formValues) => {
       gender: formValues.gender,
       languageId: formValues.languageId,
       cultureId: formValues.cultureId,
+      pointOfInterestId: formValues.pointOfInterestId,
       appearance: formValues.appearance,
       personality: formValues.personality,
       background: formValues.background,
@@ -369,6 +376,7 @@ function onNpcCreated(actor: ActorSummary): void {
             v-if="step === 1"
             :languages="languages"
             :cultures="cultures"
+            :places="places"
             :image-preview-url="imagePreviewUrl"
             :disabled="isStarting"
             @image-selected="onImageSelected"

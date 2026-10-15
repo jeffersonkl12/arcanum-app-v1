@@ -51,6 +51,7 @@ export function toActorSummary(actor: Actor, cultures: NamedEntitySummary[]): Ac
     gender: actor.gender,
     languageId: actor.languageId,
     cultureId: actor.cultureId,
+    pointOfInterestId: actor.pointOfInterestId,
     appearance: actor.appearance ?? '',
     personality: actor.personality ?? '',
     background: actor.background ?? '',

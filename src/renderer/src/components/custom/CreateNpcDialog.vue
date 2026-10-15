@@ -25,6 +25,7 @@ import {
 } from '@renderer/util/health.util'
 import type { ActorSummary } from '@renderer/composable/world.type'
 import AttributeFields from '@renderer/components/custom/AttributeFields.vue'
+import ActorPlaceField from '@renderer/components/custom/ActorPlaceField.vue'
 import CoinFields from '@renderer/components/custom/CoinFields.vue'
 import HealthFields from '@renderer/components/custom/HealthFields.vue'
 import { Button } from '@renderer/components/ui/button'
@@ -80,6 +81,7 @@ const formFields = [
   'gender',
   'languageId',
   'cultureId',
+  'pointOfInterestId',
   'appearance',
   'personality',
   'background',
@@ -109,6 +111,9 @@ const createNpcFormSchema = toTypedSchema(
       gender: z.enum(actorGenderValues, 'Selecione o gênero'),
       languageId: z.string().optional(),
       cultureId: z.string().optional(),
+      pointOfInterestId: z
+        .string('Selecione o ponto de interesse')
+        .min(1, 'Selecione o ponto de interesse'),
       appearance: z.string().max(5000, 'A aparência pode ter no máximo 5000 caracteres'),
       personality: z.string().max(5000, 'A personalidade pode ter no máximo 5000 caracteres'),
       background: z.string().max(5000, 'O background pode ter no máximo 5000 caracteres'),
@@ -148,6 +153,7 @@ const {
   createActorError,
   languages,
   cultures,
+  places,
   loadInventoryItemIds,
   syncInventory
 } = useWorld()
@@ -170,6 +176,7 @@ const onSubmit = handleSubmit(async (values) => {
     gender: values.gender,
     languageId: values.languageId || null,
     cultureId: values.cultureId || null,
+    pointOfInterestId: values.pointOfInterestId,
     appearance: values.appearance,
     personality: values.personality,
     background: values.background,
@@ -251,6 +258,8 @@ function fillForm(actor: ActorSummary | null): void {
       gender: actor.gender,
       languageId: actor.languageId ?? undefined,
       cultureId: actor.cultureId ?? undefined,
+      // An actor may have no place by now; the form then asks for one before saving.
+      pointOfInterestId: actor.pointOfInterestId ?? undefined,
       appearance: actor.appearance,
       personality: actor.personality,
       background: actor.background,
@@ -501,6 +510,8 @@ const textareaClass =
                 </FormItem>
               </FormField>
             </div>
+
+            <ActorPlaceField :places="places" :disabled="isCreatingActor" />
 
             <HealthFields
               :show-current="isEditing"

@@ -1,6 +1,6 @@
 import { idSchema, updateInput } from '@ipc/common.ipc'
 import { route, type RoutesOf } from '@ipc/route.ipc'
-import { createActorSchema, setImageSchema, updateActorSchema } from '@schema'
+import { createActorInputSchema, setImageSchema, updateActorInputSchema } from '@schema'
 import type { IActorService } from '@service/actor.service'
 import type { IImageService } from '@service/image.service'
 
@@ -11,8 +11,8 @@ export function createActorRoutes(
   return {
     'actor:listByWorld': route(idSchema, (worldId) => actorService.listByWorld(worldId)),
     'actor:get': route(idSchema, (id) => actorService.get(id)),
-    'actor:create': route(createActorSchema, (input) => actorService.create(input)),
-    'actor:update': route(updateInput(updateActorSchema), ({ id, patch }) =>
+    'actor:create': route(createActorInputSchema, (input) => actorService.create(input)),
+    'actor:update': route(updateInput(updateActorInputSchema), ({ id, patch }) =>
       actorService.update(id, patch)
     ),
     'actor:delete': route(idSchema, (id) => actorService.delete(id)),

@@ -8,7 +8,8 @@ import {
   actorGenderOptions,
   actorHpLimits
 } from '@renderer/constant/actor.constant'
-import type { NamedEntitySummary } from '@renderer/composable/world.type'
+import ActorPlaceField from '@renderer/components/custom/ActorPlaceField.vue'
+import type { NamedEntitySummary, PlaceSummary } from '@renderer/composable/world.type'
 import {
   FormControl,
   FormField,
@@ -29,6 +30,7 @@ import { Textarea } from '@renderer/components/ui/textarea'
 defineProps<{
   languages: NamedEntitySummary[]
   cultures: NamedEntitySummary[]
+  places: PlaceSummary[]
   imagePreviewUrl?: string
   disabled?: boolean
 }>()
@@ -207,6 +209,8 @@ const textareaClass =
           </FormItem>
         </FormField>
       </div>
+
+      <ActorPlaceField :places="places" :disabled="disabled" />
 
       <HealthFields :default-max="actorHpLimits.defaultPlayer" :disabled="disabled" />
 

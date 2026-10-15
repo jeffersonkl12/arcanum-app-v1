@@ -10,8 +10,8 @@ import { toCampaignNpcCandidate } from './campaign.mapper'
 import type { CampaignNpcCandidate, StartCampaignDraft } from './campaign.type'
 import { useCampaign } from './campaign.composable'
 import { useRequest } from './request.composable'
-import { toNamedEntitySummary } from './world.mapper'
-import type { NamedEntitySummary } from './world.type'
+import { toNamedEntitySummary, toPlaceSummaries } from './world.mapper'
+import type { NamedEntitySummary, PlaceSummary } from './world.type'
 import { useCampaignWizardStore } from '@renderer/store/campaign-wizard.store'
 import { useGameStore } from '@renderer/store/game.store'
 
@@ -24,6 +24,7 @@ export function useStartCampaign(): {
   templateId: Ref<string | undefined>
   languages: Ref<NamedEntitySummary[]>
   cultures: Ref<NamedEntitySummary[]>
+  places: Ref<PlaceSummary[]>
   npcSearch: Ref<string>
   partyMemberIds: Ref<string[]>
   visibleNpcs: ComputedRef<CampaignNpcCandidate[]>
@@ -45,6 +46,7 @@ export function useStartCampaign(): {
     templateId,
     languages,
     cultures,
+    places,
     npcs,
     npcSearch,
     partyMemberIds,
@@ -103,14 +105,16 @@ export function useStartCampaign(): {
     templateId.value = sourceId
     languages.value = []
     cultures.value = []
+    places.value = []
     npcs.value = []
     reset()
 
     isLoadingOptions.value = true
     try {
-      const [languageList, cultureList, actorList, party] = await Promise.all([
+      const [languageList, cultureList, placeList, actorList, party] = await Promise.all([
         request('language:listByWorld', sourceId),
         request('culture:listByWorld', sourceId),
+        request('pointOfInterest:listByWorld', sourceId),
         request('actor:listByWorld', sourceId),
         partyLookup.request('party:findByWorld', sourceId)
       ])
@@ -119,6 +123,7 @@ export function useStartCampaign(): {
 
       languages.value = (languageList ?? []).map(toNamedEntitySummary)
       cultures.value = (cultureList ?? []).map(toNamedEntitySummary)
+      places.value = toPlaceSummaries(placeList ?? [])
       const npcActors = (actorList ?? []).filter((actor) => actor.isNpc)
       npcs.value = npcActors.map((actor) => toCampaignNpcCandidate(actor, cultures.value))
       partyMemberIds.value = party
@@ -187,17 +192,22 @@ export function useStartCampaign(): {
   }
 
   async function assembleCampaign(worldId: string, draft: StartCampaignDraft): Promise<boolean> {
-    const [clonedCultures, clonedLanguages, clonedActors] = await Promise.all([
+    const [clonedCultures, clonedLanguages, clonedPlaces, clonedActors] = await Promise.all([
       request('culture:listByWorld', worldId),
       request('language:listByWorld', worldId),
+      request('pointOfInterest:listByWorld', worldId),
       request('actor:listByWorld', worldId)
     ])
-    if (!clonedCultures || !clonedLanguages || !clonedActors) return false
+    if (!clonedCultures || !clonedLanguages || !clonedPlaces || !clonedActors) return false
 
     // The clone has new ids for everything, so what the player picked in the template is matched
     // to its copy.
     const cultureIds = mapClonedIds(cultures.value, clonedCultures)
     const languageIds = mapClonedIds(languages.value, clonedLanguages)
+    // Both lists are in tree order, which is what pairs equal names under different parents.
+    const placeIds = mapClonedIds(places.value, toPlaceSummaries(clonedPlaces))
+    const pointOfInterestId = placeIds.get(draft.character.pointOfInterestId)
+    if (!pointOfInterestId) return false
     const npcIds = mapClonedIds(
       npcs.value,
       clonedActors.filter((actor) => actor.isNpc)
@@ -220,6 +230,7 @@ export function useStartCampaign(): {
       ...(character.strength === undefined ? {} : { strength: character.strength }),
       ...(character.dexterity === undefined ? {} : { dexterity: character.dexterity }),
       ...(character.intelligence === undefined ? {} : { intelligence: character.intelligence }),
+      pointOfInterestId,
       cultureId: (character.cultureId && cultureIds.get(character.cultureId)) || null,
       languageId: (character.languageId && languageIds.get(character.languageId)) || null
     }
@@ -275,6 +286,7 @@ export function useStartCampaign(): {
     templateId,
     languages,
     cultures,
+    places,
     npcSearch,
     partyMemberIds,
     visibleNpcs,

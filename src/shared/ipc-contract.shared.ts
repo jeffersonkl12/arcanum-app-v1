@@ -4,7 +4,7 @@ import type {
   Campaign,
   CloneWorld,
   CreateCampaign,
-  CreateActor,
+  CreateActorInput,
   CreateCulture,
   CreateItem,
   CreateLanguage,
@@ -19,7 +19,7 @@ import type {
   PointOfInterest,
   SetImage,
   SetMasterImage,
-  UpdateActor,
+  UpdateActorInput,
   UpdateCampaign,
   UpdateCulture,
   UpdateItem,
@@ -94,8 +94,8 @@ export const ipcContract = {
 
   'actor:listByWorld': channel<string, Actor[]>(),
   'actor:get': channel<string, Actor>(),
-  'actor:create': channel<CreateActor, Actor>(),
-  'actor:update': channel<Update<UpdateActor>, Actor>(),
+  'actor:create': channel<CreateActorInput, Actor>(),
+  'actor:update': channel<Update<UpdateActorInput>, Actor>(),
   'actor:delete': channel<string, void>(),
   /** Sets or replaces the actor's image with the bytes of the file; returns the new `imagePath`. */
   'actor:setImage': channel<SetImage, string>(),

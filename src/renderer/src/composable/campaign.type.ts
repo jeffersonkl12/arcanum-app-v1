@@ -38,6 +38,8 @@ export interface StartCampaignCharacterDraft {
   gender: CreateActor['gender']
   languageId?: string
   cultureId?: string
+  /** A place of the template; its copy in the campaign is where the character starts. */
+  pointOfInterestId: string
   appearance: string
   personality: string
   background: string
