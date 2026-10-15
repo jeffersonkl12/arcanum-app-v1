@@ -15,6 +15,7 @@ import type { ILiveContextService } from '@service/live-context.service'
 import type { IMemoryService } from '@service/memory.service'
 import type { IMessageRatingService } from '@service/message-rating.service'
 import type { IPartyService } from '@service/party.service'
+import type { IPointOfInterestService } from '@service/point-of-interest.service'
 import type { IRelationshipService } from '@service/relationship.service'
 import type { IWorldService } from '@service/world.service'
 import { RELATIONSHIP_LIMITS } from '@constant'
@@ -27,6 +28,7 @@ import type {
   CheckRequest,
   CreatedNpc,
   CreateNpcResult,
+  CurrentPlace,
   IDiceChecker,
   INpcRegistry,
   Knowledge,
@@ -110,7 +112,8 @@ export class GameMasterService implements IGameMasterService {
     private readonly relationshipRegistry: IRelationshipRegistry,
     private readonly campaignService: ICampaignService,
     private readonly campaignRegistry: ICampaignRegistry,
-    private readonly messageRatingService: IMessageRatingService
+    private readonly messageRatingService: IMessageRatingService,
+    private readonly pointOfInterestService: IPointOfInterestService
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
@@ -245,7 +248,12 @@ export class GameMasterService implements IGameMasterService {
       helperModel: toMastraModelId(provider, AI_HELPER_MODELS[provider]),
       apiKey,
       temperature,
-      world: { name: world.name, genre: world.genre, description: world.description },
+      world: {
+        name: world.name,
+        genre: world.genre,
+        description: world.description,
+        currentPlace: await this.loadCurrentPlace(worldId)
+      },
       knowledge: await this.loadKnowledge(worldId),
       party: await this.loadParty(worldId),
       npcRegistry: this.createNpcRegistry(),
@@ -278,6 +286,37 @@ export class GameMasterService implements IGameMasterService {
     const campaign = await this.campaignService.findByWorld(worldId)
 
     return { campaignSummary: campaign?.summary ?? '' }
+  }
+
+  /**
+   * Where the party is: the place of the player's character, else of the first member that has one.
+   * `null` while nobody in the party is in a place.
+   */
+  private async loadCurrentPlace(worldId: string): Promise<CurrentPlace | null> {
+    const party = await this.partyService.findByWorld(worldId)
+    if (!party) return null
+
+    const members = await this.partyService.listMembers(party.id)
+    const placeId = (
+      members.find((member) => !member.isNpc && member.pointOfInterestId) ??
+      members.find((member) => member.pointOfInterestId)
+    )?.pointOfInterestId
+    if (!placeId) return null
+
+    const [path, children] = await Promise.all([
+      this.pointOfInterestService.getPath(placeId),
+      this.pointOfInterestService.listChildren(worldId, placeId)
+    ])
+    const place = path[path.length - 1]
+
+    return {
+      name: place.name,
+      type: place.type,
+      description: place.description,
+      path: path.map(({ name, type }) => ({ name, type })),
+      hasParent: place.parentId !== null,
+      children: children.map(({ name, type }) => ({ name, type }))
+    }
   }
 
   /** Read on every turn, so the prompt always shows the party as it is now. */

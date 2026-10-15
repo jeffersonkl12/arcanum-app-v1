@@ -129,11 +129,31 @@ export interface IDiceChecker {
   check(worldId: string, request: CheckRequest): Promise<RollCheckResult>
 }
 
+/** A place next to the current one (above or inside it): name and type only, never the description. */
+export const placeLabelSchema = z.object({ name: z.string(), type: z.string() })
+
+/** The place the party is in, as the prompt shows it. Only this one carries a description. */
+export const currentPlaceSchema = z.object({
+  name: z.string(),
+  type: z.string(),
+  description: z.string(),
+  /** From the top of the world down to the place itself (the last one is the place). */
+  path: z.array(placeLabelSchema),
+  /** Whether the place sits inside another one, so the prompt shows the route only when it matters. */
+  hasParent: z.boolean(),
+  /** The places directly inside it. */
+  children: z.array(placeLabelSchema)
+})
+
+export type CurrentPlace = z.infer<typeof currentPlaceSchema>
+
 /** The part of the world the narrator needs in its prompt. */
 export const worldBriefSchema = z.object({
   name: z.string(),
   genre: z.string(),
-  description: z.string()
+  description: z.string(),
+  /** Where the party is now; `null` while it is nowhere in particular. */
+  currentPlace: currentPlaceSchema.nullable()
 })
 
 export type WorldBrief = z.infer<typeof worldBriefSchema>
