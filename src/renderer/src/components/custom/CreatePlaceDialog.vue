@@ -395,6 +395,8 @@ const textareaClass =
                   >
                     <ComboboxAnchor>
                       <ComboboxInput
+                        group-class="h-auto rounded-lg border-border bg-background"
+                        class="h-auto bg-transparent px-1 py-2.5 text-sm placeholder:text-tertiary"
                         placeholder="Digite para buscar..."
                         autocomplete="off"
                         :display-value="parentLabel"
