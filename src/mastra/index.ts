@@ -29,6 +29,7 @@ import { movePartyTool } from './tools/move-party.tool'
 import { recallMemoriesTool } from './tools/recall-memories.tool'
 import { rememberEventsTool } from './tools/remember-events.tool'
 import { rollCheckTool } from './tools/roll-check.tool'
+import { purchaseItemsTool } from './tools/purchase-items.tool'
 import { transferCoinsTool } from './tools/transfer-coins.tool'
 import { transferItemsTool } from './tools/transfer-items.tool'
 import { updateCampaignSummaryTool } from './tools/update-campaign-summary.tool'
@@ -52,6 +53,7 @@ export const mastra = new Mastra({
     deleteItemsTool,
     transferItemsTool,
     transferCoinsTool,
+    purchaseItemsTool,
     equipItemsTool,
     getInventoryTool,
     findItemsTool,

@@ -1,19 +1,26 @@
-import { INVENTORY_CAPACITY, TEXT_LIMITS, type EquipmentSlot } from '@constant'
+import { ACTOR_COIN_LIMITS, INVENTORY_CAPACITY, TEXT_LIMITS, type EquipmentSlot } from '@constant'
 import { itemTable } from '@database/entity/item.entity'
 import { createInsertSchema } from 'drizzle-orm/zod'
 import type { z } from 'zod'
+
+// Optional: an item without a given amount is worth nothing in that coin.
+const coinAmount = (schema: z.ZodNumber): z.ZodOptional<z.ZodNumber> =>
+  schema.int().min(ACTOR_COIN_LIMITS.min).max(ACTOR_COIN_LIMITS.max).optional()
 
 /**
  * What the renderer sends to create an item. The world (or the actor whose inventory it goes to)
  * is in the channel's input, who carries the item and where it is equipped are the engine's
  * (`give` / `drop` / `equip` / `unequip`), so none of them is part of it, nor is the image path.
- * `slots` is 1 if not said; the weapon and clothing classes must match `type`
+ * `slots` is 1 and the value (gold, silver and bronze pieces) zero if not said; the weapon and clothing classes must match `type`
  * (`InventoryService` checks it).
  */
 export const createItemSchema = createInsertSchema(itemTable, {
   name: (schema) => schema.trim().min(1).max(TEXT_LIMITS.name),
   description: (schema) => schema.max(TEXT_LIMITS.description),
-  slots: (schema) => schema.min(1).max(INVENTORY_CAPACITY).optional()
+  slots: (schema) => schema.min(1).max(INVENTORY_CAPACITY).optional(),
+  goldPieces: coinAmount,
+  silverPieces: coinAmount,
+  bronzePieces: coinAmount
 }).omit({
   id: true,
   worldId: true,

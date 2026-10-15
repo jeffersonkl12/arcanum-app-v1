@@ -34,13 +34,24 @@ const emit = defineEmits<{
   delete: []
 }>()
 
+function formatValue(item: ItemSummary): string {
+  const parts = [
+    item.goldPieces ? `${item.goldPieces.toLocaleString('pt-BR')} ouro` : '',
+    item.silverPieces ? `${item.silverPieces.toLocaleString('pt-BR')} prata` : '',
+    item.bronzePieces ? `${item.bronzePieces.toLocaleString('pt-BR')} bronze` : ''
+  ].filter(Boolean)
+
+  return parts.length ? parts.join(', ') : 'Sem valor'
+}
+
 const infoCells = computed(() => {
   const item = props.item
   if (!item) return []
 
   const cells = [
     { label: 'ESPAÇOS', value: String(item.slots) },
-    { label: 'DURABILIDADE', value: String(itemLimits.durability) }
+    { label: 'DURABILIDADE', value: String(itemLimits.durability) },
+    { label: 'VALOR', value: formatValue(item) }
   ]
   if (item.type === 'weapon') {
     cells.push({ label: 'TIPO DE ARMA', value: labelOf(weaponClassOptions, item.weaponClass) })

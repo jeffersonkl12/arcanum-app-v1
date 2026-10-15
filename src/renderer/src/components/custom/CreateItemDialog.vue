@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import CoinFields from '@renderer/components/custom/CoinFields.vue'
+import { coinFormShape } from '@renderer/util/coin.util'
 import { descriptionMaxLength } from '@renderer/constant/text-limit.constant'
 import { toTypedSchema } from '@vee-validate/zod'
 import { Camera, Plus, X } from '@lucide/vue'
@@ -70,7 +72,17 @@ const emit = defineEmits<{
   saved: [item: ItemSummary]
 }>()
 
-const formFields = ['name', 'description', 'type', 'slots', 'weaponClass', 'clothingClass'] as const
+const formFields = [
+  'name',
+  'description',
+  'type',
+  'slots',
+  'goldPieces',
+  'silverPieces',
+  'bronzePieces',
+  'weaponClass',
+  'clothingClass'
+] as const
 
 type FormFieldName = (typeof formFields)[number]
 
@@ -95,6 +107,7 @@ const itemFormSchema = toTypedSchema(
         .int('Os espaços devem ser um número inteiro')
         .min(1, 'Um item ocupa pelo menos 1 espaço')
         .max(itemLimits.inventoryCapacity, `No máximo ${itemLimits.inventoryCapacity} espaços`),
+      ...coinFormShape,
       weaponClass: z.enum(weaponClassValues).optional(),
       clothingClass: z.enum(clothingClassValues).optional()
     })
@@ -116,7 +129,10 @@ const emptyForm = {
   name: '',
   description: '',
   type: 'tool' as const,
-  slots: 1
+  slots: 1,
+  goldPieces: 0,
+  silverPieces: 0,
+  bronzePieces: 0
 }
 
 const isEditing = computed(() => entity.value != null)
@@ -143,6 +159,9 @@ const onSubmit = handleSubmit(async (formValues) => {
     description: formValues.description,
     type: formValues.type,
     slots: formValues.slots,
+    goldPieces: formValues.goldPieces,
+    silverPieces: formValues.silverPieces,
+    bronzePieces: formValues.bronzePieces,
     weaponClass: formValues.type === 'weapon' ? (formValues.weaponClass ?? null) : null,
     clothingClass: formValues.type === 'clothing' ? (formValues.clothingClass ?? null) : null,
     imageData: imageData.value
@@ -194,6 +213,9 @@ function fillForm(item: ItemSummary | null): void {
       description: item.description,
       type: item.type,
       slots: item.slots,
+      goldPieces: item.goldPieces,
+      silverPieces: item.silverPieces,
+      bronzePieces: item.bronzePieces,
       weaponClass: item.weaponClass ?? undefined,
       clothingClass: item.clothingClass ?? undefined
     }
@@ -372,6 +394,11 @@ const textareaClass =
                   <FormMessage />
                 </FormItem>
               </FormField>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <span :class="fieldLabelClass">Valor</span>
+              <CoinFields :disabled="isSavingItem" />
             </div>
 
             <template v-if="values.type === 'weapon'">

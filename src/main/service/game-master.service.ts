@@ -25,6 +25,7 @@ import { describeAttributeLevel } from '@util/attribute-level.util'
 import { describeFeelings } from '@util/relationship.util'
 import type { ICampaignRegistry } from '../../mastra/context/campaign.context'
 import type { ICoinRegistry } from '../../mastra/context/coin.context'
+import type { ITradeRegistry } from '../../mastra/context/trade.context'
 import type { IRelationshipRegistry } from '../../mastra/context/relationship.context'
 import type {
   CheckRequest,
@@ -107,6 +108,7 @@ export class GameMasterService implements IGameMasterService {
     private readonly diceCheckService: IDiceCheckService,
     private readonly itemRegistry: IItemRegistry,
     private readonly coinRegistry: ICoinRegistry,
+    private readonly tradeRegistry: ITradeRegistry,
     private readonly pointOfInterestRegistry: IPointOfInterestRegistry,
     private readonly memoryRegistry: IMemoryRegistry,
     private readonly memoryService: IMemoryService,
@@ -266,6 +268,7 @@ export class GameMasterService implements IGameMasterService {
       npcRegistry: this.createNpcRegistry(),
       itemRegistry: this.itemRegistry,
       coinRegistry: this.coinRegistry,
+      tradeRegistry: this.tradeRegistry,
       pointOfInterestRegistry: this.pointOfInterestRegistry,
       memoryRegistry: this.memoryRegistry,
       npcSceneRegistry: this.npcSceneRegistry,

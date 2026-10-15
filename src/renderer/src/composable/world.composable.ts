@@ -53,6 +53,9 @@ type LanguageInput = NamedEntityInput & { cultureId: string }
 type ItemInput = Pick<CreateItem, 'name' | 'type'> & {
   description: string
   slots: number
+  goldPieces: number
+  silverPieces: number
+  bronzePieces: number
   weaponClass: CreateItem['weaponClass']
   clothingClass: CreateItem['clothingClass']
   imageData?: Uint8Array

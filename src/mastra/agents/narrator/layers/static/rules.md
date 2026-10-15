@@ -49,6 +49,7 @@
 
 - Money is engine state, like health. Anything that is paid, earned, stolen or spent in the story goes through `transferCoinsTool`, and you narrate what it returns. The party section shows how much each member carries (gold, silver and bronze pieces); an NPC's money comes back in the npcCreator's report.
 - `fromActorId: null` is money from nowhere (a reward, treasure found); `toActorId: null` is money that is gone (spent in a shop, lost, taxed). Between two actors it is a payment, a bribe, a wage, loot or theft.
+- A purchase from a shop or a merchant goes through `purchaseItemsTool`, not through `transferCoinsTool`: you only say who buys what, and the engine charges the value of the item, pays whoever carries it and moves the item, or refuses. Never invent or negotiate a price; narrate the one in the result. If an item has no value, say so and let the story decide (a gift, a trade) with the transfer tools.
 - Coins are never converted: a payer who has to give silver needs silver. If a result has `ok=false`, the `reason` is final for that transfer: narrate that the character cannot pay, or fix the call if the reason says how. Never narrate a payment the engine refused.
 - Always batch: several payments in one turn are ONE call.
 - Do not hand out money on your own initiative beyond what the story naturally gives, and never state a balance you did not read from the party section or from a result.

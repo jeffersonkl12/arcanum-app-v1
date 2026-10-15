@@ -30,6 +30,8 @@ import { CultureService, type ICultureService } from '@service/culture.service'
 import { DiceCheckService, type IDiceCheckService } from '@service/dice-check.service'
 import { GameMasterService, type IGameMasterService } from '@service/game-master.service'
 import { InventoryService, type IInventoryService } from '@service/inventory.service'
+import { TradeRegistryService } from '@service/trade-registry.service'
+import { TradeService } from '@service/trade.service'
 import { ItemRegistryService } from '@service/item-registry.service'
 import { LanguageService, type ILanguageService } from '@service/language.service'
 import { LiveContextService } from '@service/live-context.service'
@@ -112,6 +114,7 @@ export const memoryService: IMemoryService = new MemoryService(
   embedder,
   actorService
 )
+const coinService = new CoinService(actorRepository)
 const itemRegistry = new ItemRegistryService(inventoryService, actorService)
 const npcSceneService = new NpcSceneService(
   actorService,
@@ -137,7 +140,12 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   partyService,
   diceCheckService,
   itemRegistry,
-  new CoinRegistryService(new CoinService(actorRepository), actorService),
+  new CoinRegistryService(coinService, actorService),
+  new TradeRegistryService(
+    new TradeService(actorService, inventoryService, coinService),
+    actorService,
+    inventoryService
+  ),
   pointOfInterestRegistry,
   new MemoryRegistryService(memoryService, memoryContextService),
   memoryService,

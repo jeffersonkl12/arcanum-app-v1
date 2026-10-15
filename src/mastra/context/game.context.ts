@@ -17,6 +17,7 @@ import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
 import type { ICampaignRegistry } from './campaign.context'
 import type { ICoinRegistry } from './coin.context'
 import type { IItemRegistry } from './item.context'
+import type { ITradeRegistry } from './trade.context'
 import { liveContextSchema } from './live-context.context'
 import type { IMemoryRegistry } from './memory.context'
 import type { INpcSceneRegistry } from './npc-scene.context'
@@ -286,6 +287,13 @@ export const gameContextSchema = z.object({
       value !== null &&
       typeof (value as ICoinRegistry).transferCoins === 'function',
     'coinRegistry must implement ICoinRegistry'
+  ),
+  tradeRegistry: z.custom<ITradeRegistry>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as ITradeRegistry).purchaseItems === 'function',
+    'tradeRegistry must implement ITradeRegistry'
   ),
   pointOfInterestRegistry: z.custom<IPointOfInterestRegistry>(
     (value) =>

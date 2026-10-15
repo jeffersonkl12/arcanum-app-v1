@@ -2,6 +2,7 @@ import { ConflictError, NotFoundError } from '@error'
 import type { Item } from '@schema/item.schema'
 import type { IActorService } from '@service/actor.service'
 import type { IInventoryService } from '@service/inventory.service'
+import { toItemView } from '@util/item-view.util'
 import type {
   InventoryView,
   IItemRegistry,
@@ -10,8 +11,7 @@ import type {
   ItemQuery,
   ItemOutcome,
   ItemTransfer,
-  ItemUpdate,
-  ItemView
+  ItemUpdate
 } from '../../mastra/context/item.context'
 
 /**
@@ -48,7 +48,7 @@ export class ItemRegistryService implements IItemRegistry {
         : await this.inventoryService.createInWorld(worldId, fields)
 
       if (!equip) {
-        return { ok: true, itemId: created.id, item: toView(created) }
+        return { ok: true, itemId: created.id, item: toItemView(created) }
       }
 
       // The item exists by now, so a failure to equip it is a warning and not a failed entry.
@@ -56,7 +56,7 @@ export class ItemRegistryService implements IItemRegistry {
         return {
           ok: true,
           itemId: created.id,
-          item: toView(created),
+          item: toItemView(created),
           warning: 'Created, but not equipped: a loose item has no one to equip it.'
         }
       }
@@ -67,7 +67,7 @@ export class ItemRegistryService implements IItemRegistry {
         return {
           ok: true,
           itemId: created.id,
-          item: toView(created),
+          item: toItemView(created),
           warning: `Created, but not equipped: ${reasonOf(error)}`
         }
       }
@@ -79,7 +79,7 @@ export class ItemRegistryService implements IItemRegistry {
       await this.requireItem(worldId, itemId)
       const item = await this.inventoryService.updateItem(itemId, patch)
 
-      return { ok: true, itemId, item: toView(item) }
+      return { ok: true, itemId, item: toItemView(item) }
     })
   }
 
@@ -100,7 +100,7 @@ export class ItemRegistryService implements IItemRegistry {
       }
       const item = await this.inventoryService.transfer(itemId, toActorId)
 
-      return { ok: true, itemId, item: toView(item) }
+      return { ok: true, itemId, item: toItemView(item) }
     })
   }
 
@@ -119,7 +119,7 @@ export class ItemRegistryService implements IItemRegistry {
           (item) => item.actorId === null
         )
 
-        return { ok: true, items: items.map(toView) }
+        return { ok: true, items: items.map(toItemView) }
       }
 
       await this.requireActor(worldId, actorId)
@@ -130,7 +130,7 @@ export class ItemRegistryService implements IItemRegistry {
         capacity: inventory.capacity,
         usedSlots: inventory.usedSlots,
         freeSlots: inventory.freeSlots,
-        items: inventory.items.map(toView)
+        items: inventory.items.map(toItemView)
       }
     } catch (error) {
       return { ok: false, reason: reasonOf(error), items: [] }
@@ -140,7 +140,7 @@ export class ItemRegistryService implements IItemRegistry {
   async findItems(worldId: string, { itemId, name, actorId }: ItemQuery): Promise<InventoryView> {
     try {
       if (itemId) {
-        return { ok: true, items: [toView(await this.requireItem(worldId, itemId))] }
+        return { ok: true, items: [toItemView(await this.requireItem(worldId, itemId))] }
       }
 
       if (actorId) {
@@ -154,7 +154,7 @@ export class ItemRegistryService implements IItemRegistry {
       const items = pool.filter((item) => normalize(item.name).includes(wanted))
 
       return items.length > 0
-        ? { ok: true, items: items.map(toView) }
+        ? { ok: true, items: items.map(toItemView) }
         : { ok: false, reason: `No item matches "${name}"`, items: [] }
     } catch (error) {
       return { ok: false, reason: reasonOf(error), items: [] }
@@ -168,7 +168,7 @@ export class ItemRegistryService implements IItemRegistry {
       : await this.inventoryService.unequip(itemId)
     const item = inventory.items.find((candidate) => candidate.id === itemId)
 
-    return { ok: true, itemId, item: item && toView(item) }
+    return { ok: true, itemId, item: item && toItemView(item) }
   }
 
   /** Runs the entries one after the other; a refused entry becomes a failed outcome. */
@@ -233,19 +233,4 @@ function itemIdOf(entry: unknown): string | undefined {
   const itemId = (entry as { itemId?: unknown } | null)?.itemId
 
   return typeof itemId === 'string' ? itemId : undefined
-}
-
-/** The item as the AI reads it: what does not apply to it is left out. */
-function toView(item: Item): ItemView {
-  return {
-    id: item.id,
-    name: item.name,
-    description: item.description ?? undefined,
-    slots: item.slots,
-    type: item.type,
-    weaponClass: item.weaponClass ?? undefined,
-    clothingClass: item.clothingClass ?? undefined,
-    carriedBy: item.actorId ?? undefined,
-    equippedSlot: item.equippedSlot ?? undefined
-  }
 }

@@ -20,6 +20,7 @@ import { movePartyTool } from '../../tools/move-party.tool'
 import { recallMemoriesTool } from '../../tools/recall-memories.tool'
 import { rememberEventsTool } from '../../tools/remember-events.tool'
 import { rollCheckTool } from '../../tools/roll-check.tool'
+import { purchaseItemsTool } from '../../tools/purchase-items.tool'
 import { transferCoinsTool } from '../../tools/transfer-coins.tool'
 import { transferItemsTool } from '../../tools/transfer-items.tool'
 import { updateItemsTool } from '../../tools/update-items.tool'
@@ -65,6 +66,7 @@ export const narratorAgent = new Agent({
     deleteItemsTool,
     transferItemsTool,
     transferCoinsTool,
+    purchaseItemsTool,
     equipItemsTool,
     getInventoryTool,
     findItemsTool,

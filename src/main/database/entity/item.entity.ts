@@ -1,4 +1,5 @@
 import {
+  ACTOR_COIN_LIMITS,
   CLOTHING_CLASSES,
   EQUIPMENT_SLOTS,
   INVENTORY_CAPACITY,
@@ -49,6 +50,10 @@ export const itemTable = pgTable(
     type: itemTypeEnum('type').notNull(),
     // Every item takes at least one inventory slot.
     slots: integer('slots').notNull().default(1),
+    // What the item is worth, in the same coins an actor carries; all zero means it has no value.
+    goldPieces: integer('gold_pieces').notNull().default(ACTOR_COIN_LIMITS.default),
+    silverPieces: integer('silver_pieces').notNull().default(ACTOR_COIN_LIMITS.default),
+    bronzePieces: integer('bronze_pieces').notNull().default(ACTOR_COIN_LIMITS.default),
     // A weapon has its class and a piece of clothing its own; no other item has either.
     weaponClass: weaponClassEnum('weapon_class'),
     clothingClass: clothingClassEnum('clothing_class'),
@@ -79,6 +84,12 @@ export const itemTable = pgTable(
     check(
       'item_slots_range',
       sql`${table.slots} between 1 and ${sql.raw(String(INVENTORY_CAPACITY))}`
+    ),
+    check(
+      'item_value_range',
+      sql`${table.goldPieces} between ${sql.raw(String(ACTOR_COIN_LIMITS.min))} and ${sql.raw(String(ACTOR_COIN_LIMITS.max))}
+        and ${table.silverPieces} between ${sql.raw(String(ACTOR_COIN_LIMITS.min))} and ${sql.raw(String(ACTOR_COIN_LIMITS.max))}
+        and ${table.bronzePieces} between ${sql.raw(String(ACTOR_COIN_LIMITS.min))} and ${sql.raw(String(ACTOR_COIN_LIMITS.max))}`
     ),
     check(
       'item_weapon_fields',

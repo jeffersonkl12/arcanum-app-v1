@@ -60,6 +60,9 @@ export interface ItemSummary {
   imagePath?: string | null
   type: ItemType
   slots: number
+  goldPieces: number
+  silverPieces: number
+  bronzePieces: number
   weaponClass: CreateItem['weaponClass']
   clothingClass: CreateItem['clothingClass']
   /** Short labels for the row and the detail ("Arma", "Leve (uma mão)"...). */

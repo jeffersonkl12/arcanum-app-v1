@@ -2,10 +2,13 @@ import { z } from 'zod'
 // Pure constants of the engine, imported by relative path (see `game.context.ts`).
 import { EQUIPMENT_SLOTS, INVENTORY_CAPACITY } from '../../main/constant/inventory.constant'
 import { CLOTHING_CLASSES, ITEM_TYPES, WEAPON_CLASSES } from '../../main/constant/item.constant'
+import { ACTOR_COIN_LIMITS } from '../../main/constant/actor-coin.constant'
 import { TEXT_LIMITS } from '../../main/constant/text-limit.constant'
 
 /** Most entries one batch call takes, so a single call cannot flood the engine or the context. */
 export const MAX_ITEMS_PER_CALL = 20
+
+const coinAmountSchema = z.number().int().min(ACTOR_COIN_LIMITS.min).max(ACTOR_COIN_LIMITS.max)
 
 /** The fields that describe an item. The engine checks that the class matches the type. */
 const itemFieldsSchema = z.object({
@@ -23,6 +26,19 @@ const itemFieldsSchema = z.object({
     .max(INVENTORY_CAPACITY)
     .optional()
     .describe('Inventory slots taken, at least 1; 1 if omitted.'),
+  goldPieces: coinAmountSchema
+    .optional()
+    .describe(
+      `Worth of the item in gold pieces, the most valuable coin. ${ACTOR_COIN_LIMITS.default} if omitted.`
+    ),
+  silverPieces: coinAmountSchema
+    .optional()
+    .describe(`Worth of the item in silver pieces. ${ACTOR_COIN_LIMITS.default} if omitted.`),
+  bronzePieces: coinAmountSchema
+    .optional()
+    .describe(
+      `Worth of the item in bronze pieces, the least valuable coin. ${ACTOR_COIN_LIMITS.default} if omitted.`
+    ),
   weaponClass: z
     .enum(WEAPON_CLASSES)
     .optional()
@@ -86,6 +102,9 @@ export const itemViewSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   slots: z.number().int(),
+  goldPieces: z.number().int(),
+  silverPieces: z.number().int(),
+  bronzePieces: z.number().int(),
   type: z.enum(ITEM_TYPES),
   weaponClass: z.enum(WEAPON_CLASSES).optional(),
   clothingClass: z.enum(CLOTHING_CLASSES).optional(),
