@@ -63,7 +63,24 @@ export const npcDraftSchema = z.object({
   profession: z.string().max(TEXT_LIMITS.shortText).optional(),
   appearance: z.string().max(ACTOR_TEXT_LIMITS.appearance).optional(),
   personality: z.string().max(ACTOR_TEXT_LIMITS.personality).optional(),
-  background: z.string().max(ACTOR_TEXT_LIMITS.background).optional()
+  background: z.string().max(ACTOR_TEXT_LIMITS.background).optional(),
+  culture: z
+    .string()
+    .optional()
+    .describe('Name of one of the cultures listed in the world section, exactly as written there.'),
+  language: z
+    .string()
+    .optional()
+    .describe(
+      'Name of one of the languages listed in the world section, exactly as written there.'
+    ),
+  placeId: z
+    .string()
+    .optional()
+    .describe(
+      'Id of the place where the NPC is when it enters the story (from the request, `find-places` or ' +
+        "the world section). Omit it only when the NPC appears where the party is: it is then placed in the party's current place."
+    )
 })
 
 export type NpcDraft = z.infer<typeof npcDraftSchema>
@@ -87,7 +104,11 @@ export const npcViewSchema = z.object({
   profession: z.string().optional(),
   appearance: z.string().optional(),
   personality: z.string().optional(),
-  background: z.string().optional()
+  background: z.string().optional(),
+  culture: z.string().optional(),
+  language: z.string().optional(),
+  placeId: z.string().optional().describe('The place the engine put the NPC in.'),
+  placeName: z.string().optional()
 })
 
 export type CreatedNpc = z.infer<typeof npcViewSchema>
@@ -176,6 +197,9 @@ export const worldBriefSchema = z.object({
   name: z.string(),
   genre: z.string(),
   description: z.string(),
+  /** Names of the cultures and languages of the world, the only ones an NPC can have. */
+  cultures: z.array(z.string()),
+  languages: z.array(z.string()),
   /** Where the party is now; `null` while it is nowhere in particular. */
   currentPlace: currentPlaceSchema.nullable()
 })
@@ -260,7 +284,7 @@ export const gameContextSchema = z.object({
    */
   narratorModel: modelRefSchema,
   /**
-   * The cheap model of the same provider, with the same key, for the specialists and the memory
+   * The cheap model of the same provider, with the same key, for the memory
    * summarizer, so a single key in the app is all the whole game needs.
    */
   helperModel: modelRefSchema,

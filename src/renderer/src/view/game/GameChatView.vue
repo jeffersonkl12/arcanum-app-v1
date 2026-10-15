@@ -20,16 +20,19 @@ const {
   editMessage,
   deleteMessage
 } = useGame()
+// The id outlives the dialog: the confirm button closes it (clearing `open`) before `confirm`
+// is handled, so the id cannot be derived from `open`.
 const deletingId = ref<string>()
-const deleteConfirmOpen = computed({
-  get: () => deletingId.value !== undefined,
-  set: (open) => {
-    if (!open) deletingId.value = undefined
-  }
-})
+const deleteConfirmOpen = ref(false)
+
+function requestDelete(messageId: string): void {
+  deletingId.value = messageId
+  deleteConfirmOpen.value = true
+}
 
 async function confirmDelete(): Promise<void> {
   const id = deletingId.value
+  deleteConfirmOpen.value = false
   deletingId.value = undefined
   if (id) await deleteMessage(id)
 }
@@ -105,7 +108,7 @@ onMounted(async () => {
         @choose="void sendMessage($event)"
         @rate="void rateMessage(message.id, $event)"
         @regenerate="void regenerateLast()"
-        @delete="deletingId = message.id"
+        @delete="requestDelete(message.id)"
       />
     </div>
 

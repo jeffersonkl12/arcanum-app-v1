@@ -19,11 +19,12 @@ export function narratorUiPrompt(): string {
       'Never suggest options, alternatives or next steps to the player, in a block or in prose. The player decides what to do.',
       'At most one block per reply, after the prose, as a fenced `openui-lang` block. Never write one before narrating.',
       "When the player's character attempts something uncertain that matters to the story, end the reply with a `RollRequest` instead of narrating the result: narrate up to the moment of the attempt, then stop. Never ask for a roll for something trivial.",
+      "The first argument of a `RollRequest` is the player's own aim, in their terms, taken from their message. Never add a purpose, plan or motive they did not state. The examples only show the format.",
       'Never show dice, outcomes or any number of the engine inside a block. Narrate the result of a check as prose.',
       'Ignore the dashboard wording of this section: there is no dashboard to update, each reply stands alone.'
     ],
     examples: [
-      'root = Stack([roll])\nroll = RollRequest("Persuade the guard to let you pass", "intelligence")',
+      'root = Stack([roll])\nroll = RollRequest("Convince the guard to let you pass", "intelligence")',
       'root = Stack([roll])\nroll = RollRequest("Climb the wet wall", "strength", "disadvantage")'
     ]
   })

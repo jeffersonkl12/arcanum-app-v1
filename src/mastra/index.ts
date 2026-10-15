@@ -12,7 +12,6 @@ import {
   SensitiveDataFilter
 } from '@mastra/observability'
 import { narratorAgent } from './agents/narrator/narrator.agent'
-import { npcCreatorAgent } from './agents/npc-creator/npc-creator.agent'
 import { adjustRelationshipsTool } from './tools/adjust-relationships.tool'
 import { createNpcTool } from './tools/create-npc.tool'
 import { createPlacesTool } from './tools/create-places.tool'
@@ -42,7 +41,7 @@ const dataDir = resolve(process.env.ARCANUM_MASTRA_DIR ?? join(process.cwd(), '.
 mkdirSync(dataDir, { recursive: true })
 
 export const mastra = new Mastra({
-  agents: { narrator: narratorAgent, npcCreator: npcCreatorAgent },
+  agents: { narrator: narratorAgent },
   tools: {
     createNpcTool,
     rollCheckTool,

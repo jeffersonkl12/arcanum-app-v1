@@ -261,6 +261,8 @@ export class GameMasterService implements IGameMasterService {
         name: world.name,
         genre: world.genre,
         description: world.description,
+        cultures: [...names.cultures.values()],
+        languages: [...names.languages.values()],
         currentPlace: await this.loadCurrentPlace(worldId, names)
       },
       knowledge: await this.loadKnowledge(worldId),
@@ -429,13 +431,46 @@ export class GameMasterService implements IGameMasterService {
     }
   }
 
+  /**
+   * Where a new NPC starts: the place the narrator named (it must be in the world), or else where
+   * the party is, so an NPC is never left nowhere just because nobody moved it afterwards.
+   */
+  private async resolveNpcPlace(
+    worldId: string,
+    placeId: string | undefined
+  ): Promise<PointOfInterest | null> {
+    if (placeId) {
+      const place = await this.pointOfInterestService.get(placeId)
+      if (place.worldId !== worldId) throw new NotFoundError('PointOfInterest', placeId)
+      return place
+    }
+
+    const party = await this.partyService.findByWorld(worldId)
+    if (!party) return null
+
+    const members = await this.partyService.listMembers(party.id)
+    const partyPlaceId = (
+      members.find((member) => !member.isNpc && member.pointOfInterestId) ??
+      members.find((member) => member.pointOfInterestId)
+    )?.pointOfInterestId
+
+    return partyPlaceId ? this.pointOfInterestService.get(partyPlaceId) : null
+  }
+
   private createNpcRegistry(): INpcRegistry {
     return {
       createNpc: async (worldId: string, draft: NpcDraft): Promise<CreateNpcResult> => {
         try {
+          const place = await this.resolveNpcPlace(worldId, draft.placeId)
+          const names = await this.loadCultureNames(worldId)
+          const cultureId = resolveNameId(names.cultures, draft.culture, 'culture')
+          const languageId = resolveNameId(names.languages, draft.language, 'language')
           const actor = await this.actorService.create({
             worldId,
             isNpc: true,
+            pointOfInterestId: place?.id ?? null,
+            cultureId,
+            languageId,
             name: draft.name,
             age: draft.age,
             gender: draft.gender,
@@ -452,10 +487,20 @@ export class GameMasterService implements IGameMasterService {
             background: draft.background ?? null
           })
 
-          return { ok: true, npc: toCreatedNpc(actor) }
+          return {
+            ok: true,
+            npc: {
+              ...toCreatedNpc(actor),
+              culture: nameOf(names.cultures, actor.cultureId) ?? undefined,
+              language: nameOf(names.languages, actor.languageId) ?? undefined,
+              placeName: place?.name
+            }
+          }
         } catch (error) {
           // Only rule violations go back to the AI so it can fix the NPC; anything else is a bug.
-          if (error instanceof ConflictError) return { ok: false, reason: error.message }
+          if (error instanceof ConflictError || error instanceof NotFoundError) {
+            return { ok: false, reason: error.message }
+          }
           throw error
         }
       }
@@ -503,6 +548,26 @@ function outlineInside(rootId: string, places: PointOfInterest[], npcs: Actor[])
   visit(rootId, 0)
 
   return omitted > 0 ? [...lines, `...and ${omitted} more`] : lines
+}
+
+/**
+ * The id of the culture or language the narrator named (ignoring case), or `null` when it named
+ * none. A name the world does not have is a rule violation, so the narrator can fix it.
+ */
+function resolveNameId(
+  names: ReadonlyMap<string, string>,
+  wanted: string | undefined,
+  kind: 'culture' | 'language'
+): string | null {
+  const name = wanted?.trim()
+  if (!name) return null
+
+  for (const [id, candidate] of names) {
+    if (candidate.toLocaleLowerCase() === name.toLocaleLowerCase()) return id
+  }
+
+  const available = [...names.values()].join(', ') || 'none'
+  throw new ConflictError(`The world has no ${kind} "${name}". Available: ${available}`)
 }
 
 /** The names of the cultures and languages of a world, by id, to put on the sheets. */

@@ -54,7 +54,8 @@ const infoCells = computed(() => {
     { label: 'IDADE', value: props.sheet.ageLabel },
     { label: 'GÊNERO', value: props.sheet.genderLabel },
     { label: 'IDIOMA', value: props.sheet.languageLabel },
-    { label: 'CULTURA', value: props.sheet.cultureLabel }
+    { label: 'CULTURA', value: props.sheet.cultureLabel },
+    { label: 'LOCALIZAÇÃO ATUAL', value: props.sheet.placeLabel }
   ]
 })
 

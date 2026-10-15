@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
-import type { Actor } from '@schema'
+import { computed, ref, watch } from 'vue'
+import type { Actor, PointOfInterest } from '@schema'
+import { toPartyMemberCard } from '@renderer/composable/game.mapper'
 import type {
   CharacterSheet,
   GameChatMessage,
@@ -19,11 +20,25 @@ export const useGameStore = defineStore('game', () => {
   const isAiKeyMissing = ref(false)
 
   const actors = ref<Actor[]>([])
+  const places = ref<PointOfInterest[]>([])
   const languages = ref<NamedEntitySummary[]>([])
   const cultures = ref<NamedEntitySummary[]>([])
   const player = ref<PartyMemberCardModel>()
   const npcs = ref<PartyMemberCardModel[]>([])
-  const sidebarTab = ref<'party' | 'journal'>('party')
+  /** Where the party is: the place of the player, the only actor that is not an NPC. */
+  const currentPlace = computed(() => {
+    const placeId = actors.value.find((actor) => !actor.isNpc)?.pointOfInterestId
+    return placeId ? places.value.find((place) => place.id === placeId) : undefined
+  })
+  /** The NPCs in the current place that are not in the party (those are shown with the party). */
+  const placeNpcs = computed(() => {
+    const placeId = currentPlace.value?.id
+    if (!placeId) return []
+    return actors.value
+      .filter((actor) => actor.isNpc && !actor.partyId && actor.pointOfInterestId === placeId)
+      .map(toPartyMemberCard)
+  })
+  const sidebarTab = ref<'party' | 'places' | 'npcs' | 'journal'>('party')
 
   const sheetOpen = ref(false)
   const selectedSheet = ref<CharacterSheet>()
@@ -47,6 +62,9 @@ export const useGameStore = defineStore('game', () => {
     isSending,
     isAiKeyMissing,
     actors,
+    places,
+    currentPlace,
+    placeNpcs,
     languages,
     cultures,
     player,

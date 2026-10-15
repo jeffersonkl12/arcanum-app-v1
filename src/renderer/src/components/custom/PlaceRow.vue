@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Pencil, Trash2 } from '@lucide/vue'
+import { ChevronDown, ChevronRight, Pencil, Trash2 } from '@lucide/vue'
 import { toImageUrl } from '@shared'
 import { Avatar, AvatarFallback, AvatarImage } from '@renderer/components/ui/avatar'
 import { Button } from '@renderer/components/ui/button'
@@ -7,10 +7,14 @@ import type { PlaceSummary } from '@renderer/composable/world.type'
 
 defineProps<{
   place: PlaceSummary
+  /** Whether the row can fold its children; off while searching, when the list is flat. */
+  collapsible?: boolean
+  collapsed?: boolean
 }>()
 
 defineEmits<{
   view: []
+  toggle: []
   edit: []
   remove: []
 }>()
@@ -21,6 +25,21 @@ defineEmits<{
     class="flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3"
     :style="{ marginLeft: `${place.depth * 1.5}rem` }"
   >
+    <Button
+      v-if="collapsible && place.childCount > 0"
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      class="size-auto shrink-0 rounded-lg p-1 text-tertiary hover:text-foreground"
+      :aria-expanded="!collapsed"
+      @click="$emit('toggle')"
+    >
+      <component :is="collapsed ? ChevronRight : ChevronDown" class="size-5" />
+      <span class="sr-only">
+        {{ collapsed ? 'Mostrar' : 'Ocultar' }} lugares dentro de {{ place.name }}
+      </span>
+    </Button>
+    <span v-else-if="collapsible" class="size-7 shrink-0" aria-hidden="true" />
     <button
       type="button"
       class="flex min-w-0 flex-1 items-center gap-4 text-left outline-none"

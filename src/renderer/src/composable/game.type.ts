@@ -64,7 +64,26 @@ export interface CharacterSheet {
   genderLabel: string
   languageLabel: string
   cultureLabel: string
+  placeLabel: string
   appearance: string
   personality: string
   background: string
+}
+
+export interface PlaceCardModel {
+  id: string
+  name: string
+  type: string
+  imagePath?: string
+  /** Name of the place it is directly inside of; empty at the top. */
+  parentLabel: string
+  npcCount: number
+  isCurrent: boolean
+}
+
+export interface NpcCardModel extends PartyMemberCardModel {
+  /** Full path of the place where the NPC is ("Cidade › Casa"), or "—". */
+  placeLabel: string
+  placeId: string | null
+  inParty: boolean
 }

@@ -14,6 +14,66 @@ export interface NarrationDelta extends NarrationPiece {
 const FENCE = '```'
 
 /**
+ * Rewrites, as the prose streams, the punctuation the narrator is told never to use (colon,
+ * semicolon, dashes): each becomes a comma, or a period when the line ends right after it. A
+ * hyphen inside a word, a colon between digits (a time) and a list marker at the start of a line
+ * are left alone. Spaces are held back until the next character, so a space before a dash can
+ * be dropped without taking back text that was already streamed.
+ */
+export class ProseSanitizer {
+  private spaces = ''
+  private last = ''
+  private markPending = false
+  private needsSpace = false
+
+  push(char: string): string {
+    const isSpace = char === ' ' || char === '\t'
+    if (this.isBannedMark(char)) {
+      this.spaces = ''
+      if (/[,.!?]/.test(this.last)) this.needsSpace = true
+      else this.markPending = true
+      return ''
+    }
+
+    let out = ''
+    if (this.markPending) {
+      this.markPending = false
+      this.needsSpace = true
+      out = char === '\n' ? '.' : ','
+      this.last = out
+    }
+    if (this.needsSpace && !isSpace && char !== '\n') out += ' '
+    this.needsSpace = false
+
+    if (isSpace) {
+      this.spaces += char
+      return out
+    }
+    out += this.spaces + (char === '…' ? '.' : char)
+    this.spaces = ''
+    this.last = char
+    return out
+  }
+
+  /** What is still held back, for the end of the prose or before a block. */
+  flush(): string {
+    const out = (this.markPending ? '.' : '') + this.spaces
+    this.markPending = false
+    this.needsSpace = false
+    this.spaces = ''
+    if (out !== '') this.last = out[out.length - 1]
+    return out
+  }
+
+  private isBannedMark(char: string): boolean {
+    if (char === ';' || char === '—' || char === '–') return true
+    if (char === ':') return !/\d/.test(this.last)
+    // A hyphen after a space is a dash; inside a word or opening a line it is spelling or a marker.
+    return char === '-' && this.spaces.length > 0 && this.last !== '' && this.last !== '\n'
+  }
+}
+
+/**
  * Splits a reply written in OpenUI Lang's inline mode (prose with fenced `openui-lang` blocks) as
  * it streams, one chunk at a time. The fence rule is the one of the OpenUI parser: any triple
  * backtick opens or closes a block, except inside a double-quoted string of the block. The language
@@ -30,6 +90,7 @@ export class NarrationStreamSplitter {
   private escaped = false
   private open = false
   private readonly written: NarrationPiece[] = []
+  private readonly sanitizer = new ProseSanitizer()
 
   push(chunk: string): NarrationDelta[] {
     const deltas: NarrationDelta[] = []
@@ -40,6 +101,7 @@ export class NarrationStreamSplitter {
   /** Releases held-back backticks (a reply that ends in the middle of a fence). */
   end(): NarrationDelta[] {
     const deltas: NarrationDelta[] = []
+    if (this.mode === 'prose') this.emit('prose', this.sanitizer.flush(), deltas)
     if (this.mode === 'prose' || this.mode === 'ui') this.flushTicks(this.mode, deltas)
     return deltas
   }
@@ -52,9 +114,12 @@ export class NarrationStreamSplitter {
   private consume(char: string, deltas: NarrationDelta[]): void {
     switch (this.mode) {
       case 'prose':
-        if (char === '`') return this.countTick('tag')
+        if (char === '`') {
+          if (this.pendingTicks === 0) this.emit('prose', this.sanitizer.flush(), deltas)
+          return this.countTick('tag')
+        }
         this.flushTicks('prose', deltas)
-        this.emit('prose', char, deltas)
+        this.emit('prose', this.sanitizer.push(char), deltas)
         return
       case 'tag':
         // The language tag (`openui-lang`) up to the end of the line; it is not content.
@@ -103,6 +168,8 @@ export class NarrationStreamSplitter {
   }
 
   private emit(kind: 'prose' | 'ui', text: string, deltas: NarrationDelta[]): void {
+    if (text === '') return
+
     if (!this.open || this.written[this.written.length - 1].kind !== kind) {
       this.written.push({ kind, text: '' })
       this.open = true

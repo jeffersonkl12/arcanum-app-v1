@@ -1,7 +1,7 @@
 import type { Ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { toast } from 'vue-sonner'
-import type { Actor, Party } from '@schema'
+import type { Actor, Party, PointOfInterest } from '@schema'
 import type { IpcOutput, NarrationSegment } from '@shared'
 import { appendNarrationDelta } from '@renderer/util/narration.util'
 import { useCampaign } from './campaign.composable'
@@ -36,8 +36,12 @@ export function useGame(): {
   messages: Ref<GameChatMessage[]>
   player: Ref<PartyMemberCardModel | undefined>
   npcs: Ref<PartyMemberCardModel[]>
+  actors: Ref<Actor[]>
+  places: Ref<PointOfInterest[]>
+  currentPlace: Ref<PointOfInterest | undefined>
+  placeNpcs: Ref<PartyMemberCardModel[]>
   draft: Ref<string>
-  sidebarTab: Ref<'party' | 'journal'>
+  sidebarTab: Ref<'party' | 'places' | 'npcs' | 'journal'>
   sheetOpen: Ref<boolean>
   selectedSheet: Ref<CharacterSheet | undefined>
   editOpen: Ref<boolean>
@@ -68,6 +72,9 @@ export function useGame(): {
     isSending,
     isAiKeyMissing,
     actors,
+    places,
+    currentPlace,
+    placeNpcs,
     languages,
     cultures,
     player,
@@ -106,17 +113,21 @@ export function useGame(): {
 
   /** Reads party and actors again, e.g. after a turn, because the narrator can create NPCs. */
   async function refreshParty(worldId: string): Promise<void> {
-    const [party, actorList] = await Promise.all([
+    const [party, actorList, placeList] = await Promise.all([
       request('party:findByWorld', worldId),
-      request('actor:listByWorld', worldId)
+      request('actor:listByWorld', worldId),
+      request('pointOfInterest:listByWorld', worldId)
     ])
-    if (actorList && session.value?.worldId === worldId) applyParty(actorList, party)
+    if (!actorList || session.value?.worldId !== worldId) return
+    if (placeList) places.value = placeList
+    applyParty(actorList, party)
   }
 
   function clearGame(): void {
     session.value = undefined
     messages.value = []
     actors.value = []
+    places.value = []
     player.value = undefined
     npcs.value = []
   }
@@ -134,14 +145,16 @@ export function useGame(): {
       return
     }
 
-    const [history, party, actorList, languageList, cultureList, aiSetting] = await Promise.all([
-      request('gameMaster:listHistory', worldId),
-      request('party:findByWorld', worldId),
-      request('actor:listByWorld', worldId),
-      request('language:listByWorld', worldId),
-      request('culture:listByWorld', worldId),
-      request('aiSetting:get')
-    ])
+    const [history, party, actorList, placeList, languageList, cultureList, aiSetting] =
+      await Promise.all([
+        request('gameMaster:listHistory', worldId),
+        request('party:findByWorld', worldId),
+        request('actor:listByWorld', worldId),
+        request('pointOfInterest:listByWorld', worldId),
+        request('language:listByWorld', worldId),
+        request('culture:listByWorld', worldId),
+        request('aiSetting:get')
+      ])
 
     const loadedActors = actorList ?? []
     const playerActor = loadedActors.find((actor) => !actor.isNpc)
@@ -151,6 +164,7 @@ export function useGame(): {
     const masterImagePath = aiSetting?.imagePath ?? undefined
 
     session.value = { worldId, worldName: world.name, playerName, playerImagePath, masterImagePath }
+    places.value = placeList ?? []
     languages.value = (languageList ?? []).map(toNamedEntitySummary)
     cultures.value = (cultureList ?? []).map(toNamedEntitySummary)
     isAiKeyMissing.value = aiSetting !== undefined && !aiSetting.apiKey.configured
@@ -385,7 +399,7 @@ export function useGame(): {
       return
     }
 
-    selectedSheet.value = toCharacterSheet(actor, languages.value, cultures.value)
+    selectedSheet.value = toCharacterSheet(actor, languages.value, cultures.value, places.value)
     sheetOpen.value = true
   }
 
@@ -436,6 +450,10 @@ export function useGame(): {
     messages,
     player,
     npcs,
+    actors,
+    places,
+    currentPlace,
+    placeNpcs,
     draft,
     sidebarTab,
     sheetOpen,

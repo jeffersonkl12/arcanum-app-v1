@@ -17,7 +17,7 @@ export const rollCheckTool = createTool({
     actorId: z
       .uuid()
       .describe(
-        'Id of the actor who attempts the action (from the party section or the npcCreator).'
+        'Id of the actor who attempts the action (from the party section or the result of `create-npc`).'
       ),
     attribute: z
       .enum(ACTOR_ATTRIBUTES)

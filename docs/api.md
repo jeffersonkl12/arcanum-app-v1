@@ -678,7 +678,7 @@ Renderer                 Main (GameMasterService)            Mastra / LLM
    │                           │ 5. narrator.generate(message, {   │
    │                           │      maxSteps: 10,                ├─► prompt = layers (estático→dinâmico)
    │                           │      temperature,                 │   LLM ──► rollCheckTool ──► DiceCheckService
-   │                           │      memory: { resource: worldId, │   LLM ──► npcCreator ──► createNpcTool ──► ActorService
+   │                           │      memory: { resource: worldId, │   LLM ──► createNpcTool ──► ActorService
    │                           │        thread: campaign-<id> } }) │   LLM ──► texto final
    │◄──────────────────────────┤ 6. result.text                    │
    │   { ok:true, data:"…" }   │                                   │
@@ -694,12 +694,10 @@ Pontos a reter:
 
 | Agente          | id            | Modelo                                                         | Tools / sub-agentes                  | Memória                                                         |
 | --------------- | ------------- | -------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------- |
-| **Narrator**    | `narrator`    | Dinâmico: `requestContext.narratorModel.id` (`provider/model`) | `rollCheckTool`, tools de item (§6.5), agente `npcCreator` | Sim (Observational Memory, modelo `google/gemini-2.5-flash`)    |
-| **NPC Creator** | `npc-creator` | Fixo: `google/gemini-3.5-flash-lite`                           | `createNpcTool`, `createItemsTool`   | Não (cada delegação tem thread novo sob `{worldId}-npcCreator`) |
+| **Narrator**    | `narrator`    | Dinâmico: `requestContext.narratorModel.id` (`provider/model`) | `rollCheckTool`, tools de item (§6.5), `createNpcTool` | Sim (Observational Memory, modelo `google/gemini-2.5-flash`)    |
 
 Ambos validam o `RequestContext` com `gameContextSchema` e estão registrados em `src/mastra/index.ts`.
 
-> ⚠️ O modelo do NPC Creator é **fixo** e usa Google. Ele precisa de `GOOGLE_API_KEY` no ambiente, **independente** do provider escolhido para o narrador.
 > O mesmo vale para a memória (`google/gemini-2.5-flash`).
 
 ### 6.4 Prompt em camadas
@@ -709,14 +707,13 @@ O system prompt do narrador é a junção de _layers_ (um `.md` cada), nesta ord
 | #   | Layer      | Tipo     | Conteúdo                                                                                                                                                                                                                      |
 | --- | ---------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | `identity` | estático | Quem é o narrador                                                                                                                                                                                                             |
-| 2   | `rules`    | estático | Nunca inventar mecânica · rolar `rollCheckTool` só para ações incertas e relevantes · o resultado é final · delegar NPC novo ao `npcCreator` **antes** de narrá-lo · responder no idioma do jogador · nunca agir pelo jogador |
+| 2   | `rules`    | estático | Nunca inventar mecânica · rolar `rollCheckTool` só para ações incertas e relevantes · o resultado é final · registrar NPC novo com `createNpcTool` **antes** de narrá-lo · responder no idioma do jogador · nunca agir pelo jogador |
 | 3   | `world`    | dinâmico | `name`, `genre`, `description` (opcional)                                                                                                                                                                                     |
 | 4   | `party`    | dinâmico | Membros: `name`, `isPlayer`, `age`, `gender`, `hpCurrent`/`hpMax`, `id`, `strength`/`dexterity`/`intelligence` (só leitura para a IA; cada um é quantos d6 o teste rola), `goldPieces`/`silverPieces`/`bronzePieces`, `equipped`/`carried` (só os nomes dos itens) e, se houver, `profession`, `appearance`, `personality`, `background`                                                                |
 
 - Camadas estáticas vêm primeiro (prefixo imutável ajuda o cache do provedor). Dinâmicas, do que menos muda para o que mais muda.
 - Dinâmicas são **Handlebars em modo `strict`**: campo ausente **lança erro**. Campo opcional precisa de `{{#if campo}}`.
 - Os `.md` são lidos do disco em runtime (`ARCANUM_AGENTS_DIR`). Em build empacotado vão como _extra resource_.
-- O NPC Creator tem um layer dinâmico próprio com `world.name`, `world.genre`, `world.description`. ⚠️ Ele usa `{{world.description}}` sem `#if`; como `description` é `''` por padrão, funciona, mas um `description` ausente quebraria.
 
 ### 6.5 Tools
 
@@ -727,7 +724,7 @@ Rola um teste de dados na engine para um ator (o jogador faz o dele pelo `RollRe
 ```ts
 // input
 {
-  actorId: string // id do ator (seção party ou relatório do npcCreator)
+  actorId: string // id do ator (seção party ou resultado de `createNpcTool`)
   attribute: 'strength' | 'dexterity' | 'intelligence'
   mode?: 'normal' | 'advantage' | 'disadvantage' // omitido = normal
 }
@@ -772,7 +769,7 @@ Rola um d6 por ponto do atributo. Se algum dado cair em 5 ou 6, `success`; senã
 
 #### `createNpcTool` (id `create-npc`)
 
-Só o `npcCreator` a usa. Registra um NPC pela engine (`ActorService.create` com `isNpc: true`).
+Só o narrador a usa. Registra um NPC pela engine (`ActorService.create` com `isNpc: true`).
 
 ```ts
 // input (npcDraft)
@@ -806,7 +803,7 @@ Só o `npcCreator` a usa. Registra um NPC pela engine (`ActorService.create` com
 }
 ```
 
-Itens **não** fazem parte do NPC: o `npcCreator` os cria depois com `create-items`, usando o `id` devolvido como `ownerId`.
+Itens **não** fazem parte do NPC: o narrador os cria depois com `create-items`, usando o `id` devolvido como `ownerId`.
 
 Se a engine rejeitar (`ConflictError`), a tool devolve `{ ok: false, reason }` para a **IA corrigir e tentar de novo**. Qualquer outro erro é relançado e vira `internal`.
 
@@ -970,7 +967,7 @@ import { library } from './library'
 | ------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Vocabulário (fonte única) | `src/shared/narrator-ui.shared.ts`                             | `NARRATOR_UI_COMPONENTS`: nome, descrição e props (Zod), **sem Vue**. Hoje: `Stack` (raiz) e `RollRequest`. Sem componente de dado/número de propósito (ver risco 6)        |
 | Prompt do narrador        | `src/mastra/prompt/narrator-ui.prompt.ts` + `generatedLayer`   | `createLibrary` com componentes vazios só para gerar `library.prompt({ inlineMode: true, … })`. Entra no narrador depois de `rules`, antes dos layers dinâmicos         |
-| `narrateStream`           | `NarratorGateway` (`@lib/narrator.lib`)                        | Lê `fullStream`: só `text-delta` do próprio narrador (texto de especialista vem embrulhado em `tool-output`); chunk `error` vira exceção                                |
+| `narrateStream`           | `NarratorGateway` (`@lib/narrator.lib`)                        | Lê `fullStream`: só `text-delta` do próprio narrador (o retorno de tools vem embrulhado em `tool-output`); chunk `error` vira exceção                                |
 | Separador prosa/UI        | `src/main/util/narration.util.ts`                              | `NarrationStreamSplitter` (streaming, segura crases partidas entre chunks) e `splitNarration`. A regra de cerca é a do parser do OpenUI. Puro, sem imports              |
 | Validação do bloco        | `src/main/lib/openui.lib.ts`                                   | Fachada do `vue-lang`: `narratorUiLibrary()` (usada pelo prompt e pela validação) e `validateNarratorUi(source)` → `NarrationIssue[]`                                   |
 | Sumarização compatível    | `src/mastra/memory/narrator.memory.ts`                         | Hook `beforeObservation`: o Observer lê a resposta **sem** os blocos de UI (não vira "fato da história" nem gasta tokens). No armazenamento a mensagem continua inteira |

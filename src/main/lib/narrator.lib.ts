@@ -24,7 +24,7 @@ import type { INpcSceneRegistry } from '../../mastra/context/npc-scene.context'
 import type { IPointOfInterestRegistry } from '../../mastra/context/point-of-interest.context'
 import type { IRelationshipRegistry } from '../../mastra/context/relationship.context'
 
-/** Upper bound of model/tool steps in one turn: narrator, tool or specialist, narrator. */
+/** Upper bound of model/tool steps in one turn: narrator, tool, narrator. */
 const MAX_STEPS_PER_TURN = 10
 
 export interface NarratorTurn {
@@ -214,7 +214,7 @@ export class NarratorGateway implements INarratorGateway {
     const lastReply = lastTurn.findLast((message) => message.role === 'assistant')
     const canRegenerate = lastTurn.length > 1 && isRepeatable(lastTurn)
 
-    // Tool calls and reports of specialists are plumbing; the player only sees the dialogue.
+    // Tool calls and their results are plumbing; the player only sees the dialogue.
     return stored.flatMap((message) => {
       if (message.role !== 'user' && message.role !== 'assistant') return []
 
@@ -388,7 +388,7 @@ function campaignThreadId(worldId: string): string {
 
 /**
  * Turns Mastra's stream into the events above. Only the narrator's own text counts: what a
- * specialist writes reaches the stream wrapped in tool output, never as a top-level text chunk, and
+ * tool returns reaches the stream wrapped in tool output, never as a top-level text chunk, and
  * Observational Memory's progress arrives as `data-om-*` chunks, which are not narration either.
  * Mastra reports a failure as an `error` chunk instead of throwing, so it is rethrown here.
  */

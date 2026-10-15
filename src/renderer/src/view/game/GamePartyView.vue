@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import GameNpcsTab from '@renderer/view/game/GameNpcsTab.vue'
+import GamePlacesTab from '@renderer/view/game/GamePlacesTab.vue'
 import PartyMemberCard from '@renderer/components/custom/PartyMemberCard.vue'
 import { useGame } from '@renderer/composable/game.composable'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
 
-const { player, npcs, sidebarTab, openCharacterSheet } = useGame()
+const { session, currentPlace, placeNpcs, player, npcs, sidebarTab, openCharacterSheet } = useGame()
 </script>
 
 <template>
@@ -12,17 +14,29 @@ const { player, npcs, sidebarTab, openCharacterSheet } = useGame()
     <Tabs v-model="sidebarTab" class="flex min-h-0 flex-1 flex-col gap-0">
       <TabsList
         variant="line"
-        class="h-auto w-full justify-start gap-6 rounded-none border-b border-border bg-transparent px-6 pt-5"
+        class="h-auto w-full justify-start gap-4 rounded-none border-b border-border bg-transparent px-4 pt-5"
       >
         <TabsTrigger
           value="party"
-          class="rounded-none px-0 pb-3 text-base font-semibold data-active:text-primary after:bg-primary"
+          class="rounded-none px-0 pb-3 text-sm font-semibold data-active:text-primary after:bg-primary"
         >
           Grupo
         </TabsTrigger>
         <TabsTrigger
+          value="places"
+          class="rounded-none px-0 pb-3 text-sm font-medium data-active:text-primary after:bg-primary"
+        >
+          Lugares
+        </TabsTrigger>
+        <TabsTrigger
+          value="npcs"
+          class="rounded-none px-0 pb-3 text-sm font-medium data-active:text-primary after:bg-primary"
+        >
+          NPCs
+        </TabsTrigger>
+        <TabsTrigger
           value="journal"
-          class="rounded-none px-0 pb-3 text-base font-medium data-active:text-primary after:bg-primary"
+          class="rounded-none px-0 pb-3 text-sm font-medium data-active:text-primary after:bg-primary"
         >
           Diário
         </TabsTrigger>
@@ -31,6 +45,32 @@ const { player, npcs, sidebarTab, openCharacterSheet } = useGame()
       <TabsContent value="party" class="mt-0 min-h-0 flex-1 overflow-hidden">
         <ScrollArea class="h-full">
           <div class="flex flex-col gap-6 p-6">
+            <div class="flex flex-col gap-3">
+              <p class="text-xs font-bold tracking-wide text-tertiary uppercase">Mundo</p>
+              <p class="text-sm font-bold text-foreground">{{ session?.worldName }}</p>
+            </div>
+            <div class="flex flex-col gap-3">
+              <p class="text-xs font-bold tracking-wide text-tertiary uppercase">Localização</p>
+              <div v-if="currentPlace" class="flex flex-col gap-0.5">
+                <p class="text-sm font-bold text-foreground">{{ currentPlace.name }}</p>
+                <p class="text-xs text-muted-foreground">{{ currentPlace.type }}</p>
+              </div>
+              <p v-else class="text-sm text-tertiary">Local desconhecido.</p>
+            </div>
+            <div class="flex flex-col gap-3">
+              <p class="text-xs font-bold tracking-wide text-tertiary uppercase">NPCs no local</p>
+              <div class="flex flex-col gap-3">
+                <PartyMemberCard
+                  v-for="npc in placeNpcs"
+                  :key="npc.id"
+                  :member="npc"
+                  @select="openCharacterSheet(npc.id)"
+                />
+                <p v-if="placeNpcs.length === 0" class="text-sm text-tertiary">
+                  Nenhum NPC neste local.
+                </p>
+              </div>
+            </div>
             <div class="flex flex-col gap-3">
               <p class="text-xs font-bold tracking-wide text-tertiary uppercase">Jogador</p>
               <PartyMemberCard
@@ -54,6 +94,14 @@ const { player, npcs, sidebarTab, openCharacterSheet } = useGame()
             </div>
           </div>
         </ScrollArea>
+      </TabsContent>
+
+      <TabsContent value="places" class="mt-0 min-h-0 flex-1 overflow-hidden">
+        <GamePlacesTab />
+      </TabsContent>
+
+      <TabsContent value="npcs" class="mt-0 min-h-0 flex-1 overflow-hidden">
+        <GameNpcsTab />
       </TabsContent>
 
       <TabsContent value="journal" class="mt-0 min-h-0 flex-1 overflow-hidden p-6">

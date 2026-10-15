@@ -23,6 +23,8 @@ const props = defineProps<{
   /** The places directly inside this one. */
   inside: PlaceSummary[]
   deleting?: boolean
+  /** Only shows the place: no add, edit or delete (e.g. during the game). */
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -110,41 +112,43 @@ const locationLabel = computed(() => props.place?.path.join(' › ') ?? '')
             </div>
           </template>
 
-          <Separator />
+          <template v-if="!readonly">
+            <Separator />
 
-          <Button
-            type="button"
-            variant="outline"
-            class="h-auto gap-2 self-start rounded-full bg-transparent px-4 py-2.5 text-sm font-semibold"
-            :disabled="deleting"
-            @click="emit('addChild')"
-          >
-            <Plus class="size-4" />
-            Adicionar lugar dentro
-          </Button>
-
-          <div class="flex items-center justify-between">
             <Button
               type="button"
               variant="outline"
-              class="h-auto gap-2 rounded-full border-destructive px-5 py-2.5 text-sm font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive"
+              class="h-auto gap-2 self-start rounded-full bg-transparent px-4 py-2.5 text-sm font-semibold"
               :disabled="deleting"
-              @click="emit('delete')"
+              @click="emit('addChild')"
             >
-              <Spinner v-if="deleting" class="size-4" />
-              <Trash2 v-else class="size-4" />
-              Apagar
+              <Plus class="size-4" />
+              Adicionar lugar dentro
             </Button>
-            <Button
-              type="button"
-              class="h-auto gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
-              :disabled="deleting"
-              @click="emit('edit')"
-            >
-              <Pencil class="size-4" />
-              Editar Lugar
-            </Button>
-          </div>
+
+            <div class="flex items-center justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                class="h-auto gap-2 rounded-full border-destructive px-5 py-2.5 text-sm font-semibold text-destructive hover:bg-destructive/10 hover:text-destructive"
+                :disabled="deleting"
+                @click="emit('delete')"
+              >
+                <Spinner v-if="deleting" class="size-4" />
+                <Trash2 v-else class="size-4" />
+                Apagar
+              </Button>
+              <Button
+                type="button"
+                class="h-auto gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
+                :disabled="deleting"
+                @click="emit('edit')"
+              >
+                <Pencil class="size-4" />
+                Editar Lugar
+              </Button>
+            </div>
+          </template>
         </div>
       </DialogContent>
     </DialogPortal>

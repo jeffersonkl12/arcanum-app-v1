@@ -74,6 +74,28 @@ const itemOpen = ref(false)
 const editingItem = ref<ItemSummary | null>(null)
 const itemDetailOpen = ref(false)
 const viewingItem = ref<ItemSummary | null>(null)
+// Places whose children are hidden. Ignored while searching, which lists the matches flat.
+const collapsedPlaceIds = ref(new Set<string>())
+
+const shownPlaces = computed(() => {
+  if (entitySearch.value.trim().length > 0) return visiblePlaces.value
+  const hidden = new Set<string>()
+  return visiblePlaces.value.filter((place) => {
+    const parentId = place.parentId
+    if (parentId && (collapsedPlaceIds.value.has(parentId) || hidden.has(parentId))) {
+      hidden.add(place.id)
+      return false
+    }
+    return true
+  })
+})
+
+function togglePlace(placeId: string): void {
+  const next = new Set(collapsedPlaceIds.value)
+  if (!next.delete(placeId)) next.add(placeId)
+  collapsedPlaceIds.value = next
+}
+
 const placeOpen = ref(false)
 const editingPlace = ref<PlaceSummary | null>(null)
 const newPlaceParentId = ref<string | null>(null)
@@ -335,14 +357,17 @@ const tabTriggerClass = cn(
 
       <TabsContent value="places" class="mt-0 flex flex-col gap-3 outline-none">
         <PlaceRow
-          v-for="place in visiblePlaces"
+          v-for="place in shownPlaces"
           :key="place.id"
           :place="place"
+          :collapsible="entitySearch.trim().length === 0"
+          :collapsed="collapsedPlaceIds.has(place.id)"
+          @toggle="togglePlace(place.id)"
           @view="openPlaceDetail(place)"
           @edit="openEditPlace(place)"
           @remove="requestDelete('place', place)"
         />
-        <p v-if="visiblePlaces.length === 0" class="text-sm text-tertiary">
+        <p v-if="shownPlaces.length === 0" class="text-sm text-tertiary">
           Nenhum lugar encontrado.
         </p>
       </TabsContent>

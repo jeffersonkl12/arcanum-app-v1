@@ -1,4 +1,4 @@
-import type { Actor } from '@schema'
+import type { Actor, PointOfInterest } from '@schema'
 import type { IpcOutput, NarrationSegment } from '@shared'
 import { actorAgeOptions, actorGenderOptions } from '@renderer/constant/actor.constant'
 import type {
@@ -99,10 +99,24 @@ export function actorGenderLabel(gender: Actor['gender']): string {
   return actorGenderOptions.find((option) => option.value === gender)?.label ?? gender
 }
 
+/** The place with everything it is inside of, from the top down ("Cidade › Casa › Quarto"). */
+export function placePathLabel(placeId: string | null, places: PointOfInterest[]): string {
+  const names: string[] = []
+  const seen = new Set<string>()
+  let current = places.find((place) => place.id === placeId)
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id)
+    names.unshift(current.name)
+    current = places.find((place) => place.id === current?.parentId)
+  }
+  return names.join(' › ') || '—'
+}
+
 export function toCharacterSheet(
   actor: Actor,
   languages: NamedEntitySummary[],
-  cultures: NamedEntitySummary[]
+  cultures: NamedEntitySummary[],
+  places: PointOfInterest[]
 ): CharacterSheet {
   const languageName = languages.find((item) => item.id === actor.languageId)?.name
   const cultureName = cultures.find((item) => item.id === actor.cultureId)?.name
@@ -133,6 +147,7 @@ export function toCharacterSheet(
     genderLabel: actorGenderLabel(actor.gender),
     languageLabel: languageName?.trim() || '—',
     cultureLabel: cultureName?.trim() || '—',
+    placeLabel: placePathLabel(actor.pointOfInterestId, places),
     appearance: actor.appearance?.trim() || '—',
     personality: actor.personality?.trim() || '—',
     background: actor.background?.trim() || '—'

@@ -8,6 +8,7 @@ import { adjustRelationshipsTool } from '../../tools/adjust-relationships.tool'
 import { updateCampaignSummaryTool } from '../../tools/update-campaign-summary.tool'
 import { createPlacesTool } from '../../tools/create-places.tool'
 import { createItemsTool } from '../../tools/create-items.tool'
+import { createNpcTool } from '../../tools/create-npc.tool'
 import { deleteItemsTool } from '../../tools/delete-items.tool'
 import { equipItemsTool } from '../../tools/equip-items.tool'
 import { engageNpcsTool } from '../../tools/engage-npcs.tool'
@@ -24,7 +25,6 @@ import { purchaseItemsTool } from '../../tools/purchase-items.tool'
 import { transferCoinsTool } from '../../tools/transfer-coins.tool'
 import { transferItemsTool } from '../../tools/transfer-items.tool'
 import { updateItemsTool } from '../../tools/update-items.tool'
-import { npcCreatorAgent } from '../npc-creator/npc-creator.agent'
 
 const AGENT = 'narrator'
 
@@ -46,8 +46,8 @@ const layers = [
 ]
 
 /**
- * The game master the player talks to. It is the supervisor: it delegates to specialists as if they
- * were tools, receives their result, and is always the one that answers the player.
+ * The game master the player talks to. It runs the engine through its tools and is the only one
+ * that answers the player.
  */
 export const narratorAgent = new Agent({
   id: 'narrator',
@@ -56,11 +56,11 @@ export const narratorAgent = new Agent({
   instructions: layeredInstructions(layers),
   // Chosen by the player for each world and read from the database by the main process.
   model: ({ requestContext }) => requestContext.get('narratorModel'),
-  agents: { npcCreator: npcCreatorAgent },
   tools: {
     rollCheckTool,
     adjustRelationshipsTool,
     updateCampaignSummaryTool,
+    createNpcTool,
     createItemsTool,
     updateItemsTool,
     deleteItemsTool,

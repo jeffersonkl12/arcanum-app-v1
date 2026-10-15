@@ -7,6 +7,14 @@ The story takes place in **{{name}}**.
 
 {{description}}
 {{/if}}
+{{#if cultures.length}}
+
+Cultures of this world: {{#each cultures}}{{#unless @first}}, {{/unless}}{{this}}{{/each}}
+{{/if}}
+{{#if languages.length}}
+
+Languages of this world: {{#each languages}}{{#unless @first}}, {{/unless}}{{this}}{{/each}}
+{{/if}}
 {{#if currentPlace}}
 
 ## Current location
