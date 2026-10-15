@@ -19,6 +19,7 @@ import type { ICoinRegistry } from './coin.context'
 import type { IItemRegistry } from './item.context'
 import { liveContextSchema } from './live-context.context'
 import type { IMemoryRegistry } from './memory.context'
+import type { INpcSceneRegistry } from './npc-scene.context'
 import type { IPointOfInterestRegistry } from './point-of-interest.context'
 import type { IRelationshipRegistry } from './relationship.context'
 
@@ -299,6 +300,13 @@ export const gameContextSchema = z.object({
       value !== null &&
       typeof (value as IMemoryRegistry).remember === 'function',
     'memoryRegistry must implement IMemoryRegistry'
+  ),
+  npcSceneRegistry: z.custom<INpcSceneRegistry>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as INpcSceneRegistry).engage === 'function',
+    'npcSceneRegistry must implement INpcSceneRegistry'
   ),
   campaignRegistry: z.custom<ICampaignRegistry>(
     (value) =>

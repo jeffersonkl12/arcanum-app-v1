@@ -24,3 +24,30 @@ export function describeRelationship(value: number): string {
 
   return RELATIONSHIP_LEVELS.find((entry) => entry.level === level)!.meaning
 }
+
+/** What `from` feels about each of the `others`; `values` maps `fromId:toId` to the stored value, a pair with no entry is neutral. */
+export function describeFeelings(
+  from: { id: string },
+  others: readonly { id: string; name: string }[],
+  values: ReadonlyMap<string, number>
+): {
+  targetId: string
+  targetName: string
+  value: number
+  level: RelationshipLevel
+  meaning: string
+}[] {
+  return others
+    .filter((other) => other.id !== from.id)
+    .map((other) => {
+      const value = values.get(`${from.id}:${other.id}`) ?? RELATIONSHIP_LIMITS.default
+
+      return {
+        targetId: other.id,
+        targetName: other.name,
+        value,
+        level: getRelationshipLevel(value),
+        meaning: describeRelationship(value)
+      }
+    })
+}

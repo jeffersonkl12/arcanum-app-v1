@@ -19,6 +19,7 @@ import type { ICoinRegistry } from '../../mastra/context/coin.context'
 import type { IItemRegistry } from '../../mastra/context/item.context'
 import type { LiveContextSection } from '../../mastra/context/live-context.context'
 import type { IMemoryRegistry } from '../../mastra/context/memory.context'
+import type { INpcSceneRegistry } from '../../mastra/context/npc-scene.context'
 import type { IPointOfInterestRegistry } from '../../mastra/context/point-of-interest.context'
 import type { IRelationshipRegistry } from '../../mastra/context/relationship.context'
 
@@ -42,6 +43,7 @@ export interface NarratorTurn {
   coinRegistry: ICoinRegistry
   pointOfInterestRegistry: IPointOfInterestRegistry
   memoryRegistry: IMemoryRegistry
+  npcSceneRegistry: INpcSceneRegistry
   relationshipRegistry: IRelationshipRegistry
   campaignRegistry: ICampaignRegistry
   /** Dynamic context that lingers in the prompt (memories, ...), already aged for this turn. */
@@ -163,6 +165,7 @@ export class NarratorGateway implements INarratorGateway {
     coinRegistry,
     pointOfInterestRegistry,
     memoryRegistry,
+    npcSceneRegistry,
     relationshipRegistry,
     campaignRegistry,
     liveContext,
@@ -182,6 +185,7 @@ export class NarratorGateway implements INarratorGateway {
     requestContext.set('coinRegistry', coinRegistry)
     requestContext.set('pointOfInterestRegistry', pointOfInterestRegistry)
     requestContext.set('memoryRegistry', memoryRegistry)
+    requestContext.set('npcSceneRegistry', npcSceneRegistry)
     requestContext.set('relationshipRegistry', relationshipRegistry)
     requestContext.set('campaignRegistry', campaignRegistry)
     requestContext.set('liveContext', liveContext)

@@ -19,6 +19,8 @@ import { createPlacesTool } from './tools/create-places.tool'
 import { createItemsTool } from './tools/create-items.tool'
 import { deleteItemsTool } from './tools/delete-items.tool'
 import { equipItemsTool } from './tools/equip-items.tool'
+import { engageNpcsTool } from './tools/engage-npcs.tool'
+import { releaseNpcsTool } from './tools/release-npcs.tool'
 import { findItemsTool } from './tools/find-items.tool'
 import { getInventoryTool } from './tools/get-inventory.tool'
 import { findPlacesTool } from './tools/find-places.tool'
@@ -58,7 +60,9 @@ export const mastra = new Mastra({
     moveActorsTool,
     movePartyTool,
     rememberEventsTool,
-    recallMemoriesTool
+    recallMemoriesTool,
+    engageNpcsTool,
+    releaseNpcsTool
   },
   storage: new MastraCompositeStore({
     id: 'composite-storage',

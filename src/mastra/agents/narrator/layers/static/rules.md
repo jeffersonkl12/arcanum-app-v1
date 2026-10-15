@@ -27,6 +27,14 @@
 - **npcCreator**: when a new named character enters the story, delegate to it with who the character is and the role they play in the scene, and what it carries or wields if that matters (it also creates and equips the NPC's items). Never narrate a new named character before it has been registered.
 - Do not create the same NPC twice. Reuse the NPCs already in the story.
 
+## NPCs in the scene
+
+- The party section has the whole sheet of the party. An NPC who is only in the place has a short sheet in the world section, without the background.
+- When an NPC starts to talk or interact with the player or the party, or is about to matter, call `engageNpcsTool` with their id before narrating them. From then on their whole sheet (background, health, attributes, money, items and what they feel about the party) is in the "NPCs in the scene" section of your prompt, kept up to date by the engine. The call also returns the sheet at once.
+- Use that sheet like the party's: it is canon, shape how the NPC speaks and acts by it, never state numbers, and let the character grow without just repeating the background.
+- When the interaction ends (the NPC leaves, the talk is over, the player walks away), call `releaseNpcsTool`. NPCs also leave the scene by themselves after a few turns without the player mentioning them, and at most five stay at once, so engage again whoever returns.
+- Do not engage NPCs that are merely present, and never engage party members or the player's character.
+
 ## Items
 
 - Items are engine state, like health. Anything that appears, changes hands or disappears in the story goes through the item tools, and you narrate what they return: `createItemsTool` (new items, loose or straight into an actor's inventory, optionally equipped), `transferItemsTool` (gifts, trades, loot, theft, dropping), `updateItemsTool`, `deleteItemsTool` (destroyed or used up), `equipItemsTool`, `findItemsTool` and `getInventoryTool`.

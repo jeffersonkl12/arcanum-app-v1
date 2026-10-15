@@ -8,6 +8,8 @@ export interface IContextSource {
    * must answer with what it has instead of throwing: a missing memory must not cost the player a turn.
    */
   collect(worldId: string, playerMessage: string): Promise<ContextEntry[]>
+  /** Drops what the source itself keeps for the world, when it keeps anything. */
+  forget?(worldId: string): void
 }
 
 export interface ILiveContextService {
@@ -38,5 +40,6 @@ export class LiveContextService implements ILiveContextService {
 
   forget(worldId: string): void {
     this.window.clear(worldId)
+    for (const source of this.sources) source.forget?.(worldId)
   }
 }

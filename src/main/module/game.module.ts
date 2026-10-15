@@ -39,6 +39,7 @@ import { MemoryService, type IMemoryService } from '@service/memory.service'
 import { MessageRatingService } from '@service/message-rating.service'
 import { CampaignRegistryService } from '@service/campaign-registry.service'
 import { CampaignService, type ICampaignService } from '@service/campaign.service'
+import { NpcSceneService } from '@service/npc-scene.service'
 import { PartyService, type IPartyService } from '@service/party.service'
 import { PointOfInterestRegistryService } from '@service/point-of-interest-registry.service'
 import {
@@ -111,10 +112,22 @@ export const memoryService: IMemoryService = new MemoryService(
   embedder,
   actorService
 )
+const itemRegistry = new ItemRegistryService(inventoryService, actorService)
+const npcSceneService = new NpcSceneService(
+  actorService,
+  partyService,
+  relationshipService,
+  cultureService,
+  languageService,
+  itemRegistry
+)
 const contextWindowService = new ContextWindowService()
 const memoryContextService = new MemoryContextService(memoryService, contextWindowService)
 // The sources of dynamic context for the narrator's prompt; list a new source here to bring it in.
-const liveContextService = new LiveContextService(contextWindowService, [memoryContextService])
+const liveContextService = new LiveContextService(contextWindowService, [
+  memoryContextService,
+  npcSceneService
+])
 
 export const gameMasterService: IGameMasterService = new GameMasterService(
   new NarratorGateway(loadMastra),
@@ -123,7 +136,7 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   actorService,
   partyService,
   diceCheckService,
-  new ItemRegistryService(inventoryService, actorService),
+  itemRegistry,
   new CoinRegistryService(new CoinService(actorRepository), actorService),
   pointOfInterestRegistry,
   new MemoryRegistryService(memoryService, memoryContextService),
@@ -136,5 +149,6 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   new MessageRatingService(new MessageRatingRepository(database)),
   pointOfInterestService,
   cultureService,
-  languageService
+  languageService,
+  npcSceneService
 )

@@ -21,9 +21,8 @@ import type { IPartyService } from '@service/party.service'
 import type { IPointOfInterestService } from '@service/point-of-interest.service'
 import type { IRelationshipService } from '@service/relationship.service'
 import type { IWorldService } from '@service/world.service'
-import { RELATIONSHIP_LIMITS } from '@constant'
 import { describeAttributeLevel } from '@util/attribute-level.util'
-import { describeRelationship, getRelationshipLevel } from '@util/relationship.util'
+import { describeFeelings } from '@util/relationship.util'
 import type { ICampaignRegistry } from '../../mastra/context/campaign.context'
 import type { ICoinRegistry } from '../../mastra/context/coin.context'
 import type { IRelationshipRegistry } from '../../mastra/context/relationship.context'
@@ -43,6 +42,7 @@ import type {
 } from '../../mastra/context/game.context'
 import type { IItemRegistry } from '../../mastra/context/item.context'
 import type { IMemoryRegistry } from '../../mastra/context/memory.context'
+import type { INpcSceneRegistry } from '../../mastra/context/npc-scene.context'
 import type { IPointOfInterestRegistry } from '../../mastra/context/point-of-interest.context'
 
 export interface IGameMasterService {
@@ -118,7 +118,8 @@ export class GameMasterService implements IGameMasterService {
     private readonly messageRatingService: IMessageRatingService,
     private readonly pointOfInterestService: IPointOfInterestService,
     private readonly cultureService: ICultureService,
-    private readonly languageService: ILanguageService
+    private readonly languageService: ILanguageService,
+    private readonly npcSceneRegistry: INpcSceneRegistry
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
@@ -267,6 +268,7 @@ export class GameMasterService implements IGameMasterService {
       coinRegistry: this.coinRegistry,
       pointOfInterestRegistry: this.pointOfInterestRegistry,
       memoryRegistry: this.memoryRegistry,
+      npcSceneRegistry: this.npcSceneRegistry,
       relationshipRegistry: this.relationshipRegistry,
       campaignRegistry: this.campaignRegistry,
       liveContext: await this.liveContext.prepareTurn(worldId, message),
@@ -534,19 +536,7 @@ function toRelationships(
   members: Actor[],
   values: ReadonlyMap<string, number>
 ): PartyRelationship[] {
-  return members
-    .filter((other) => other.id !== actor.id)
-    .map((other) => {
-      const value = values.get(`${actor.id}:${other.id}`) ?? RELATIONSHIP_LIMITS.default
-
-      return {
-        targetId: other.id,
-        targetName: other.name,
-        value,
-        level: getRelationshipLevel(value),
-        meaning: describeRelationship(value)
-      }
-    })
+  return describeFeelings(actor, members, values)
 }
 
 /** The NPC as the engine stored it, defaults included; empty text fields are left out. */
