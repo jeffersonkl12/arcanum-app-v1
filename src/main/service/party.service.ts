@@ -1,4 +1,5 @@
-import { NotFoundError } from '@error'
+import { PARTY_LIMITS } from '@constant'
+import { ConflictError, NotFoundError } from '@error'
 import type { IActorRepository } from '@repository/actor.repository'
 import type { IPartyRepository } from '@repository/party.repository'
 import type { Actor } from '@schema/actor.schema'
@@ -17,6 +18,8 @@ export interface IPartyService extends ICrudService<Party, CreateParty, never> {
 /**
  * A world has at most one party, and only actors of the party's world can join it; both rules
  * surface as `ConflictError`, and so does moving the party to a place of another world. Deleting a party that still has members is also a `ConflictError`.
+ * A party holds at most `PARTY_LIMITS.maxMembers` actors, the player included, and at most
+ * `PARTY_LIMITS.maxNpcs` of them NPCs; a member over either limit is a `ConflictError` too.
  */
 export class PartyService extends BaseService<Party, CreateParty, never> implements IPartyService {
   constructor(
@@ -38,6 +41,7 @@ export class PartyService extends BaseService<Party, CreateParty, never> impleme
 
   async addMember(partyId: string, actorId: string): Promise<Actor> {
     await this.get(partyId)
+    await this.assertRoomFor(partyId, actorId)
 
     return this.updateActorParty(actorId, partyId)
   }
@@ -56,6 +60,26 @@ export class PartyService extends BaseService<Party, CreateParty, never> impleme
     await this.get(partyId)
 
     return this.actorRepository.moveByParty(partyId, pointOfInterestId)
+  }
+
+  /** Whoever is already in the party is not counted again: adding them is a no-op, not a new seat. */
+  private async assertRoomFor(partyId: string, actorId: string): Promise<void> {
+    const [actor, members] = await Promise.all([
+      this.actorRepository.findById(actorId),
+      this.actorRepository.listByParty(partyId)
+    ])
+    if (!actor || members.some((member) => member.id === actorId)) return
+
+    if (members.length >= PARTY_LIMITS.maxMembers) {
+      throw new ConflictError(
+        `The party is full: it holds at most ${PARTY_LIMITS.maxMembers} members, the player included`
+      )
+    }
+    if (actor.isNpc && members.filter((member) => member.isNpc).length >= PARTY_LIMITS.maxNpcs) {
+      throw new ConflictError(
+        `The party already has ${PARTY_LIMITS.maxNpcs} NPCs, the most it can hold`
+      )
+    }
   }
 
   private async updateActorParty(actorId: string, partyId: string | null): Promise<Actor> {

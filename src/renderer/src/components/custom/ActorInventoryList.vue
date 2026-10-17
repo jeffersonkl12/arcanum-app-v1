@@ -5,6 +5,7 @@ import { toImageUrl } from '@shared'
 import type { Inventory, Item } from '@schema'
 import { Avatar, AvatarFallback, AvatarImage } from '@renderer/components/ui/avatar'
 import CoinPurse from '@renderer/components/custom/CoinPurse.vue'
+import ItemDetailDialog from '@renderer/components/custom/ItemDetailDialog.vue'
 import { Button } from '@renderer/components/ui/button'
 import { Spinner } from '@renderer/components/ui/spinner'
 import type { ActorCoins } from '@renderer/constant/actor.constant'
@@ -21,6 +22,17 @@ const props = defineProps<{
 const { isLoading, request } = useRequest()
 const inventory = ref<Inventory>()
 const busyItemId = ref<string>()
+const viewingItem = ref<Item>()
+const itemDetailOpen = ref(false)
+
+const viewingSummary = computed(() =>
+  viewingItem.value ? toItemSummary(viewingItem.value) : undefined
+)
+
+function view(item: Item): void {
+  viewingItem.value = item
+  itemDetailOpen.value = true
+}
 
 const equipmentSlots = [
   { slot: 'main_hand', label: 'Mão principal' },
@@ -98,12 +110,18 @@ onMounted(async () => {
             {{ label }}
           </span>
           <template v-if="inventory.equipment[slot]">
-            <span class="truncate text-sm font-semibold text-foreground">
-              {{ inventory.equipment[slot]?.name }}
-            </span>
-            <span class="truncate text-xs text-muted-foreground">
-              {{ tagsOf(inventory.equipment[slot]!) }}
-            </span>
+            <button
+              type="button"
+              class="flex min-w-0 cursor-pointer flex-col text-left"
+              @click="view(inventory.equipment[slot]!)"
+            >
+              <span class="truncate text-sm font-semibold text-foreground">
+                {{ inventory.equipment[slot]?.name }}
+              </span>
+              <span class="truncate text-xs text-muted-foreground">
+                {{ tagsOf(inventory.equipment[slot]!) }}
+              </span>
+            </button>
             <Button
               type="button"
               variant="outline"
@@ -133,16 +151,22 @@ onMounted(async () => {
         :key="item.id"
         class="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2"
       >
-        <Avatar class="size-9 rounded-lg after:border-transparent">
-          <AvatarImage v-if="item.imagePath" :src="toImageUrl(item.imagePath)" :alt="item.name" />
-          <AvatarFallback class="rounded-lg">{{ item.name.slice(0, 1) }}</AvatarFallback>
-        </Avatar>
-        <div class="flex min-w-0 flex-1 flex-col">
-          <span class="truncate text-sm font-semibold text-foreground">{{ item.name }}</span>
-          <span class="truncate text-xs text-muted-foreground">
-            {{ tagsOf(item) }}
-          </span>
-        </div>
+        <button
+          type="button"
+          class="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
+          @click="view(item)"
+        >
+          <Avatar class="size-9 rounded-lg after:border-transparent">
+            <AvatarImage v-if="item.imagePath" :src="toImageUrl(item.imagePath)" :alt="item.name" />
+            <AvatarFallback class="rounded-lg">{{ item.name.slice(0, 1) }}</AvatarFallback>
+          </Avatar>
+          <div class="flex min-w-0 flex-1 flex-col">
+            <span class="truncate text-sm font-semibold text-foreground">{{ item.name }}</span>
+            <span class="truncate text-xs text-muted-foreground">
+              {{ tagsOf(item) }}
+            </span>
+          </div>
+        </button>
         <span class="shrink-0 text-xs text-muted-foreground">
           {{ item.slots }} {{ item.slots === 1 ? 'espaço' : 'espaços' }}
         </span>
@@ -162,5 +186,7 @@ onMounted(async () => {
         Nada guardado além do que está equipado.
       </p>
     </div>
+
+    <ItemDetailDialog v-model:open="itemDetailOpen" :item="viewingSummary" readonly />
   </div>
 </template>

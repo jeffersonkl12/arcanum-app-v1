@@ -8,6 +8,6 @@ export const STUDIO = {
   host: '127.0.0.1',
   /** Mastra's own default, which `mastra studio` already looks for. */
   serverPort: 4111,
-  /** `mastra studio`'s default; it is the origin the server lets read its answers. */
-  uiPort: 3000
+  /** Where `npm run studio` serves the UI (its default, 3000, is taken); the origin the server lets read its answers. */
+  uiPort: 4545
 } as const

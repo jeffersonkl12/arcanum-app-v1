@@ -1,4 +1,4 @@
-import type { Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { toast } from 'vue-sonner'
 import type { Actor, Party, PointOfInterest } from '@schema'
@@ -46,6 +46,9 @@ export function useGame(): {
   selectedSheet: Ref<CharacterSheet | undefined>
   editOpen: Ref<boolean>
   editingActor: Ref<ActorSummary | null>
+  partyOpen: Ref<boolean>
+  createPartyNpcOpen: Ref<boolean>
+  isChangingParty: Ref<boolean>
   isLoading: Ref<boolean>
   isSending: Ref<boolean>
   isDeletingSheet: Ref<boolean>
@@ -62,6 +65,10 @@ export function useGame(): {
   deleteSelectedCharacter: () => Promise<void>
   requestEditCharacter: () => Promise<void>
   applyCharacterSaved: () => Promise<void>
+  addPartyMember: (actorId: string) => Promise<boolean>
+  removePartyMember: (actorId: string) => Promise<boolean>
+  requestCreatePartyNpc: () => Promise<void>
+  applyPartyNpcCreated: (actor: ActorSummary) => Promise<void>
 } {
   const store = useGameStore()
   const {
@@ -77,6 +84,7 @@ export function useGame(): {
     placeNpcs,
     languages,
     cultures,
+    party,
     player,
     npcs,
     sidebarTab,
@@ -85,6 +93,8 @@ export function useGame(): {
     isDeletingSheet,
     editOpen,
     editingActor,
+    partyOpen,
+    createPartyNpcOpen,
     pendingOpening
   } = storeToRefs(store)
 
@@ -94,12 +104,15 @@ export function useGame(): {
   const { rememberCampaign } = useCampaign()
 
   /** The player is the actor that is not an NPC; the party is whoever the engine says belongs to it. */
-  function applyParty(actorList: Actor[], party: Party | undefined): void {
+  function applyParty(actorList: Actor[], currentParty: Party | undefined): void {
     const playerActor = actorList.find((actor) => !actor.isNpc)
     actors.value = actorList
+    party.value = currentParty
     player.value = playerActor ? toPartyMemberCard(playerActor) : undefined
     npcs.value = actorList
-      .filter((actor) => actor.isNpc && party !== undefined && actor.partyId === party.id)
+      .filter(
+        (actor) => actor.isNpc && currentParty !== undefined && actor.partyId === currentParty.id
+      )
       .map(toPartyMemberCard)
 
     if (session.value) {
@@ -130,6 +143,9 @@ export function useGame(): {
     places.value = []
     player.value = undefined
     npcs.value = []
+    party.value = undefined
+    partyOpen.value = false
+    createPartyNpcOpen.value = false
   }
 
   async function loadGame(worldId: string): Promise<void> {
@@ -444,6 +460,65 @@ export function useGame(): {
     if (worldId) await refreshParty(worldId)
   }
 
+  /** Not `isLoading`: that drops to false between the calls of a change that has several. */
+  const isChangingParty = ref(false)
+
+  /** The world's party, made on the spot when nobody has joined yet. */
+  async function ensureParty(worldId: string): Promise<Party | undefined> {
+    return party.value ?? (await request('party:create', { worldId }))
+  }
+
+  async function addPartyMember(actorId: string): Promise<boolean> {
+    const worldId = session.value?.worldId
+    if (!worldId || isChangingParty.value) return false
+
+    isChangingParty.value = true
+    try {
+      const target = await ensureParty(worldId)
+      if (!target) return false
+
+      const added = await request('party:addMember', { partyId: target.id, actorId })
+      await refreshParty(worldId)
+      return added !== undefined
+    } finally {
+      isChangingParty.value = false
+    }
+  }
+
+  async function removePartyMember(actorId: string): Promise<boolean> {
+    const worldId = session.value?.worldId
+    const partyId = party.value?.id
+    if (!worldId || !partyId || isChangingParty.value) return false
+
+    isChangingParty.value = true
+    try {
+      const removed = await request('party:removeMember', { partyId, actorId })
+      await refreshParty(worldId)
+      return removed !== undefined
+    } finally {
+      isChangingParty.value = false
+    }
+  }
+
+  /** A new NPC is made in the open world, so the campaign becomes it before the form opens. */
+  async function requestCreatePartyNpc(): Promise<void> {
+    const worldId = session.value?.worldId
+    if (!worldId) return
+
+    await loadWorld(worldId)
+    createPartyNpcOpen.value = true
+  }
+
+  async function applyPartyNpcCreated(actor: ActorSummary): Promise<void> {
+    if (await addPartyMember(actor.id)) {
+      toast.success(`${actor.name} entrou no grupo`)
+      return
+    }
+    toast.warning(`${actor.name} foi criado, mas não entrou no grupo`)
+    const worldId = session.value?.worldId
+    if (worldId) await refreshParty(worldId)
+  }
+
   return {
     session,
     isNotFound,
@@ -460,6 +535,9 @@ export function useGame(): {
     selectedSheet,
     editOpen,
     editingActor,
+    partyOpen,
+    createPartyNpcOpen,
+    isChangingParty,
     isLoading,
     isSending,
     isDeletingSheet,
@@ -475,6 +553,10 @@ export function useGame(): {
     closeCharacterSheet,
     deleteSelectedCharacter,
     requestEditCharacter,
-    applyCharacterSaved
+    applyCharacterSaved,
+    addPartyMember,
+    removePartyMember,
+    requestCreatePartyNpc,
+    applyPartyNpcCreated
   }
 }

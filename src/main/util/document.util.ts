@@ -12,11 +12,22 @@ export function toDocumentEmbeddingText({
   return `${subject} (${category}): ${content}`
 }
 
-/** The line a document takes in the prompt: what it is about, the kind of document, what it says. */
+/**
+ * What a document takes in the prompt: a heading line with its subject and kind, then the content
+ * indented under it. The prompt lists entries as bullets, and a document has paragraphs and lists
+ * of its own: without the indent, a blank line would end the bullet and the next paragraph would
+ * read as loose text, with no sign of where one document stops and the next starts.
+ */
 export function formatDocumentLine({
   subject,
   category,
   content
 }: Pick<WorldDocument, 'subject' | 'category' | 'content'>): string {
-  return `${subject} (${category}): ${content}`
+  const body = content
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => (line.trim() ? `  ${line}` : ''))
+    .join('\n')
+
+  return `**${subject}** (${category})\n${body}`
 }

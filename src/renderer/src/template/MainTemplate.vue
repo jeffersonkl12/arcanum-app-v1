@@ -18,7 +18,7 @@ function open(item: AppNavItem): void {
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden bg-background font-body text-foreground">
+  <div class="flex h-screen overflow-clip bg-background font-body text-foreground">
     <aside
       class="flex h-full w-70 shrink-0 flex-col gap-8 border-r border-border bg-card px-6 py-8"
     >

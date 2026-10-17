@@ -1,7 +1,8 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { toast } from 'vue-sonner'
-import type { Actor } from '@schema'
+import { partyLimits } from '@renderer/constant/party.constant'
+import type { Actor, Item, NewRelative } from '@schema'
 import { AI_PROLOGUE_REQUEST } from '@renderer/constant/campaign.constant'
 import { translateIpcError } from '@renderer/util/ipc-error.util'
 import { mapClonedIds } from '@renderer/util/clone-mapping.util'
@@ -83,6 +84,10 @@ export function useStartCampaign(): {
 
   function addPartyMember(npcId: string): void {
     if (partyMemberIds.value.includes(npcId)) return
+    if (partyMemberIds.value.length >= partyLimits.maxNpcs) {
+      toast.error(`O grupo aceita no máximo ${partyLimits.maxNpcs} NPCs, além de você`)
+      return
+    }
     partyMemberIds.value = [...partyMemberIds.value, npcId]
   }
 
@@ -127,7 +132,10 @@ export function useStartCampaign(): {
       const npcActors = (actorList ?? []).filter((actor) => actor.isNpc)
       npcs.value = npcActors.map((actor) => toCampaignNpcCandidate(actor, cultures.value))
       partyMemberIds.value = party
-        ? npcActors.filter((actor) => actor.partyId === party.id).map((actor) => actor.id)
+        ? npcActors
+            .filter((actor) => actor.partyId === party.id)
+            .map((actor) => actor.id)
+            .slice(0, partyLimits.maxNpcs)
         : []
     } finally {
       isLoadingOptions.value = false
@@ -192,13 +200,17 @@ export function useStartCampaign(): {
   }
 
   async function assembleCampaign(worldId: string, draft: StartCampaignDraft): Promise<boolean> {
-    const [clonedCultures, clonedLanguages, clonedPlaces, clonedActors] = await Promise.all([
-      request('culture:listByWorld', worldId),
-      request('language:listByWorld', worldId),
-      request('pointOfInterest:listByWorld', worldId),
-      request('actor:listByWorld', worldId)
-    ])
-    if (!clonedCultures || !clonedLanguages || !clonedPlaces || !clonedActors) return false
+    const [clonedCultures, clonedLanguages, clonedPlaces, clonedActors, clonedItems] =
+      await Promise.all([
+        request('culture:listByWorld', worldId),
+        request('language:listByWorld', worldId),
+        request('pointOfInterest:listByWorld', worldId),
+        request('actor:listByWorld', worldId),
+        request('item:listByWorld', worldId)
+      ])
+    if (!clonedCultures || !clonedLanguages || !clonedPlaces || !clonedActors || !clonedItems) {
+      return false
+    }
 
     // The clone has new ids for everything, so what the player picked in the template is matched
     // to its copy.
@@ -214,6 +226,8 @@ export function useStartCampaign(): {
     )
 
     const { character } = draft
+    const bonds = await cloneBonds(draft, clonedActors, clonedItems)
+    if (!bonds) return false
     const fields = {
       name: character.name,
       age: character.age,
@@ -230,6 +244,9 @@ export function useStartCampaign(): {
       ...(character.strength === undefined ? {} : { strength: character.strength }),
       ...(character.dexterity === undefined ? {} : { dexterity: character.dexterity }),
       ...(character.intelligence === undefined ? {} : { intelligence: character.intelligence }),
+      goldPieces: character.goldPieces,
+      silverPieces: character.silverPieces,
+      bronzePieces: character.bronzePieces,
       pointOfInterestId,
       cultureId: (character.cultureId && cultureIds.get(character.cultureId)) || null,
       languageId: (character.languageId && languageIds.get(character.languageId)) || null
@@ -239,8 +256,28 @@ export function useStartCampaign(): {
     const existingPlayer = clonedActors.find((actor) => !actor.isNpc)
     const player = existingPlayer
       ? await request('actor:update', { id: existingPlayer.id, patch: fields })
-      : await request('actor:create', { ...fields, worldId, isNpc: false })
+      : await request('actor:create', {
+          ...fields,
+          worldId,
+          isNpc: false,
+          relatives: bonds.relatives
+        })
     if (!player) return false
+
+    // An existing player cannot be created with its family, so the bonds are recorded one by one.
+    if (existingPlayer) {
+      for (const { relativeId, relation } of bonds.relatives) {
+        const recorded = await request('kinship:set', {
+          actorId: player.id,
+          relativeId,
+          relation
+        })
+        if (!recorded) return false
+      }
+    }
+    for (const itemId of bonds.itemIds) {
+      if (!(await request('item:give', { itemId, actorId: player.id }))) return false
+    }
 
     if (character.imageData) {
       const data = new Uint8Array(character.imageData)
@@ -252,6 +289,37 @@ export function useStartCampaign(): {
       ...draft.partyMemberIds.flatMap((id) => npcIds.get(id) ?? [])
     ])
     return fillParty(worldId, clonedActors, wantedIds)
+  }
+
+  /**
+   * The character's relatives and items, as the campaign's copies of what the player picked in the
+   * template. `undefined` when the template cannot be read.
+   */
+  async function cloneBonds(
+    draft: StartCampaignDraft,
+    clonedActors: Actor[],
+    clonedItems: Item[]
+  ): Promise<{ relatives: NewRelative[]; itemIds: string[] } | undefined> {
+    const { relatives, inventoryItemIds } = draft.character
+    if (relatives.length === 0 && inventoryItemIds.length === 0) {
+      return { relatives: [], itemIds: [] }
+    }
+
+    const [templateActors, templateItems] = await Promise.all([
+      request('actor:listByWorld', draft.templateId),
+      request('item:listByWorld', draft.templateId)
+    ])
+    if (!templateActors || !templateItems) return undefined
+
+    const actorIds = mapClonedIds(templateActors, clonedActors)
+    const itemIds = mapClonedIds(templateItems, clonedItems)
+    return {
+      relatives: relatives.flatMap(({ relativeId, relation }) => {
+        const copy = actorIds.get(relativeId)
+        return copy ? [{ relativeId: copy, relation }] : []
+      }),
+      itemIds: inventoryItemIds.flatMap((id) => itemIds.get(id) ?? [])
+    }
   }
 
   /** Makes the world's party have exactly the wanted members, creating the party if needed. */

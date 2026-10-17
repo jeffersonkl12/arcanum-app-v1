@@ -19,6 +19,7 @@ import type { ITradeRegistry } from './trade.context'
 import { liveContextSchema } from './live-context.context'
 import type { IMemoryRegistry } from './memory.context'
 import type { INpcSceneRegistry } from './npc-scene.context'
+import type { IPartyRegistry } from './party.context'
 import type { IPointOfInterestRegistry } from './point-of-interest.context'
 import type { IRelationshipRegistry } from './relationship.context'
 
@@ -370,6 +371,13 @@ export const gameContextSchema = z.object({
       value !== null &&
       typeof (value as IPointOfInterestRegistry).moveParty === 'function',
     'pointOfInterestRegistry must implement IPointOfInterestRegistry'
+  ),
+  partyRegistry: z.custom<IPartyRegistry>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as IPartyRegistry).join === 'function',
+    'partyRegistry must implement IPartyRegistry'
   ),
   memoryRegistry: z.custom<IMemoryRegistry>(
     (value) =>

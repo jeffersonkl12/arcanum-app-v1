@@ -224,8 +224,8 @@ export const ipcContract = {
   /**
    * Plays the last turn again: it is taken back from the conversation and the narrator answers the
    * same player message anew, through the same events as `gameMaster:streamTurn`. Fails with
-   * `conflict` if a turn is running or the last turn cannot be redone (`canRegenerate`: it rolled
-   * dice or changed the game, which the engine does not undo).
+   * `conflict` if a turn is running or there is no turn to redo. What the old turn did to the game
+   * (dice, moves, items) is not undone by the engine.
    */
   'gameMaster:regenerateTurn': channel<{ turnId: string; worldId: string }, void>(),
   /** Rates a reply of the narrator (`1` up, `-1` down); `null` takes the rating back. */

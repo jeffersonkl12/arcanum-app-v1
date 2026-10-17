@@ -9,7 +9,8 @@ export const createNpcTool = createTool({
     'and the values the engine settled on (attributes, hit points and money, with the defaults ' +
     'filled in). Items are not part of it: create them afterwards with `create-items`, using the ' +
     'id returned here as `ownerId`. If the engine rejects the NPC (`ok=false`), `reason` says why; ' +
-    'fix the data and call again.',
+    'fix the data and call again. Use it for NPCs who are important or likely to be met again, ' +
+    'not for every person the player talks to.',
   inputSchema: npcDraftSchema,
   outputSchema: z.object({
     ok: z.boolean(),

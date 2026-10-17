@@ -48,6 +48,7 @@ import type { IItemRegistry } from '../../mastra/context/item.context'
 import type { IDocumentRegistry } from '../../mastra/context/document.context'
 import type { IMemoryRegistry } from '../../mastra/context/memory.context'
 import type { INpcSceneRegistry } from '../../mastra/context/npc-scene.context'
+import type { IPartyRegistry } from '../../mastra/context/party.context'
 import type { IPointOfInterestRegistry } from '../../mastra/context/point-of-interest.context'
 
 export interface IGameMasterService {
@@ -63,7 +64,7 @@ export interface IGameMasterService {
    * Plays the last turn again: takes it back from the conversation and streams a new narration for
    * the same player message. If the new turn then fails to start, the old one is already gone and
    * the caller has to read the history again. Throws `NotFoundError` for a missing world and `ConflictError` if a turn is
-   * running or the last turn cannot be redone (see `CampaignMessage.canRegenerate`).
+   * running or there is no turn to redo. The effects of the old turn on the game are kept.
    */
   regenerateTurn(worldId: string): Promise<AsyncIterable<NarratorStreamEvent>>
   /**
@@ -127,7 +128,8 @@ export class GameMasterService implements IGameMasterService {
     private readonly cultureService: ICultureService,
     private readonly languageService: ILanguageService,
     private readonly npcSceneRegistry: INpcSceneRegistry,
-    private readonly kinshipService: IKinshipService
+    private readonly kinshipService: IKinshipService,
+    private readonly partyRegistry: IPartyRegistry
   ) {}
 
   async takeTurn(worldId: string, playerMessage: string): Promise<string> {
@@ -278,6 +280,7 @@ export class GameMasterService implements IGameMasterService {
       coinRegistry: this.coinRegistry,
       tradeRegistry: this.tradeRegistry,
       pointOfInterestRegistry: this.pointOfInterestRegistry,
+      partyRegistry: this.partyRegistry,
       memoryRegistry: this.memoryRegistry,
       documentRegistry: this.documentRegistry,
       npcSceneRegistry: this.npcSceneRegistry,

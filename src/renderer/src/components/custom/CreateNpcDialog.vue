@@ -229,7 +229,17 @@ const onSubmit = handleSubmit(async (values) => {
   toast.success(editing ? 'Personagem atualizado' : 'Personagem criado')
   emit('saved', saved)
   open.value = false
-})
+}, reportInvalidForm)
+
+/** The form refuses to submit; a field on another tab would otherwise fail without a word. */
+function reportInvalidForm({
+  errors
+}: {
+  errors: Partial<Record<string, string | undefined>>
+}): void {
+  const [message] = Object.values(errors).filter(Boolean)
+  toast.error(message ?? 'Revise os campos do personagem')
+}
 
 watch(open, (isOpen) => {
   if (isOpen) {
@@ -300,11 +310,16 @@ function fillForm(actor: ActorSummary | null): void {
 function applyCreateErrors(error: IpcError | undefined): void {
   if (error?.kind !== 'invalid_input') return
   const fieldErrors: Partial<Record<FormFieldName, string>> = {}
+  const unmatched: string[] = []
   for (const issue of error.issues ?? []) {
-    if (!isFormField(issue.path)) continue
-    fieldErrors[issue.path] = issue.message
+    if (isFormField(issue.path)) fieldErrors[issue.path] = issue.message
+    else unmatched.push(`${issue.path}: ${issue.message}`)
   }
   setErrors(fieldErrors)
+  // `useRequest` leaves invalid input to the form, so what no field shows is told here.
+  if (unmatched.length > 0 || Object.keys(fieldErrors).length === 0) {
+    toast.error(unmatched.join('; ') || 'Os dados do personagem foram recusados')
+  }
 }
 
 function isFormField(path: string): path is FormFieldName {

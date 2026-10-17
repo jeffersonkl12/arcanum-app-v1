@@ -26,6 +26,8 @@ import { recallDocumentsTool } from './tools/recall-documents.tool'
 import { getInventoryTool } from './tools/get-inventory.tool'
 import { findPlacesTool } from './tools/find-places.tool'
 import { moveActorsTool } from './tools/move-actors.tool'
+import { joinPartyTool } from './tools/join-party.tool'
+import { leavePartyTool } from './tools/leave-party.tool'
 import { movePartyTool } from './tools/move-party.tool'
 import { recallMemoriesTool } from './tools/recall-memories.tool'
 import { rememberEventsTool } from './tools/remember-events.tool'
@@ -62,6 +64,8 @@ export const mastra = new Mastra({
     createPlacesTool,
     moveActorsTool,
     movePartyTool,
+    joinPartyTool,
+    leavePartyTool,
     rememberEventsTool,
     recallMemoriesTool,
     recallDocumentsTool,

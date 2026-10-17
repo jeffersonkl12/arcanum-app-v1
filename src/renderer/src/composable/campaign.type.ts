@@ -1,4 +1,4 @@
-import type { CreateActor } from '@schema'
+import type { CreateActor, NewRelative } from '@schema'
 
 export type CampaignStatus = 'in_progress'
 
@@ -49,6 +49,13 @@ export interface StartCampaignCharacterDraft {
   strength?: number
   dexterity?: number
   intelligence?: number
+  goldPieces: number
+  silverPieces: number
+  bronzePieces: number
+  /** Items of the template; their copies in the campaign go to the character's inventory. */
+  inventoryItemIds: string[]
+  /** Actors of the template; their copies in the campaign are the character's relatives. */
+  relatives: NewRelative[]
   imageData?: Uint8Array
 }
 

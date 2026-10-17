@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { Avatar, AvatarFallback } from '@renderer/components/ui/avatar'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { partyLimits } from '@renderer/constant/party.constant'
 import { useStartCampaign } from '@renderer/composable/start-campaign.composable'
 
 const props = defineProps<{
@@ -149,7 +150,7 @@ function initials(name: string): string {
             type="button"
             variant="outline"
             class="h-auto gap-1.5 rounded-lg bg-background px-3 py-1.5 text-xs font-semibold"
-            :disabled="disabled"
+            :disabled="disabled || partyMembers.length >= partyLimits.maxNpcs"
             @click="addPartyMember(npc.id)"
           >
             <Plus class="size-3.5" />

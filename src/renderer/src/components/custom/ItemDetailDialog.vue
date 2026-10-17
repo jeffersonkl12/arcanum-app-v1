@@ -27,6 +27,8 @@ const open = defineModel<boolean>('open', { required: true })
 const props = defineProps<{
   item?: ItemSummary | null
   deleting?: boolean
+  /** Hides the edit and delete actions, for places that only show the item. */
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -144,9 +146,9 @@ const statusLabel = computed(() => {
             </div>
           </template>
 
-          <Separator />
+          <Separator v-if="!readonly" />
 
-          <div class="flex items-center justify-between">
+          <div v-if="!readonly" class="flex items-center justify-between">
             <Button
               type="button"
               variant="outline"

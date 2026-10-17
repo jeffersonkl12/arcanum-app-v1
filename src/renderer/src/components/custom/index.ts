@@ -16,6 +16,7 @@ export { default as DocumentDetailDialog } from '@renderer/components/custom/Doc
 export { default as EntityRow } from '@renderer/components/custom/EntityRow.vue'
 export { default as GameChatComposer } from '@renderer/components/custom/GameChatComposer.vue'
 export { default as GameChatMessage } from '@renderer/components/custom/GameChatMessage.vue'
+export { default as GamePartyDialog } from '@renderer/components/custom/GamePartyDialog.vue'
 export { default as CreatePlaceDialog } from '@renderer/components/custom/CreatePlaceDialog.vue'
 export { default as ItemDetailDialog } from '@renderer/components/custom/ItemDetailDialog.vue'
 export { default as ItemRow } from '@renderer/components/custom/ItemRow.vue'

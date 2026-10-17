@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Camera } from '@lucide/vue'
 import { ref } from 'vue'
+import type { NewRelative } from '@schema'
+import CreateNpcDialog from '@renderer/components/custom/CreateNpcDialog.vue'
+import type { ActorSummary } from '@renderer/composable/world.type'
+import ActorFamilyPanel from '@renderer/components/custom/ActorFamilyPanel.vue'
+import ActorInventoryPicker from '@renderer/components/custom/ActorInventoryPicker.vue'
+import CoinFields from '@renderer/components/custom/CoinFields.vue'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
+import { cn } from '@renderer/lib/utils'
 import AttributeFields from '@renderer/components/custom/AttributeFields.vue'
 import HealthFields from '@renderer/components/custom/HealthFields.vue'
 import {
@@ -27,7 +35,12 @@ import {
 } from '@renderer/components/ui/select'
 import { Textarea } from '@renderer/components/ui/textarea'
 
+const inventoryIds = defineModel<string[]>('inventoryIds', { required: true })
+const relatives = defineModel<NewRelative[]>('relatives', { required: true })
+
 defineProps<{
+  /** The template the campaign is cloned from: where the items and the relatives come from. */
+  templateId?: string
   languages: NamedEntitySummary[]
   cultures: NamedEntitySummary[]
   places: PlaceSummary[]
@@ -36,6 +49,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
+  relativeCreated: [actor: ActorSummary]
   imageSelected: [event: Event]
 }>()
 
@@ -44,6 +58,23 @@ const imageInput = ref<HTMLInputElement>()
 function openImagePicker(): void {
   imageInput.value?.click()
 }
+
+const activeTab = ref('profile')
+const familyPanel = ref<InstanceType<typeof ActorFamilyPanel>>()
+const relativeOpen = ref(false)
+
+/** A relative made here is an NPC of the template: it is offered in the panel and preselected. */
+async function onRelativeCreated(actor: ActorSummary): Promise<void> {
+  emit('relativeCreated', actor)
+  await familyPanel.value?.reload(actor.id)
+}
+
+const tabTriggerClass = cn(
+  'h-auto flex-none rounded-none border-0 bg-transparent px-0 pb-3 text-sm font-medium text-tertiary shadow-none',
+  'hover:text-foreground data-active:bg-transparent data-active:font-semibold data-active:text-primary',
+  'dark:data-active:border-transparent dark:data-active:bg-transparent',
+  'after:bg-primary group-data-horizontal/tabs:after:bottom-0 group-data-[variant=line]/tabs-list:data-active:after:opacity-100'
+)
 
 const fieldLabelClass = 'text-meta font-medium text-muted-foreground'
 const fieldControlClass =
@@ -216,52 +247,95 @@ const textareaClass =
 
       <AttributeFields :disabled="disabled" />
 
-      <div class="flex flex-col gap-4">
-        <FormField v-slot="{ componentField }" name="appearance" keep-value>
-          <FormItem class="gap-1.5">
-            <FormLabel :class="fieldLabelClass">Aparência</FormLabel>
-            <FormControl>
-              <Textarea
-                placeholder="Cicatriz no olho..."
-                :disabled="disabled"
-                :class="textareaClass"
-                v-bind="componentField"
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        </FormField>
+      <Tabs v-model="activeTab" class="flex w-full flex-col gap-5">
+        <TabsList
+          variant="line"
+          class="h-auto w-full justify-start gap-8 rounded-none border-b border-border bg-transparent p-0"
+        >
+          <TabsTrigger value="profile" :class="tabTriggerClass">Aparência e História</TabsTrigger>
+          <TabsTrigger value="inventory" :class="tabTriggerClass">Inventário</TabsTrigger>
+          <TabsTrigger value="family" :class="tabTriggerClass">Família</TabsTrigger>
+        </TabsList>
 
-        <FormField v-slot="{ componentField }" name="personality" keep-value>
-          <FormItem class="gap-1.5">
-            <FormLabel :class="fieldLabelClass">Personalidade</FormLabel>
-            <FormControl>
-              <Textarea
-                placeholder="Frio, calculista..."
-                :disabled="disabled"
-                :class="textareaClass"
-                v-bind="componentField"
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        </FormField>
+        <!-- force-mount: the fields stay registered in the form while the other tab is open. -->
+        <TabsContent
+          value="profile"
+          force-mount
+          class="flex flex-col gap-4 outline-none data-[state=inactive]:hidden"
+        >
+          <FormField v-slot="{ componentField }" name="appearance" keep-value>
+            <FormItem class="gap-1.5">
+              <FormLabel :class="fieldLabelClass">Aparência</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Cicatriz no olho..."
+                  :disabled="disabled"
+                  :class="textareaClass"
+                  v-bind="componentField"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-        <FormField v-slot="{ componentField }" name="background" keep-value>
-          <FormItem class="gap-1.5">
-            <FormLabel :class="fieldLabelClass">Background</FormLabel>
-            <FormControl>
-              <Textarea
-                placeholder="Órfão de guerra..."
-                :disabled="disabled"
-                :class="textareaClass"
-                v-bind="componentField"
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        </FormField>
-      </div>
+          <FormField v-slot="{ componentField }" name="personality" keep-value>
+            <FormItem class="gap-1.5">
+              <FormLabel :class="fieldLabelClass">Personalidade</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Frio, calculista..."
+                  :disabled="disabled"
+                  :class="textareaClass"
+                  v-bind="componentField"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <FormField v-slot="{ componentField }" name="background" keep-value>
+            <FormItem class="gap-1.5">
+              <FormLabel :class="fieldLabelClass">Background</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Órfão de guerra..."
+                  :disabled="disabled"
+                  :class="textareaClass"
+                  v-bind="componentField"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </TabsContent>
+
+        <TabsContent
+          value="inventory"
+          force-mount
+          class="flex flex-col gap-5 outline-none data-[state=inactive]:hidden"
+        >
+          <CoinFields :disabled="disabled" />
+          <ActorInventoryPicker v-model="inventoryIds" :carried-ids="[]" :disabled="disabled" />
+        </TabsContent>
+
+        <TabsContent value="family" class="outline-none">
+          <ActorFamilyPanel
+            ref="familyPanel"
+            :key="templateId"
+            v-model:draft="relatives"
+            creatable
+            :world-id="templateId"
+            editable
+            :disabled="disabled"
+            @create="relativeOpen = true"
+          />
+        </TabsContent>
+      </Tabs>
+      <CreateNpcDialog
+        v-model:open="relativeOpen"
+        :show-trigger="false"
+        @saved="onRelativeCreated"
+      />
     </div>
   </div>
 </template>

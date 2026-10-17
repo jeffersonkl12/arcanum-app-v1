@@ -2,6 +2,7 @@ import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import { toast } from 'vue-sonner'
 import type { IpcChannel, IpcError, IpcInputArgs, IpcOutput } from '@shared'
 import { translateIpcError } from '@renderer/util/ipc-error.util'
+import { toPlain } from '@renderer/util/plain.util'
 
 export function useRequest(): {
   isLoading: ComputedRef<boolean>
@@ -31,7 +32,7 @@ export function useRequest(): {
     pending.value++
     error.value = undefined
     try {
-      const response = await window.api.invoke(channel, ...input)
+      const response = await window.api.invoke(channel, ...(toPlain(input) as typeof input))
       if (response.ok) return response.data
       error.value = response.error
       if (response.error.kind !== 'invalid_input') toast.error(translateIpcError(response.error))

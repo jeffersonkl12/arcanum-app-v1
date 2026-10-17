@@ -17,6 +17,8 @@ import { findItemsTool } from '../../tools/find-items.tool'
 import { getInventoryTool } from '../../tools/get-inventory.tool'
 import { findPlacesTool } from '../../tools/find-places.tool'
 import { moveActorsTool } from '../../tools/move-actors.tool'
+import { joinPartyTool } from '../../tools/join-party.tool'
+import { leavePartyTool } from '../../tools/leave-party.tool'
 import { movePartyTool } from '../../tools/move-party.tool'
 import { recallMemoriesTool } from '../../tools/recall-memories.tool'
 import { rememberEventsTool } from '../../tools/remember-events.tool'
@@ -77,6 +79,8 @@ export const narratorAgent = new Agent({
     createPlacesTool,
     moveActorsTool,
     movePartyTool,
+    joinPartyTool,
+    leavePartyTool,
     rememberEventsTool,
     recallMemoriesTool,
     engageNpcsTool,

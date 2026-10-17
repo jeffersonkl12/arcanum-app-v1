@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import type { Actor, PointOfInterest } from '@schema'
+import type { Actor, Party, PointOfInterest } from '@schema'
 import { toPartyMemberCard } from '@renderer/composable/game.mapper'
 import type {
   CharacterSheet,
@@ -23,6 +23,8 @@ export const useGameStore = defineStore('game', () => {
   const places = ref<PointOfInterest[]>([])
   const languages = ref<NamedEntitySummary[]>([])
   const cultures = ref<NamedEntitySummary[]>([])
+  /** The world's party; `undefined` until the first member joins (the engine creates it then). */
+  const party = ref<Party>()
   const player = ref<PartyMemberCardModel>()
   const npcs = ref<PartyMemberCardModel[]>([])
   /** Where the party is: the place of the player, the only actor that is not an NPC. */
@@ -45,6 +47,8 @@ export const useGameStore = defineStore('game', () => {
   const isDeletingSheet = ref(false)
   const editOpen = ref(false)
   const editingActor = ref<ActorSummary | null>(null)
+  const partyOpen = ref(false)
+  const createPartyNpcOpen = ref(false)
 
   /** Message to play as the first turn of a campaign that was just created. */
   const pendingOpening = ref<{ worldId: string; message: string }>()
@@ -67,6 +71,7 @@ export const useGameStore = defineStore('game', () => {
     placeNpcs,
     languages,
     cultures,
+    party,
     player,
     npcs,
     sidebarTab,
@@ -75,6 +80,8 @@ export const useGameStore = defineStore('game', () => {
     isDeletingSheet,
     editOpen,
     editingActor,
+    partyOpen,
+    createPartyNpcOpen,
     pendingOpening
   }
 })

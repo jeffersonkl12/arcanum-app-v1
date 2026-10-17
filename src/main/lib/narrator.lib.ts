@@ -2,7 +2,7 @@ import type { Agent, AgentExecutionOptions } from '@mastra/core/agent'
 import type { MastraDBMessage, MastraMessagePart } from '@mastra/core/agent/message-list'
 import type { Mastra } from '@mastra/core/mastra'
 import { RequestContext } from '@mastra/core/request-context'
-import { READ_ONLY_NARRATOR_TOOLS, type MessageRating } from '@constant'
+import type { MessageRating } from '@constant'
 import { validateNarratorUi } from '@lib/openui.lib'
 import type { NarrationDeltaEvent, NarrationDoneEvent, NarrationSegment } from '@shared'
 import { NarrationStreamSplitter, splitNarration } from '@util/narration.util'
@@ -22,6 +22,7 @@ import type { LiveContextSection } from '../../mastra/context/live-context.conte
 import type { IDocumentRegistry } from '../../mastra/context/document.context'
 import type { IMemoryRegistry } from '../../mastra/context/memory.context'
 import type { INpcSceneRegistry } from '../../mastra/context/npc-scene.context'
+import type { IPartyRegistry } from '../../mastra/context/party.context'
 import type { IPointOfInterestRegistry } from '../../mastra/context/point-of-interest.context'
 import type { IRelationshipRegistry } from '../../mastra/context/relationship.context'
 
@@ -45,6 +46,7 @@ export interface NarratorTurn {
   coinRegistry: ICoinRegistry
   tradeRegistry: ITradeRegistry
   pointOfInterestRegistry: IPointOfInterestRegistry
+  partyRegistry: IPartyRegistry
   memoryRegistry: IMemoryRegistry
   documentRegistry: IDocumentRegistry
   npcSceneRegistry: INpcSceneRegistry
@@ -66,7 +68,7 @@ export interface CampaignMessage {
   createdAt: Date
   /** What the player thought of the reply. The gateway does not know it; the service fills it in. */
   rating: MessageRating | null
-  /** The last reply of the campaign, and the turn that wrote it changed nothing in the game. */
+  /** The last reply of the campaign, which can always be played again. */
   canRegenerate: boolean
 }
 
@@ -169,6 +171,7 @@ export class NarratorGateway implements INarratorGateway {
     coinRegistry,
     tradeRegistry,
     pointOfInterestRegistry,
+    partyRegistry,
     memoryRegistry,
     documentRegistry,
     npcSceneRegistry,
@@ -191,6 +194,7 @@ export class NarratorGateway implements INarratorGateway {
     requestContext.set('coinRegistry', coinRegistry)
     requestContext.set('tradeRegistry', tradeRegistry)
     requestContext.set('pointOfInterestRegistry', pointOfInterestRegistry)
+    requestContext.set('partyRegistry', partyRegistry)
     requestContext.set('memoryRegistry', memoryRegistry)
     requestContext.set('documentRegistry', documentRegistry)
     requestContext.set('npcSceneRegistry', npcSceneRegistry)
@@ -216,7 +220,7 @@ export class NarratorGateway implements INarratorGateway {
     const stored = await this.recallCampaign(worldId)
     const lastTurn = lastTurnOf(stored)
     const lastReply = lastTurn.findLast((message) => message.role === 'assistant')
-    const canRegenerate = lastTurn.length > 1 && isRepeatable(lastTurn)
+    const canRegenerate = lastTurn.length > 1
 
     // Tool calls and their results are plumbing; the player only sees the dialogue.
     return stored.flatMap((message) => {
@@ -247,7 +251,7 @@ export class NarratorGateway implements INarratorGateway {
     const memory = await this.campaignMemory()
     const lastTurn = lastTurnOf(await this.recallCampaign(worldId))
     const [opening] = lastTurn
-    if (!memory || opening?.role !== 'user' || !isRepeatable(lastTurn)) return undefined
+    if (!memory || opening?.role !== 'user') return undefined
 
     const removedIds = lastTurn.map((message) => message.id)
     await memory.deleteMessages(removedIds)
@@ -372,17 +376,6 @@ function lastTurnOf(messages: MastraDBMessage[]): MastraDBMessage[] {
   const start = messages.findLastIndex((message) => message.role === 'user')
 
   return start === -1 ? [] : messages.slice(start)
-}
-
-/** Whether a turn can be played again: every tool it called only read the game. */
-function isRepeatable(turn: MastraDBMessage[]): boolean {
-  return turn.every((message) =>
-    message.content.parts.every(
-      (part) =>
-        part.type !== 'tool-invocation' ||
-        READ_ONLY_NARRATOR_TOOLS.includes(part.toolInvocation.toolName)
-    )
-  )
 }
 
 /** One campaign per world for now; a session-per-thread model only needs a new id scheme here. */

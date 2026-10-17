@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import CharacterSheetDialog from '@renderer/components/custom/CharacterSheetDialog.vue'
 import ConfirmDialog from '@renderer/components/custom/ConfirmDialog.vue'
 import CreateNpcDialog from '@renderer/components/custom/CreateNpcDialog.vue'
+import GamePartyDialog from '@renderer/components/custom/GamePartyDialog.vue'
 import { useGame } from '@renderer/composable/game.composable'
 import { GameChatView, GameHeaderView, GamePartyView } from '@renderer/view/game'
 
@@ -21,7 +22,9 @@ const {
   isDeletingSheet,
   deleteSelectedCharacter,
   requestEditCharacter,
-  applyCharacterSaved
+  applyCharacterSaved,
+  createPartyNpcOpen,
+  applyPartyNpcCreated
 } = useGame()
 
 const deleteConfirmOpen = ref(false)
@@ -78,6 +81,12 @@ async function confirmDeleteCharacter(): Promise<void> {
       :show-trigger="false"
       lock-stats
       @saved="void applyCharacterSaved()"
+    />
+    <GamePartyDialog />
+    <CreateNpcDialog
+      v-model:open="createPartyNpcOpen"
+      :show-trigger="false"
+      @saved="void applyPartyNpcCreated($event)"
     />
     <ConfirmDialog
       v-model:open="deleteConfirmOpen"

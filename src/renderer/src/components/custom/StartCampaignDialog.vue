@@ -41,11 +41,13 @@ import {
 } from '@renderer/constant/actor.constant'
 import { startCampaignSteps } from '@renderer/constant/campaign.constant'
 import { attributeFormShape } from '@renderer/util/attribute.util'
+import { coinFormShape } from '@renderer/util/coin.util'
 import { healthFormShape } from '@renderer/util/health.util'
 import { useCampaign } from '@renderer/composable/campaign.composable'
 import type { CampaignPrologueMode, StartCampaignStep } from '@renderer/composable/campaign.type'
 import { useStartCampaign } from '@renderer/composable/start-campaign.composable'
 import { useWorld } from '@renderer/composable/world.composable'
+import type { NewRelative } from '@schema'
 import type { ActorSummary } from '@renderer/composable/world.type'
 import { cn } from '@renderer/lib/utils'
 import { toast } from 'vue-sonner'
@@ -86,7 +88,8 @@ const startCampaignFormSchema = toTypedSchema(
     prologue: z.string().max(5000, 'O prólogo pode ter no máximo 5000 caracteres'),
     // The current health is not asked: a campaign starts at full health.
     hpMax: healthFormShape.hpMax,
-    ...attributeFormShape
+    ...attributeFormShape,
+    ...coinFormShape
   })
 )
 
@@ -96,7 +99,10 @@ const emptyForm = {
   appearance: '',
   personality: '',
   background: '',
-  prologue: ''
+  prologue: '',
+  goldPieces: 0,
+  silverPieces: 0,
+  bronzePieces: 0
 }
 
 withDefaults(
@@ -112,6 +118,9 @@ const step = ref<StartCampaignStep>(1)
 const prologueMode = ref<CampaignPrologueMode>('custom')
 const imagePreviewUrl = ref<string>()
 const imageData = ref<Uint8Array>()
+// What the character carries and who its family is; both are picked among the template's.
+const inventoryIds = ref<string[]>([])
+const relatives = ref<NewRelative[]>([])
 
 const router = useRouter()
 const { loadWorld } = useWorld()
@@ -146,6 +155,7 @@ watch(isOpen, async (opening) => {
     resetForm({ values: emptyForm })
     clearImage()
     resetParty()
+    clearCharacterExtras()
     preferredTemplateId.value = undefined
     templateId.value = undefined
     step.value = 1
@@ -158,7 +168,7 @@ watch(isOpen, async (opening) => {
   const options = await loadTemplateOptions()
   const wanted = preferredTemplateId.value ?? templateFilter.value
   const initial = options.find((option) => option.id === wanted) ?? options[0]
-  if (initial) await loadOptions(initial.id)
+  if (initial) await pickTemplateOptions(initial.id)
 })
 
 onBeforeUnmount(() => {
@@ -171,7 +181,18 @@ async function pickTemplate(id: unknown): Promise<void> {
   setFieldValue('languageId', undefined)
   setFieldValue('cultureId', undefined)
   setFieldValue('pointOfInterestId', undefined)
-  await loadOptions(id)
+  await pickTemplateOptions(id)
+}
+
+/** The items and the relatives to pick come from the template, which becomes the open world. */
+async function pickTemplateOptions(id: string): Promise<void> {
+  clearCharacterExtras()
+  await Promise.all([loadOptions(id), loadWorld(id)])
+}
+
+function clearCharacterExtras(): void {
+  inventoryIds.value = []
+  relatives.value = []
 }
 
 function clearImage(): void {
@@ -210,7 +231,10 @@ async function goNext(): Promise<void> {
       'hpMax',
       'strength',
       'dexterity',
-      'intelligence'
+      'intelligence',
+      'goldPieces',
+      'silverPieces',
+      'bronzePieces'
     ] as const
     const results = await Promise.all(fields.map((field) => validateField(field)))
     if (results.some((result) => !result.valid)) return
@@ -251,6 +275,11 @@ const onStart = handleSubmit(async (formValues) => {
       strength: formValues.strength,
       dexterity: formValues.dexterity,
       intelligence: formValues.intelligence,
+      goldPieces: formValues.goldPieces,
+      silverPieces: formValues.silverPieces,
+      bronzePieces: formValues.bronzePieces,
+      inventoryItemIds: [...inventoryIds.value],
+      relatives: relatives.value.map((relative) => ({ ...relative })),
       imageData: imageData.value
     },
     partyMemberIds: [...partyMemberIds.value],
@@ -269,6 +298,16 @@ async function onCreateNpc(): Promise<void> {
   if (!templateId.value) return
   await loadWorld(templateId.value)
   npcOpen.value = true
+}
+
+/** A relative made for the character is an NPC of the template, which step 2 may put in the party. */
+function onRelativeCreated(actor: ActorSummary): void {
+  addNpcCandidate({
+    id: actor.id,
+    name: actor.name,
+    subtitle: actor.subtitle,
+    imagePath: actor.imagePath
+  })
 }
 
 function onNpcCreated(actor: ActorSummary): void {
@@ -393,12 +432,16 @@ function onNpcCreated(actor: ActorSummary): void {
 
           <StartCampaignCharacterStep
             v-if="step === 1"
+            v-model:inventory-ids="inventoryIds"
+            v-model:relatives="relatives"
+            :template-id="templateId"
             :languages="languages"
             :cultures="cultures"
             :places="places"
             :image-preview-url="imagePreviewUrl"
             :disabled="isStarting"
             @image-selected="onImageSelected"
+            @relative-created="onRelativeCreated"
           />
           <StartCampaignPartyStep
             v-else-if="step === 2"

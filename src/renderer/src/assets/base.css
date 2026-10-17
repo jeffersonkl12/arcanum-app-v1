@@ -252,6 +252,13 @@ ul {
   list-style: none;
 }
 
+/* App shell: only the panels inside scroll, never the window or the shell around the sidebar. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   min-height: 100vh;
   text-rendering: optimizeLegibility;

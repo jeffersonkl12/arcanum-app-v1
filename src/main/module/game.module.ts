@@ -48,6 +48,7 @@ import { CampaignRegistryService } from '@service/campaign-registry.service'
 import { CampaignService, type ICampaignService } from '@service/campaign.service'
 import { NpcSceneService } from '@service/npc-scene.service'
 import { PartyService, type IPartyService } from '@service/party.service'
+import { PartyRegistryService } from '@service/party-registry.service'
 import { PointOfInterestRegistryService } from '@service/point-of-interest-registry.service'
 import {
   PointOfInterestService,
@@ -183,5 +184,6 @@ export const gameMasterService: IGameMasterService = new GameMasterService(
   cultureService,
   languageService,
   npcSceneService,
-  kinshipService
+  kinshipService,
+  new PartyRegistryService(partyService, actorService)
 )

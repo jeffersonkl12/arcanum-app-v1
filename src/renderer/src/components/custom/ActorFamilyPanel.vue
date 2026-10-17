@@ -34,10 +34,16 @@ const props = withDefaults(
     /** Where to find the possible relatives; needed to edit. */
     worldId?: string
     editable?: boolean
+    /** Offer to make a new relative when the world has nobody to pick (the parent opens the form). */
+    creatable?: boolean
     disabled?: boolean
   }>(),
-  { actorId: undefined, worldId: undefined, editable: false, disabled: false }
+  { actorId: undefined, worldId: undefined, editable: false, creatable: false, disabled: false }
 )
+
+const emit = defineEmits<{
+  create: []
+}>()
 
 const draft = defineModel<NewRelative[]>('draft', { default: () => [] })
 
@@ -130,13 +136,27 @@ async function remove(relativeId: string): Promise<void> {
   draft.value = draft.value.filter((entry) => entry.relativeId !== relativeId)
 }
 
+async function loadCandidates(): Promise<void> {
+  candidates.value =
+    props.editable && props.worldId
+      ? ((await request('actor:listByWorld', props.worldId)) ?? [])
+      : []
+}
+
+/** Reads the world's actors again, e.g. after the parent made a new one; it is then preselected. */
+async function reload(selectId?: string): Promise<void> {
+  await loadCandidates()
+  if (selectId && candidates.value.some((actor) => actor.id === selectId)) pickedId.value = selectId
+}
+
+defineExpose({ reload })
+
 watch(() => props.actorId, loadFamily)
+watch(() => props.worldId, loadCandidates)
 
 onMounted(async () => {
   await loadFamily()
-  if (props.editable && props.worldId) {
-    candidates.value = (await request('actor:listByWorld', props.worldId)) ?? []
-  }
+  await loadCandidates()
 })
 
 const selectTriggerClass =
@@ -183,6 +203,22 @@ const selectTriggerClass =
         >
           <Plus class="size-4" />
           Adicionar
+        </Button>
+      </div>
+      <div v-if="creatable" class="flex items-center justify-between gap-3">
+        <p v-if="options.length === 0" class="text-xs text-tertiary">
+          Não há ninguém neste mundo para escolher como parente.
+        </p>
+        <span v-else />
+        <Button
+          type="button"
+          variant="outline"
+          class="h-auto shrink-0 gap-2 rounded-full bg-transparent px-4 py-2 text-sm font-semibold"
+          :disabled="disabled"
+          @click="emit('create')"
+        >
+          <Plus class="size-4" />
+          Criar novo parente
         </Button>
       </div>
       <p class="text-xs text-tertiary">
